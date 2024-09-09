@@ -100,18 +100,16 @@ def plot_classification_case(
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_title(f"Smoothness: {smoothness:.1f}")
-    os.makedirs("./figures", exist_ok=True)
-    plt.savefig(f"./figures/width{width}_depth{depth}_steps{training_steps}_smooth{smoothness: .1f}.png")
 
 
 if __name__ == "__main__":
     smoothness_vals = np.arange(0, 1 + 1e-6, 0.125)
     width = 128
-    depth = 3
-    training_steps = 2000
+    depth = 2
+    training_steps = 20000
 
     # Create a figure for the 3x3 grid of subplots
-    fig, axs = plt.subplots(3, 3, figsize=(15, 15))
+    fig, axs = plt.subplots(3, 3, figsize=(30, 30))
     axs = axs.flatten()
 
     for i, smoothness in enumerate(smoothness_vals):
