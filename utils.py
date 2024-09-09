@@ -15,10 +15,11 @@ class ReplacementMapping:
 def replace_module(model, replacement_mapping):
     if not isinstance(model, torch.nn.Module):
         raise ValueError("Torch.nn.Module expected as input")
+    device = next(model.parameters()).device
     for name, module in model.named_modules():
         if name == "":
             continue
-        replacement = replacement_mapping(name, module)
+        replacement = replacement_mapping(name, module).to(device)
         module_names = name.split(".")
         # we go down the tree up to the parent
         parent = model
