@@ -2,11 +2,15 @@ import torch
 import torch.nn as nn
 
 
-def replacement(name, module):
-    if isinstance(module, torch.nn.ReLU):
-        # TODO: return your own smooth verions
-        return
-    return module
+class ReplacementMapping:
+    def __init__(self, smoothness=0.541323):
+        self.smoothness = smoothness
+
+    def __call__(self, name, module):
+        if isinstance(module, torch.nn.ReLU):
+            return LazySmoothReLU(smoothness=self.smoothness)
+        return module
+
 
 def replace_module(model, replacement_mapping):
     if not isinstance(model, torch.nn.Module):
@@ -25,7 +29,7 @@ def replace_module(model, replacement_mapping):
 
 
 class SmoothReLU(nn.Module):
-    def __init__(self, smoothness=0,in_features=1, trainable=False):
+    def __init__(self, smoothness=0, in_features=1, trainable=False):
         super().__init__()
         param = torch.nn.Parameter(torch.zeros(in_features)+smoothness)
         param.requires_grad_(trainable)
@@ -34,16 +38,18 @@ class SmoothReLU(nn.Module):
     def forward(self, x):
         return torch.sigmoid(x / nn.functional.softplus(self.smoothness)) * x
 
+
 class LazySmoothReLU(nn.modules.lazy.LazyModuleMixin, SmoothReLU):
 
     cls_to_become = SmoothReLU
     weight: nn.parameter.UninitializedParameter
 
-    def __init__(self, axis=-1, device=None, dtype=None):
+    def __init__(self, axis=-1, smoothness=0.541323, device=None, dtype=None):
         super().__init__()
         if type(axis) not in [tuple, list]:
             axis = [axis]
         self.axis = axis
+        self.val_smoothness = smoothness
         self.smoothness = nn.parameter.UninitializedParameter(device=device, dtype=dtype)
 
     def initialize_parameters(self, input) -> None:
@@ -53,4 +59,4 @@ class LazySmoothReLU(nn.modules.lazy.LazyModuleMixin, SmoothReLU):
                 for i in self.axis:
                     s[i] = input.size(i)
                 self.smoothness.materialize(s)
-                self.smoothness.copy_(torch.Tensor([0.541323]))
+                self.smoothness.copy_(torch.Tensor([self.val_smoothness]))
