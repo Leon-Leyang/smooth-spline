@@ -20,14 +20,15 @@ def plot_classification_case(
 
     if not os.path.exists("./data/toy_data.pt"):
         # data generation
+        print("Generating data...")
         points = []
         for theta in np.linspace(0, 2 * np.pi, N):
             if theta < np.pi:
-                x = np.cos(theta) * r - r / 2
-                y = np.sin(theta) * r - 3 * r / 8
+                x = np.cos(theta) * r - r / 8
+                y = np.sin(theta) * r - r / 5
             else:
-                x = np.cos(theta) * r + r / 2
-                y = np.sin(theta) * r + 3 * r / 8
+                x = np.cos(theta) * r + r / 8
+                y = np.sin(theta) * r + r / 5
             points.append([x, y])
 
         points = torch.from_numpy(np.stack(points)).float()
@@ -39,13 +40,18 @@ def plot_classification_case(
 
         points = points.cuda()
     else:
+        print("Using cached data...")
         points = torch.load("./data/toy_data.pt", weights_only=True).cuda()
     target = torch.from_numpy(np.array([0] * (N // 2) + [1] * (N // 2))).long().cuda()
 
     # model and optimizer definition
     model = Network(2, depth, width, nn.ReLU()).cuda()
-    replacement_mapping = ReplacementMapping(beta=beta)
-    model = replace_module(model, replacement_mapping)
+    if beta != 1:
+        print(f"Using BetaReLU with beta={beta}")
+        replacement_mapping = ReplacementMapping(beta=beta)
+        model = replace_module(model, replacement_mapping)
+    else:
+        print("Using ReLU")
     optim = torch.optim.AdamW(model.parameters(), 0.001, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.3)
 

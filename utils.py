@@ -65,13 +65,14 @@ class LazySmoothReLU(nn.modules.lazy.LazyModuleMixin, SmoothReLU):
 
 class BetaReLU(nn.Module):
     def __init__(self, beta=0, in_features=1, trainable=False):
+        assert 0 <= beta < 1
         super().__init__()
         param = torch.nn.Parameter(torch.zeros(in_features)+beta)
         param.requires_grad_(trainable)
         self.register_parameter("beta", param)
 
     def forward(self, x):
-        return torch.sigmoid(self.beta * x / ((1 - self.beta) + 1e-6)) * x
+        return torch.sigmoid(self.beta * x / (1 - self.beta)) * x
 
 
 class LazyBetaReLU(nn.modules.lazy.LazyModuleMixin, BetaReLU):
