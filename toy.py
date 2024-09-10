@@ -24,10 +24,10 @@ def plot_classification_case(
         for theta in np.linspace(0, 2 * np.pi, N):
             if theta < np.pi:
                 x = np.cos(theta) * r - r / 2
-                y = np.sin(theta) * r
+                y = np.sin(theta) * r - 3 * r / 8
             else:
                 x = np.cos(theta) * r + r / 2
-                y = np.sin(theta) * r
+                y = np.sin(theta) * r + 3 * r / 8
             points.append([x, y])
 
         points = torch.from_numpy(np.stack(points)).float()
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     beta_vals = np.arange(0, 1 + 1e-6, 0.125)
     width = 128
     depth = 2
-    training_steps = 20000
+    training_steps = 2000
 
     # Create a figure for the 3x3 grid of subplots
     fig, axs = plt.subplots(3, 3, figsize=(30, 30))
