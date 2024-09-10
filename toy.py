@@ -23,11 +23,11 @@ def plot_classification_case(
         points = []
         for theta in np.linspace(0, 2 * np.pi, N):
             if theta < np.pi:
-                x = np.cos(theta) * r - r / 4
-                y = np.sin(theta) * r - 3 * r / 4
+                x = np.cos(theta) * r - r / 2
+                y = np.sin(theta) * r
             else:
-                x = np.cos(theta) * r + r / 4
-                y = np.sin(theta) * r + 3 * r / 4
+                x = np.cos(theta) * r + r / 2
+                y = np.sin(theta) * r
             points.append([x, y])
 
         points = torch.from_numpy(np.stack(points)).float()
