@@ -23,11 +23,11 @@ def plot_classification_case(
         points = []
         for theta in np.linspace(0, 2 * np.pi, N):
             if theta < np.pi:
-                x = np.cos(theta) * r - r / 2
-                y = np.sin(theta) * r - r / 4
+                x = np.cos(theta) * r - r / 4
+                y = np.sin(theta) * r - 3 * r / 4
             else:
-                x = np.cos(theta) * r + r / 2
-                y = np.sin(theta) * r + r / 4
+                x = np.cos(theta) * r + r / 4
+                y = np.sin(theta) * r + 3 * r / 4
             points.append([x, y])
 
         points = torch.from_numpy(np.stack(points)).float()
@@ -66,7 +66,7 @@ def plot_classification_case(
 
     # plotting
     domain_bound = 1.8
-    mesh_dim = 2000
+    mesh_dim = 4000
     with torch.no_grad():
         xx, yy = np.meshgrid(
             np.linspace(-domain_bound, domain_bound, mesh_dim),
