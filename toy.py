@@ -9,7 +9,7 @@ from utils import Network, replace_module, ReplacementMapping
 
 # Adapted from https://github.com/RandallBalestriero/POLICE
 def plot_classification_case(
-    width: int, depth: int, training_steps=2000, smoothness=0.5, ax=None
+    width: int, depth: int, training_steps=2000, beta=0.5, ax=None
 ) -> None:
     N = 1024    # Number of training points
     r = 1
@@ -44,7 +44,7 @@ def plot_classification_case(
 
     # model and optimizer definition
     model = Network(2, depth, width, nn.ReLU()).cuda()
-    replacement_mapping = ReplacementMapping(smoothness=smoothness)
+    replacement_mapping = ReplacementMapping(beta=beta)
     model = replace_module(model, replacement_mapping)
     optim = torch.optim.AdamW(model.parameters(), 0.001, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.3)
@@ -99,11 +99,11 @@ def plot_classification_case(
     # small beautifying process and figure saving
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(f"Smoothness: {smoothness:.1f}")
+    ax.set_title(f"Beta: {beta:.1f}")
 
 
 if __name__ == "__main__":
-    smoothness_vals = np.arange(0, 1 + 1e-6, 0.125)
+    beta_vals = np.arange(0, 1 + 1e-6, 0.125)
     width = 128
     depth = 2
     training_steps = 20000
@@ -112,8 +112,8 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(3, 3, figsize=(30, 30))
     axs = axs.flatten()
 
-    for i, smoothness in enumerate(smoothness_vals):
-        plot_classification_case(width, depth, training_steps, smoothness, axs[i])
+    for i, beta in enumerate(beta_vals):
+        plot_classification_case(width, depth, training_steps, beta, axs[i])
 
     # Adjust layout and save the combined figure
     plt.tight_layout()
