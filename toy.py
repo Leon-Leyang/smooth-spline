@@ -99,7 +99,7 @@ def plot_classification_case(
     # small beautifying process and figure saving
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(f"Beta: {beta:.1f}")
+    ax.set_title(f"Beta: {beta:.3f}")
 
 
 if __name__ == "__main__":
