@@ -6,6 +6,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils import Network, replace_module, ReplacementMapping
 import matplotlib.cm as cm
+import copy
+from matplotlib.colors import ListedColormap
 
 
 # Adapted from https://github.com/RandallBalestriero/POLICE
@@ -46,14 +48,14 @@ def plot_classification_case(
     target = torch.from_numpy(np.array([0] * (N // 2) + [1] * (N // 2))).long().cuda()
 
     # model and optimizer definition
-    model = Network(2, depth, width, nn.ReLU()).cuda()
-    optim = torch.optim.AdamW(model.parameters(), 0.001, weight_decay=1e-5)
+    relu_model = Network(2, depth, width, nn.ReLU()).cuda()
+    optim = torch.optim.AdamW(relu_model.parameters(), 0.001, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.3)
 
     # training
     with tqdm(total=training_steps // 100) as pbar:
         for i in range(training_steps):
-            output = model(points)[:, 0]
+            output = relu_model(points)[:, 0]
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
                 output, target.float()
             )
@@ -74,12 +76,12 @@ def plot_classification_case(
             np.linspace(-domain_bound, domain_bound, mesh_dim),
         )
         grid = torch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().cuda()
-        pred = model(grid).cpu().numpy()
-        grid = grid.cpu().numpy()
+        pred = relu_model(grid).cpu().numpy()
         points = points.cpu().numpy()
         target = target.cpu().numpy()
 
     # plot training data
+    fig, ax = plt.subplots()
     plt.scatter(
         points[:, 0],
         points[:, 1],
@@ -88,8 +90,8 @@ def plot_classification_case(
     )
 
     # Create a colormap
-    cmap = cm.get_cmap("plasma", len(beta_vals))
-    num_boundaries = len(beta_vals) + 1
+    cmap = cm.get_cmap("viridis", len(beta_vals))
+    num_boundaries = len(beta_vals)
     color_grad = [cmap(i / num_boundaries) for i in range(num_boundaries)]
 
     # plot our decision boundary
@@ -98,28 +100,38 @@ def plot_classification_case(
         yy,
         pred[:, 0].reshape((mesh_dim, mesh_dim)),
         levels=[0],
-        colors=[color_grad[0]],
+        colors=["red"],
         linewidths=[4],
     )
 
     for i, beta in enumerate(beta_vals):
-        print(f"Using BetaReLU with beta={beta}")
+        print(f"Using BetaReLU with beta={beta: .1f}")
         replacement_mapping = ReplacementMapping(beta=beta)
-        model = replace_module(model, replacement_mapping)
+        orig_model = copy.deepcopy(relu_model)
+        new_model = replace_module(orig_model, replacement_mapping)
         with torch.no_grad():
-            pred = model(grid).cpu().numpy()
+            pred = new_model(grid).cpu().numpy()
         plt.contour(
             xx,
             yy,
             pred[:, 0].reshape((mesh_dim, mesh_dim)),
             levels=[0],
-            colors=[color_grad[i + 1]],
+            colors=[color_grad[i]],
             linewidths=[2],
         )
 
     # small beautifying process and figure saving
-    plt.set_xticks([])
-    plt.set_yticks([])
+    plt.xticks([])
+    plt.yticks([])
+
+    # Adding a custom color bar
+    custom_cmap = ListedColormap(color_grad)
+    norm = plt.Normalize(vmin=beta_vals[0], vmax=beta_vals[-1])
+    sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
+    sm.set_array([])  # Only needed for older versions of matplotlib
+    cbar = plt.colorbar(sm, ax=ax)
+    cbar.set_ticks(beta_vals)
+    cbar.set_label("Beta values")
 
     # Adjust layout and save the combined figure
     plt.tight_layout()
