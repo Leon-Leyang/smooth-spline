@@ -14,7 +14,7 @@ wandb.init(project='smooth-spline', entity='leyang_hu')
 # Hyperparameters
 batch_size = 128
 learning_rate = 0.1
-num_epochs = 2
+num_epochs = 200
 
 # Check if GPU is available
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -49,10 +49,10 @@ model = model.to(device)
 
 # Loss function and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4, nesterov=True)
 
-# Learning rate scheduler
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+# Learning rate scheduler with specific milestones for reduction
+scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
 
 
 # Training function
@@ -115,7 +115,7 @@ for epoch in range(num_epochs):
     scheduler.step()
 
 # Save the final model
-os.makedirs('ckpts', exist_ok=True)
+os.makedirs('./ckpts', exist_ok=True)
 torch.save(model.state_dict(), './ckpts/resnet18_cifar100.pth')
 
 # Mark the wandb run as complete
