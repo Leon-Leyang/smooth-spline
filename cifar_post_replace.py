@@ -5,7 +5,7 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 import wandb
-from torchvision.models import resnet18
+from resnet import resnet18
 from utils import WarmUpLR
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -120,8 +120,7 @@ def train():
     cifar100_train_loader, cifar100_test_loader = get_data_loaders('cifar100', batch_size)
 
     # Initialize the model
-    model = resnet18(weights=None)
-    model.fc = nn.Linear(model.fc.in_features, 100)
+    model = resnet18()
     model = model.to(device)
 
     # Loss function and optimizer
