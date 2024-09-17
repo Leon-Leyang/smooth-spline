@@ -17,7 +17,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def get_data_loaders(dataset, batch_size=128):
     """
-    Get the data loaders for the dataset
+    Get the data loaders for the dataset.
     """
     assert dataset in ['cifar10', 'cifar100']
 
@@ -51,7 +51,7 @@ def get_data_loaders(dataset, batch_size=128):
 
 def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_scheduler):
     """
-    Train the model for one epoch
+    Train the model for one epoch.
     """
     model.train()
     running_loss = 0.0
@@ -84,8 +84,8 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
 
 def test_epoch(epoch, model, testloader, criterion, device):
     """
-    Test the model for one epoch
-    Specify epoch=-1 to use for testing after training
+    Test the model for one epoch.
+    Specify epoch=-1 to use for testing after training.
     """
     model.eval()
     test_loss = 0
@@ -115,9 +115,10 @@ def test_epoch(epoch, model, testloader, criterion, device):
     return test_loss
 
 
-def train():
+def train(name):
     """
-    Train the model on CIFAR-100
+    Train the model on CIFAR-100.
+    :param name: name of the train, e.g. normal/overfit
     """
     # Hyperparameters
     batch_size = 128
@@ -132,9 +133,12 @@ def train():
     model = model.to(device)
 
     # Return the model if it has already been trained
-    if os.path.exists(f'./ckpts/resnet18_cifar100_epoch{num_epochs}.pth'):
-        model.load_state_dict(torch.load(f'./ckpts/resnet18_cifar100_epoch{num_epochs}.pth'))
-        print(f'Loaded model from ./ckpts/resnet18_cifar100_epoch{num_epochs}.pth')
+    ckpt_folder = os.path.join('./ckpts', name)
+    os.makedirs(f'{ckpt_folder}', exist_ok=True)
+    file_to_check = os.path.join(ckpt_folder, f'resnet18_cifar100_epoch{num_epochs}.pth')
+    if os.path.exists(file_to_check):
+        model.load_state_dict(torch.load(file_to_check))
+        print(f'Loaded model from {file_to_check}')
         return model, cifar100_test_loader
 
     # Resume training if a checkpoint exists(resume from the latest epoch)
@@ -157,8 +161,6 @@ def train():
     iter_per_epoch = len(cifar100_train_loader)
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch)
 
-    os.makedirs('./ckpts', exist_ok=True)
-
     best_test_loss = float('inf')
 
     # Train the model
@@ -171,20 +173,20 @@ def train():
 
         # save every 10 epochs
         if epoch % 10 == 0:
-            torch.save(model.state_dict(), f'./ckpts/resnet18_cifar100_epoch{epoch}.pth')
+            torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_epoch{epoch}.pth'))
 
         # Save the model with the best test loss
         if test_loss < best_test_loss:
             print(f'Find new best model at Epoch {epoch}')
             best_test_loss = test_loss
-            torch.save(model.state_dict(), './ckpts/resnet18_cifar100_best.pth')
+            torch.save(model.state_dict(), os.path.join(ckpt_folder, 'resnet18_cifar100_best.pth'))
 
     return model, cifar100_test_loader
 
 
 def transfer_linear_probe(model):
     """
-    Transfer learning on CIFAR-10 using a linear probe
+    Transfer learning on CIFAR-10 using a linear probe.
     """
     # Hyperparameters
     batch_size = 128
@@ -228,7 +230,7 @@ def transfer_linear_probe(model):
 
 def extract_feautres(feature_extractor, dataloader):
     """
-    Extract features from the model
+    Extract features from the model.
     """
     feature_extractor.eval()
     features = []
@@ -247,7 +249,7 @@ def extract_feautres(feature_extractor, dataloader):
 
 def transfer_knn(model):
     """
-    Transfer learning on CIFAR-10 using a k-NN classifier
+    Transfer learning on CIFAR-10 using a k-NN classifier.
     """
     # Hyperparameters
     batch_size = 128
@@ -274,7 +276,7 @@ def transfer_knn(model):
 
 def replace_and_test_cifar100(model, test_loader, beta_vals):
     """
-    Replace ReLU with BetaReLU and test the model on CIFAR-100
+    Replace ReLU with BetaReLU and test the model on CIFAR-100.
     """
     print('*' * 50)
     print('Running post-replace experiment on CIFAR-100...')
