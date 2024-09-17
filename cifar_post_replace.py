@@ -113,7 +113,7 @@ def test_epoch(epoch, model, testloader, criterion, device):
     else:
         print(f'Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
 
-    return test_loss
+    return test_loss, test_accuracy
 
 
 def train(mode):
@@ -170,7 +170,7 @@ def train(mode):
                 scheduler.step(epoch)
 
         train_epoch(epoch, model, cifar100_train_loader, optimizer, criterion, device, warmup_scheduler)
-        test_loss = test_epoch(epoch, model, cifar100_test_loader, criterion, device)
+        test_loss, _ = test_epoch(epoch, model, cifar100_test_loader, criterion, device)
 
         # save every 10 epochs
         if epoch % 10 == 0:
@@ -214,7 +214,7 @@ def transfer_linear_probe(model):
     for epoch in range(1, num_epochs + 1):
         train_epoch(epoch, model, cifar10_train_loader, optimizer, criterion, device, None)
 
-        test_loss = test_epoch(epoch, model, cifar10_test_loader, criterion, device)
+        test_loss, _ = test_epoch(epoch, model, cifar10_test_loader, criterion, device)
 
         # save every 10 epochs
         if epoch % 10 == 0:
@@ -286,7 +286,9 @@ def replace_and_test_cifar100(model, test_loader, beta_vals):
 
     # Test the original model
     print('Testing the original model...')
-    test_epoch(-1, model, test_loader, criterion, device)
+    test_loss, _ = test_epoch(-1, model, test_loader, criterion, device)
+    best_test_loss = test_loss
+    best_beta = 1
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
@@ -294,7 +296,11 @@ def replace_and_test_cifar100(model, test_loader, beta_vals):
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
         new_model = replace_module(orig_model, replacement_mapping)
-        test_epoch(-1, new_model, test_loader, criterion, device)
+        test_loss, _ = test_epoch(-1, new_model, test_loader, criterion, device)
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss
+            best_beta = beta
+    print(f'Best test loss: {best_test_loss:.4f} with beta={best_beta:.3f}, compared to ReLU test loss: {test_loss:.4f}')
 
 
 def main():
@@ -302,13 +308,13 @@ def main():
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
     # Train the model on CIFAR-100
-    mode = 'overfit'
+    mode = 'normal'
     model, cifar100_test_loader = train(mode)
 
-    # beta_vals = np.arange(0.9, 1, 0.002)
-    #
-    # # Replace ReLU with BetaReLU and test the model on CIFAR-100
-    # replace_and_test_cifar100(model, cifar100_test_loader, beta_vals)
+    beta_vals = np.arange(0.9, 1, 0.001)
+
+    # Replace ReLU with BetaReLU and test the model on CIFAR-100
+    replace_and_test_cifar100(model, cifar100_test_loader, beta_vals)
 
     wandb.finish()
 
