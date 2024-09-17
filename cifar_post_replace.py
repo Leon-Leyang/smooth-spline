@@ -5,8 +5,11 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 import wandb
+import numpy as np
 from resnet import resnet18
 from utils import WarmUpLR
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -203,8 +206,50 @@ def transfer_linear_probe(model):
     return model
 
 
-def transfer_knn():
-    pass
+def extract_feautres(feature_extractor, dataloader):
+    """
+    Extract features from the model
+    """
+    feature_extractor.eval()
+    features = []
+    labels = []
+    with torch.no_grad():
+        for inputs, targets in dataloader:
+            inputs = inputs.to(device)
+            features.append(feature_extractor(inputs).cpu().numpy())
+            labels.append(targets.numpy())
+
+    features = np.concatenate(features, axis=0)
+    labels = np.concatenate(labels, axis=0)
+
+    return features, labels
+
+
+def transfer_knn(model):
+    """
+    Transfer learning on CIFAR-10 using a k-NN classifier
+    """
+    # Hyperparameters
+    batch_size = 128
+    neighbors = 5
+
+    # Get the data loaders for CIFAR-10
+    cifar10_train_loader, cifar10_test_loader = get_data_loaders('cifar10', batch_size)
+    knn = KNeighborsClassifier(n_neighbors=neighbors)
+
+    # Extract features from the pre-trained model
+    feature_extractor = nn.Sequential(*list(model.children())[:-1])
+    train_features, train_labels = extract_feautres(feature_extractor, cifar10_train_loader)
+    test_features, test_labels = extract_feautres(feature_extractor, cifar10_test_loader)
+
+    # Train the k-NN classifier
+    knn.fit(train_features, train_labels)
+
+    # Test the k-NN classifier
+    predictions = knn.predict(test_features)
+    accuracy = accuracy_score(test_labels, predictions)
+    print(f'Accuracy of k-NN classifier: {accuracy:.2f}')
+    return knn
 
 
 def main():
