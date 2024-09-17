@@ -134,7 +134,7 @@ def train():
     # Train the model
     for epoch in range(1, num_epochs + 1):
         if epoch > 1:
-            scheduler.step()
+            scheduler.step(epoch)
 
         train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler)
         test_loss = test_epoch(epoch, model, test_loader, criterion, device)
