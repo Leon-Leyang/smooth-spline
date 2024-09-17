@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils import Network, replace_module, ReplacementMapping
+from utils import Network, replace_module, ReplacementMapping, get_file_name
 
 
 # Adapted from https://github.com/RandallBalestriero/POLICE
@@ -123,6 +123,7 @@ if __name__ == "__main__":
 
     # Adjust layout and save the combined figure
     plt.tight_layout()
-    os.makedirs("./figures", exist_ok=True)
-    plt.savefig(f"./figures/pre_replace_width{width}_depth{depth}_steps{training_steps}.png")
+    output_folder = os.path.join("./figures", get_file_name())
+    os.makedirs(output_folder, exist_ok=True)
+    plt.savefig(os.path.join(output_folder, f"width{width}_depth{depth}_steps{training_steps}.png"))
     plt.show()

@@ -9,7 +9,7 @@ import numpy as np
 import copy
 import matplotlib.pyplot as plt
 from resnet import resnet18
-from utils import WarmUpLR, ReplacementMapping, replace_module
+from utils import WarmUpLR, ReplacementMapping, replace_module, get_file_name
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 
@@ -318,8 +318,10 @@ def replace_and_test_cifar100(model, test_loader, beta_vals, mode):
     plt.xlabel('Beta')
     plt.ylabel('Test Loss')
     plt.title('Test Loss vs Beta Values')
-    os.makedirs("./figures", exist_ok=True)
-    plt.savefig(f'./figures/replace_and_test_cifar100_{mode}.png')
+    plt.legend()
+    output_folder = os.path.join("./figures", get_file_name())
+    os.makedirs(output_folder, exist_ok=True)
+    plt.savefig(os.path.join(output_folder, f"replace_and_test_cifar100_{mode}.png"))
     plt.show()
 
 
