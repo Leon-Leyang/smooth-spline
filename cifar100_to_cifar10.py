@@ -105,15 +105,18 @@ def test(epoch):
     # Log the test loss and accuracy to wandb
     wandb.log({'val_loss': test_loss, 'val_accuracy': test_accuracy})
 
+os.makedirs('./ckpts', exist_ok=True)
 
 # Main loop
 for epoch in range(num_epochs):
     train(epoch)
     test(epoch)
     scheduler.step()
+    # save every 10 epochs
+    if epoch % 10 == 0:
+        torch.save(model.state_dict(), f'./ckpts/resnet18_cifar100_epoch{epoch}.pth')
 
 # Save the final model
-os.makedirs('./ckpts', exist_ok=True)
 torch.save(model.state_dict(), './ckpts/resnet18_cifar100.pth')
 
 # Mark the wandb run as complete
