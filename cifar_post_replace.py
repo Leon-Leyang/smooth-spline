@@ -76,7 +76,8 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
             print(f'Epoch {epoch}, Step {batch_idx}, Loss: {train_loss:.4f}, Accuracy: {train_accuracy:.2f}%')
 
         if epoch <= 1:
-            warmup_scheduler.step()
+            if warmup_scheduler is not None:
+                warmup_scheduler.step()
 
     # Log the training loss and accuracy to wandb
     wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy, 'lr': optimizer.param_groups[0]['lr']})
@@ -115,11 +116,13 @@ def test_epoch(epoch, model, testloader, criterion, device):
     return test_loss
 
 
-def train(name):
+def train(mode):
     """
     Train the model on CIFAR-100.
-    :param name: name of the train, e.g. normal/overfit
+    :param mode: mode of the train, e.g. normal/overfit
     """
+    assert mode in ['normal', 'overfit'], 'Mode must be either normal or overfit'
+
     # Hyperparameters
     batch_size = 128
     learning_rate = 0.1
@@ -133,7 +136,7 @@ def train(name):
     model = model.to(device)
 
     # Return the model if it has already been trained
-    ckpt_folder = os.path.join('./ckpts', name)
+    ckpt_folder = os.path.join('./ckpts', mode)
     os.makedirs(f'{ckpt_folder}', exist_ok=True)
     file_to_check = os.path.join(ckpt_folder, f'resnet18_cifar100_epoch{num_epochs}.pth')
     if os.path.exists(file_to_check):
@@ -141,32 +144,30 @@ def train(name):
         print(f'Loaded model from {file_to_check}')
         return model, cifar100_test_loader
 
-    # Resume training if a checkpoint exists(resume from the latest epoch)
-    # latest_epoch = 0
-    # for epoch in range(1, num_epochs + 1):
-    #     if os.path.exists(f'./ckpts/resnet18_cifar100_epoch{epoch}.pth'):
-    #         latest_epoch = epoch
-    # if latest_epoch > 0:
-    #     model.load_state_dict(torch.load(f'./ckpts/resnet18_cifar100_epoch{latest_epoch}.pth'))
-    #     print(f'Resuming training from epoch {latest_epoch}')
-
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
 
     # Learning rate scheduler with specific milestones for reduction
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
+    if mode == 'normal':
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
+    else:
+        scheduler = None
 
     # Warmup scheduler
-    iter_per_epoch = len(cifar100_train_loader)
-    warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch)
+    if mode == 'normal':
+        iter_per_epoch = len(cifar100_train_loader)
+        warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch)
+    else:
+        warmup_scheduler = None
 
     best_test_loss = float('inf')
 
     # Train the model
     for epoch in range(1, num_epochs + 1):
         if epoch > 1:
-            scheduler.step(epoch)
+            if scheduler is not None:
+                scheduler.step(epoch)
 
         train_epoch(epoch, model, cifar100_train_loader, optimizer, criterion, device, warmup_scheduler)
         test_loss = test_epoch(epoch, model, cifar100_test_loader, criterion, device)
@@ -301,12 +302,13 @@ def main():
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
     # Train the model on CIFAR-100
-    model, cifar100_test_loader = train('normal')
+    mode = 'overfit'
+    model, cifar100_test_loader = train(mode)
 
-    beta_vals = np.arange(0.9, 1, 0.002)
-
-    # Replace ReLU with BetaReLU and test the model on CIFAR-100
-    replace_and_test_cifar100(model, cifar100_test_loader, beta_vals)
+    # beta_vals = np.arange(0.9, 1, 0.002)
+    #
+    # # Replace ReLU with BetaReLU and test the model on CIFAR-100
+    # replace_and_test_cifar100(model, cifar100_test_loader, beta_vals)
 
     wandb.finish()
 
