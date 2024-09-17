@@ -295,8 +295,6 @@ def replace_and_test_cifar100(model, test_loader, beta_vals, mode):
     base_test_loss, _ = test_epoch(-1, model, test_loader, criterion, device)
     best_test_loss = base_test_loss
     best_beta = 1
-    test_loss_list.append(base_test_loss)
-    beta_list.append(1)
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
@@ -310,6 +308,8 @@ def replace_and_test_cifar100(model, test_loader, beta_vals, mode):
             best_beta = beta
         test_loss_list.append(test_loss)
         beta_list.append(beta)
+    test_loss_list.append(base_test_loss)
+    beta_list.append(1)
     print(f'Best test loss: {best_test_loss:.4f} with beta={best_beta:.3f}, compared to ReLU test loss: {base_test_loss:.4f}')
 
     # Plot the test loss vs beta values
