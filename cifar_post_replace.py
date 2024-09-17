@@ -301,7 +301,7 @@ def main():
     # Train the model on CIFAR-100
     model, cifar100_test_loader = train()
 
-    beta_vals = np.arange(0, 1, 0.1)
+    beta_vals = np.arange(0.9, 1, 0.01)
 
     # Replace ReLU with BetaReLU and test the model on CIFAR-100
     replace_and_test_cifar100(model, cifar100_test_loader, beta_vals)
