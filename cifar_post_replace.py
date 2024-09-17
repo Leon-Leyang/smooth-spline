@@ -287,7 +287,7 @@ def replace_and_test_cifar100(model, test_loader, beta_vals):
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
-        print(f'Using BetaReLU with beta={beta:.2f}')
+        print(f'Using BetaReLU with beta={beta:.3f}')
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
         new_model = replace_module(orig_model, replacement_mapping)
