@@ -8,11 +8,15 @@ import wandb
 from torchvision.models import resnet18
 from utils import WarmUpLR
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def get_data_loaders(batch_size=128):
+
+def get_data_loaders(dataset, batch_size=128):
     """
-    Get the CIFAR100 data loaders
+    Get the data loaders for the dataset
     """
+    assert dataset in ['cifar10', 'cifar100']
+
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -24,12 +28,18 @@ def get_data_loaders(batch_size=128):
         transforms.ToTensor(),
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
     ])
-    trainset = torchvision.datasets.CIFAR100(
-        root='./data', train=True, download=True, transform=transform_train)
+    if dataset == 'cifar10':
+        trainset = torchvision.datasets.CIFAR10(
+            root='./data', train=True, download=True, transform=transform_train)
+        testset = torchvision.datasets.CIFAR10(
+            root='./data', train=False, download=True, transform=transform_test)
+    elif dataset == 'cifar100':
+        trainset = torchvision.datasets.CIFAR100(
+            root='./data', train=True, download=True, transform=transform_train)
+        testset = torchvision.datasets.CIFAR100(
+            root='./data', train=False, download=True, transform=transform_test)
     trainloader = torch.utils.data.DataLoader(
         trainset, batch_size=batch_size, shuffle=True, num_workers=8)
-    testset = torchvision.datasets.CIFAR100(
-        root='./data', train=False, download=True, transform=transform_test)
     testloader = torch.utils.data.DataLoader(
         testset, batch_size=batch_size, shuffle=False, num_workers=8)
     return trainloader, testloader
@@ -99,17 +109,15 @@ def test_epoch(epoch, model, testloader, criterion, device):
 
 def train():
     """
-    Train and return the model
+    Train the model on CIFAR-100
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
     # Hyperparameters
     batch_size = 128
     learning_rate = 0.1
     num_epochs = 200
 
-    # Get the data loaders
-    train_loader, test_loader = get_data_loaders(batch_size)
+    # Get the data loaders for CIFAR-100
+    cifar100_train_loader, cifar100_test_loader = get_data_loaders('cifar100', batch_size)
 
     # Initialize the model
     model = resnet18(weights=None)
@@ -124,7 +132,7 @@ def train():
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
 
     # Warmup scheduler
-    iter_per_epoch = len(train_loader)
+    iter_per_epoch = len(cifar100_train_loader)
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch)
 
     os.makedirs('./ckpts', exist_ok=True)
@@ -136,8 +144,8 @@ def train():
         if epoch > 1:
             scheduler.step(epoch)
 
-        train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler)
-        test_loss = test_epoch(epoch, model, test_loader, criterion, device)
+        train_epoch(epoch, model, cifar100_train_loader, optimizer, criterion, device, warmup_scheduler)
+        test_loss = test_epoch(epoch, model, cifar100_test_loader, criterion, device)
 
         # save every 10 epochs
         if epoch % 10 == 0:
@@ -149,16 +157,65 @@ def train():
             best_test_loss = test_loss
             torch.save(model.state_dict(), './ckpts/resnet18_cifar100_best.pth')
 
-    wandb.finish()
+    return model
+
+
+def transfer_linear_probe(model):
+    """
+    Transfer learning on CIFAR-10 using a linear probe
+    """
+    # Hyperparameters
+    batch_size = 128
+    learning_rate = 0.001
+    num_epochs = 50
+
+    # Get the data loaders for CIFAR-10
+    cifar10_train_loader, cifar10_test_loader = get_data_loaders('cifar10', batch_size)
+
+    # Replace the last layer of the model with a linear layer for CIFAR-10
+    model.fc = nn.Linear(model.fc.in_features, 10)
+    model = model.to(device)
+    for param in model.parameters():
+        param.requires_grad = False
+    model.fc.weight.requires_grad = True
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.fc, lr=learning_rate)
+
+    os.makedirs('./ckpts', exist_ok=True)
+
+    best_test_loss = float('inf')
+
+    for epoch in range(1, num_epochs + 1):
+        train_epoch(epoch, model, cifar10_train_loader, optimizer, criterion, device, None)
+
+        test_loss = test_epoch(epoch, model, cifar10_test_loader, criterion, device)
+
+        # save every 10 epochs
+        if epoch % 10 == 0:
+            torch.save(model.state_dict(), f'./ckpts/resnet18_cifar10_epoch{epoch}.pth')
+
+        # Save the model with the best test loss
+        if test_loss < best_test_loss:
+            print(f'Find new best model at Epoch {epoch}')
+            best_test_loss = test_loss
+            torch.save(model.state_dict(), './ckpts/resnet18_cifar10_best.pth')
 
     return model
+
+
+def transfer_knn():
+    pass
 
 
 def main():
     # Initialize Weights and Biases (wandb)
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
+    # Train the model on CIFAR-100
     model = train()
+
+    wandb.finish()
 
 
 if __name__ == '__main__':
