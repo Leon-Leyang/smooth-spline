@@ -6,8 +6,9 @@ import torchvision
 import torchvision.transforms as transforms
 import wandb
 import numpy as np
+import copy
 from resnet import resnet18
-from utils import WarmUpLR
+from utils import WarmUpLR, ReplacementMapping, replace_module
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 
@@ -84,6 +85,7 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
 def test_epoch(epoch, model, testloader, criterion, device):
     """
     Test the model for one epoch
+    Specify epoch=-1 to use for testing after training
     """
     model.eval()
     test_loss = 0
@@ -102,10 +104,13 @@ def test_epoch(epoch, model, testloader, criterion, device):
 
     test_loss /= len(testloader)
     test_accuracy = 100. * correct / total
-    print(f'Test Epoch {epoch}, Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
+    if epoch != -1:
+        print(f'Test Epoch {epoch}, Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
 
-    # Log the test loss and accuracy to wandb
-    wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
+        # Log the test loss and accuracy to wandb
+        wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
+    else:
+        print(f'Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
 
     return test_loss
 
@@ -125,6 +130,21 @@ def train():
     # Initialize the model
     model = resnet18()
     model = model.to(device)
+
+    # Return the model if it has already been trained
+    if os.path.exists(f'./ckpts/resnet18_cifar100_{num_epochs}.pth'):
+        model.load_state_dict(torch.load(f'./ckpts/resnet18_cifar100_{num_epochs}.pth'))
+        print(f'Loaded model from ./ckpts/resnet18_cifar100_{num_epochs}.pth')
+        return model, cifar100_test_loader
+
+    # Resume training if a checkpoint exists(resume from the latest epoch)
+    # latest_epoch = 0
+    # for epoch in range(1, num_epochs + 1):
+    #     if os.path.exists(f'./ckpts/resnet18_cifar100_epoch{epoch}.pth'):
+    #         latest_epoch = epoch
+    # if latest_epoch > 0:
+    #     model.load_state_dict(torch.load(f'./ckpts/resnet18_cifar100_epoch{latest_epoch}.pth'))
+    #     print(f'Resuming training from epoch {latest_epoch}')
 
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -159,7 +179,7 @@ def train():
             best_test_loss = test_loss
             torch.save(model.state_dict(), './ckpts/resnet18_cifar100_best.pth')
 
-    return model
+    return model, cifar100_test_loader
 
 
 def transfer_linear_probe(model):
@@ -252,12 +272,39 @@ def transfer_knn(model):
     return knn
 
 
+def replace_and_test_cifar100(model, test_loader, beta_vals):
+    """
+    Replace ReLU with BetaReLU and test the model on CIFAR-100
+    """
+    print('*' * 20)
+    print('Running post-replace experiment on CIFAR-100...')
+    print('*' * 20)
+    criterion = nn.CrossEntropyLoss()
+
+    # Test the original model
+    print('Testing the original model...')
+    test_epoch(-1, model, test_loader, criterion, device)
+
+    # Test the model with different beta values
+    for i, beta in enumerate(beta_vals):
+        print(f'Using BetaReLU with beta={beta:.1f}')
+        replacement_mapping = ReplacementMapping(beta=beta)
+        orig_model = copy.deepcopy(model)
+        new_model = replace_module(orig_model, replacement_mapping)
+        test_epoch(-1, new_model, test_loader, criterion, device)
+
+
 def main():
     # Initialize Weights and Biases (wandb)
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
     # Train the model on CIFAR-100
-    model = train()
+    model, cifar100_test_loader = train()
+
+    beta_vals = np.arange(0, 1, 0.1)
+
+    # Replace ReLU with BetaReLU and test the model on CIFAR-100
+    replace_and_test_cifar100(model, cifar100_test_loader, beta_vals)
 
     wandb.finish()
 
