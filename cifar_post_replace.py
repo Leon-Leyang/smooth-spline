@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 import wandb
 import numpy as np
 import copy
+import matplotlib.pyplot as plt
 from resnet import resnet18
 from utils import WarmUpLR, ReplacementMapping, replace_module
 from sklearn.neighbors import KNeighborsClassifier
@@ -275,20 +276,27 @@ def transfer_knn(model):
     return knn
 
 
-def replace_and_test_cifar100(model, test_loader, beta_vals):
+def replace_and_test_cifar100(model, test_loader, beta_vals, mode):
     """
     Replace ReLU with BetaReLU and test the model on CIFAR-100.
     """
+    assert mode in ['normal', 'overfit'], 'Mode must be either normal or overfit'
+
     print('*' * 50)
     print('Running post-replace experiment on CIFAR-100...')
     print('*' * 50)
     criterion = nn.CrossEntropyLoss()
 
+    test_loss_list = []
+    beta_list = []
+
     # Test the original model
     print('Testing the original model...')
-    test_loss, _ = test_epoch(-1, model, test_loader, criterion, device)
-    best_test_loss = test_loss
+    base_test_loss, _ = test_epoch(-1, model, test_loader, criterion, device)
+    best_test_loss = base_test_loss
     best_beta = 1
+    test_loss_list.append(base_test_loss)
+    beta_list.append(1)
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
@@ -300,7 +308,19 @@ def replace_and_test_cifar100(model, test_loader, beta_vals):
         if test_loss < best_test_loss:
             best_test_loss = test_loss
             best_beta = beta
-    print(f'Best test loss: {best_test_loss:.4f} with beta={best_beta:.3f}, compared to ReLU test loss: {test_loss:.4f}')
+        test_loss_list.append(test_loss)
+        beta_list.append(beta)
+    print(f'Best test loss: {best_test_loss:.4f} with beta={best_beta:.3f}, compared to ReLU test loss: {base_test_loss:.4f}')
+
+    # Plot the test loss vs beta values
+    plt.plot(beta_list, test_loss_list)
+    plt.axhline(y=base_test_loss, color='r', linestyle='--', label='ReLU Test Loss')
+    plt.xlabel('Beta')
+    plt.ylabel('Test Loss')
+    plt.title('Test Loss vs Beta Values')
+    os.makedirs("./figures", exist_ok=True)
+    plt.savefig(f'./figures/replace_and_test_cifar100_{mode}.png')
+    plt.show()
 
 
 def main():
@@ -314,7 +334,7 @@ def main():
     beta_vals = np.arange(0.9, 1, 0.001)
 
     # Replace ReLU with BetaReLU and test the model on CIFAR-100
-    replace_and_test_cifar100(model, cifar100_test_loader, beta_vals)
+    replace_and_test_cifar100(model, cifar100_test_loader, beta_vals, mode)
 
     wandb.finish()
 
