@@ -133,8 +133,8 @@ def train():
 
     # Return the model if it has already been trained
     if os.path.exists(f'./ckpts/resnet18_cifar100_{num_epochs}.pth'):
-        model.load_state_dict(torch.load(f'./ckpts/resnet18_cifar100_{num_epochs}.pth'))
-        print(f'Loaded model from ./ckpts/resnet18_cifar100_{num_epochs}.pth')
+        model.load_state_dict(torch.load(f'./ckpts/resnet18_cifar100_epoch{num_epochs}.pth'))
+        print(f'Loaded model from ./ckpts/resnet18_cifar100_epoch{num_epochs}.pth')
         return model, cifar100_test_loader
 
     # Resume training if a checkpoint exists(resume from the latest epoch)
