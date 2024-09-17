@@ -143,9 +143,9 @@ class WarmUpLR(_LRScheduler):
         return [base_lr * self.last_epoch / (self.total_iters + 1e-8) for base_lr in self.base_lrs]
 
 
-def get_file_name():
+def get_file_name(calling_file):
     """
-    Returns the file name of the current script without the .py extension.
+    Returns the file name of the calling file without the extension.
     """
-    file_name = os.path.basename(__file__)
+    file_name = os.path.basename(calling_file)
     return os.path.splitext(file_name)[0]

@@ -319,7 +319,7 @@ def replace_and_test_cifar100(model, test_loader, beta_vals, mode):
     plt.ylabel('Test Loss')
     plt.title('Test Loss vs Beta Values')
     plt.legend()
-    output_folder = os.path.join("./figures", get_file_name())
+    output_folder = os.path.join("./figures", get_file_name(__file__))
     os.makedirs(output_folder, exist_ok=True)
     plt.savefig(os.path.join(output_folder, f"replace_and_test_cifar100_{mode}.png"))
     plt.show()

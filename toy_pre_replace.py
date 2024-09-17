@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     # Adjust layout and save the combined figure
     plt.tight_layout()
-    output_folder = os.path.join("./figures", get_file_name())
+    output_folder = os.path.join("./figures", get_file_name(__file__))
     os.makedirs(output_folder, exist_ok=True)
     plt.savefig(os.path.join(output_folder, f"width{width}_depth{depth}_steps{training_steps}.png"))
     plt.show()
