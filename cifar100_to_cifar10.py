@@ -65,7 +65,7 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
             warmup_scheduler.step()
 
     # Log the training loss and accuracy to wandb
-    wandb.log({'train_loss': train_loss, 'train_accuracy': train_accuracy})
+    wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy, 'lr': optimizer.param_groups[0]['lr']})
 
 
 def test_epoch(epoch, model, testloader, criterion, device):
@@ -92,7 +92,7 @@ def test_epoch(epoch, model, testloader, criterion, device):
     print(f'Test Epoch {epoch}, Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
 
     # Log the test loss and accuracy to wandb
-    wandb.log({'val_loss': test_loss, 'val_accuracy': test_accuracy})
+    wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
 
     return test_loss
 
