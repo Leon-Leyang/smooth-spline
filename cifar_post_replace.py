@@ -276,9 +276,9 @@ def replace_and_test_cifar100(model, test_loader, beta_vals):
     """
     Replace ReLU with BetaReLU and test the model on CIFAR-100
     """
-    print('*' * 20)
+    print('*' * 50)
     print('Running post-replace experiment on CIFAR-100...')
-    print('*' * 20)
+    print('*' * 50)
     criterion = nn.CrossEntropyLoss()
 
     # Test the original model
@@ -301,7 +301,7 @@ def main():
     # Train the model on CIFAR-100
     model, cifar100_test_loader = train()
 
-    beta_vals = np.arange(0.9, 1, 0.01)
+    beta_vals = np.arange(0.9, 1, 0.002)
 
     # Replace ReLU with BetaReLU and test the model on CIFAR-100
     replace_and_test_cifar100(model, cifar100_test_loader, beta_vals)
