@@ -301,7 +301,7 @@ def main():
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
     # Train the model on CIFAR-100
-    model, cifar100_test_loader = train()
+    model, cifar100_test_loader = train('normal')
 
     beta_vals = np.arange(0.9, 1, 0.002)
 
