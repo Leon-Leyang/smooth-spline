@@ -218,7 +218,7 @@ def replace_and_test_cifar100(model, test_loader, beta_vals, mode):
     plt.title('Test Loss vs Beta Values')
     plt.gca().yaxis.get_major_formatter().set_useOffset(False)
     plt.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
-    plt.xticks(beta_list)
+    plt.xticks(beta_list[::5], rotation=45)
     plt.legend()
     output_folder = os.path.join("./figures", get_file_name(__file__))
     os.makedirs(output_folder, exist_ok=True)
@@ -234,10 +234,11 @@ def main():
     mode = 'normal'
     model, cifar100_test_loader = train(mode)
 
-    beta_vals = np.arange(0.9995, 1, 0.00001)
-
     # Replace ReLU with BetaReLU and test the model on CIFAR-100
+    beta_vals = np.arange(0.9995, 1, 0.00001)
     replace_and_test_cifar100(model, cifar100_test_loader, beta_vals, mode)
+
+    # Transfer learning on CIFAR-10 using a linear probe
 
     wandb.finish()
 
