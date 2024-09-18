@@ -179,7 +179,7 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
         if batch_idx % 100 == 0:
             train_loss = running_loss / (batch_idx + 1)
             train_accuracy = 100. * correct / total
-            print(f'Epoch {epoch}, Step {batch_idx}, Loss: {train_loss:.4f}, Accuracy: {train_accuracy:.2f}%')
+            print(f'Epoch {epoch}, Step {batch_idx}, Loss: {train_loss:.6f}, Accuracy: {train_accuracy:.2f}%')
 
         if epoch <= 1:
             if warmup_scheduler is not None:
@@ -212,12 +212,12 @@ def test_epoch(epoch, model, testloader, criterion, device):
     test_loss /= len(testloader)
     test_accuracy = 100. * correct / total
     if epoch != -1:
-        print(f'Test Epoch {epoch}, Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
+        print(f'Test Epoch {epoch}, Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
 
         # Log the test loss and accuracy to wandb
         wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
     else:
-        print(f'Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
+        print(f'Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
 
     return test_loss, test_accuracy
 
