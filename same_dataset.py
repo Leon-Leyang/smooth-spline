@@ -63,7 +63,6 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset):
 
 
 def main():
-    # Train the model on CIFAR-100
     mode = 'normal'
     dataset = 'cifar100'
     ckpt_folder = os.path.join('./ckpts', mode)
@@ -73,6 +72,12 @@ def main():
 
     # Replace ReLU with BetaReLU and test the model on the original dataset
     beta_vals = np.arange(0.9995, 1, 0.00001)
+    replace_and_test(model, test_loader, beta_vals, mode, dataset)
+
+    mode = 'overfit'
+    ckpt_folder = os.path.join('./ckpts', mode)
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth')))
+    beta_vals = np.arange(0.975, 1, 0.0005)
     replace_and_test(model, test_loader, beta_vals, mode, dataset)
 
 
