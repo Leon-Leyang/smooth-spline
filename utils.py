@@ -1,6 +1,10 @@
 import os
 import torch
 import torch.nn as nn
+import torchvision
+from torchvision import transforms as transforms
+
+import wandb
 from torch.optim.lr_scheduler import _LRScheduler
 
 
@@ -149,3 +153,104 @@ def get_file_name(calling_file):
     """
     file_name = os.path.basename(calling_file)
     return os.path.splitext(file_name)[0]
+
+
+def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_scheduler):
+    """
+    Train the model for one epoch.
+    """
+    model.train()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+    for batch_idx, (inputs, targets) in enumerate(trainloader):
+        inputs, targets = inputs.to(device), targets.to(device)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += targets.size(0)
+        correct += predicted.eq(targets).sum().item()
+
+        if batch_idx % 100 == 0:
+            train_loss = running_loss / (batch_idx + 1)
+            train_accuracy = 100. * correct / total
+            print(f'Epoch {epoch}, Step {batch_idx}, Loss: {train_loss:.4f}, Accuracy: {train_accuracy:.2f}%')
+
+        if epoch <= 1:
+            if warmup_scheduler is not None:
+                warmup_scheduler.step()
+
+    # Log the training loss and accuracy to wandb
+    wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy, 'lr': optimizer.param_groups[0]['lr']})
+
+
+def test_epoch(epoch, model, testloader, criterion, device):
+    """
+    Test the model for one epoch.
+    Specify epoch=-1 to use for testing after training.
+    """
+    model.eval()
+    test_loss = 0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            inputs, targets = inputs.to(device), targets.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+
+            test_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
+
+    test_loss /= len(testloader)
+    test_accuracy = 100. * correct / total
+    if epoch != -1:
+        print(f'Test Epoch {epoch}, Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
+
+        # Log the test loss and accuracy to wandb
+        wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
+    else:
+        print(f'Loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%')
+
+    return test_loss, test_accuracy
+
+
+def get_data_loaders(dataset, batch_size=128):
+    """
+    Get the data loaders for the dataset.
+    """
+    assert dataset in ['cifar10', 'cifar100']
+
+    transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
+    ])
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
+    ])
+    if dataset == 'cifar10':
+        trainset = torchvision.datasets.CIFAR10(
+            root='./data', train=True, download=True, transform=transform_train)
+        testset = torchvision.datasets.CIFAR10(
+            root='./data', train=False, download=True, transform=transform_test)
+    elif dataset == 'cifar100':
+        trainset = torchvision.datasets.CIFAR100(
+            root='./data', train=True, download=True, transform=transform_train)
+        testset = torchvision.datasets.CIFAR100(
+            root='./data', train=False, download=True, transform=transform_test)
+    trainloader = torch.utils.data.DataLoader(
+        trainset, batch_size=batch_size, shuffle=True, num_workers=8)
+    testloader = torch.utils.data.DataLoader(
+        testset, batch_size=batch_size, shuffle=False, num_workers=8)
+    return trainloader, testloader
