@@ -7,14 +7,14 @@ import matplotlib.pyplot as plt
 from utils import ReplacementMapping, replace_module, get_file_name, test_epoch, get_data_loaders
 from resnet import resnet18
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
 
 def replace_and_test(model, test_loader, beta_vals, mode, dataset):
     """
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
     assert mode in ['normal', 'overfit'], 'Mode must be either normal or overfit'
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     print('*' * 50)
     print(f'Running post-replace experiment on {dataset}...')
