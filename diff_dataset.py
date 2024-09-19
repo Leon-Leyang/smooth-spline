@@ -143,7 +143,15 @@ def main():
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
-    beta_vals = np.arange(0.975, 1, 0.0005)
+    beta_vals = np.arange(0.9998, 1, 0.000004)
+    model = transfer_linear_probe(model, mode)
+    replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10', __file__)
+
+    mode = 'overfit'
+    ckpt_folder = os.path.join('./ckpts', mode)
+    model = resnet18().to(device)
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
+    beta_vals = np.arange(0.9998, 1, 0.000004)
     model = transfer_linear_probe(model, mode)
     replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10', __file__)
 
