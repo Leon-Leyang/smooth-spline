@@ -13,7 +13,9 @@ def train(mode, dataset):
     :param dataset: dataset to train on, e.g. cifar10/cifar100
     """
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
-    assert dataset in ['cifar10', 'cifar100'], 'Dataset must be either cifar10 or cifar100'
+    assert dataset in ['cifar10', 'cifar100', 'noisy_cifar10', 'noisy_cifar100'], 'Dataset must be either cifar10, cifar100, noisy_cifar10 or noisy_cifar100'
+
+    wandb.init(project='smooth-spline', entity='leyang_hu')
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -71,12 +73,10 @@ def train(mode, dataset):
             best_test_loss = test_loss
             torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_{dataset}_best.pth'))
 
+    wandb.finish()
+
     return model
 
 
 if __name__ == '__main__':
-    wandb.init(project='smooth-spline', entity='leyang_hu')
-
-    train('overfit', 'cifar100')
-
-    wandb.finish()
+    train('normal', 'noisy_cifar10')
