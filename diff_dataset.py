@@ -40,6 +40,16 @@ def transfer_linear_probe(model, mode, beta_val=None):
     ckpt_folder = os.path.join('./ckpts', mode)
     os.makedirs(f'{ckpt_folder}', exist_ok=True)
 
+    # Load the weights if the model has been trained before
+    if not beta_val:
+        file_to_check = os.path.join(ckpt_folder, f'resnet18_cifar100_to_cifar10_epoch{num_epochs}.pth')
+    else:
+        file_to_check = os.path.join(ckpt_folder, f'resnet18_cifar100_beta{beta_val:.2f}_to_cifar10_epoch{num_epochs}.pth')
+    if os.path.exists(file_to_check):
+        model.load_state_dict(torch.load(file_to_check))
+        print(f'Loaded model from {file_to_check}')
+        return model
+
     best_test_loss = float('inf')
 
     wandb.init(project='smooth-spline', entity='leyang_hu')
@@ -128,9 +138,7 @@ def main():
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     beta_vals = np.arange(0.8, 1, 0.01)
     _, test_loader = get_data_loaders('cifar10', 128)
-    # model = transfer_linear_probe(model, mode)  # Uncomment this line to train the model
-    model.fc = nn.Linear(model.fc.in_features, 10)
-    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_to_cifar10_epoch50.pth')))
+    model = transfer_linear_probe(model, mode)
     replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10')
 
 
