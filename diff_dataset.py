@@ -95,7 +95,9 @@ def extract_features(feature_extractor, dataloader):
     with torch.no_grad():
         for inputs, targets in dataloader:
             inputs = inputs.to(device)
-            features.append(feature_extractor(inputs).cpu().numpy())
+            feature = feature_extractor(inputs)
+            feature = torch.flatten(feature, 1)
+            features.append(feature.cpu().numpy())
             labels.append(targets.numpy())
 
     features = np.concatenate(features, axis=0)
@@ -127,7 +129,7 @@ def transfer_knn(model):
     # Test the k-NN classifier
     predictions = knn.predict(test_features)
     accuracy = accuracy_score(test_labels, predictions)
-    print(f'Accuracy of k-NN classifier: {accuracy:.2f}')
+    print(f'Accuracy of k-NN classifier: {accuracy:.4f}')
     return accuracy
 
 
@@ -167,7 +169,7 @@ def replace_and_test_knn_on(mode, beta_vals):
         beta_list.append(beta)
     acc_list.append(base_acc)
     beta_list.append(1)
-    print(f'Best accuracy: {best_acc:.2f} with beta={best_beta:.6f}, compared to ReLU accuracy: {base_acc:.2f}')
+    print(f'Best accuracy: {best_acc:.4f} with beta={best_beta:.6f}, compared to ReLU accuracy: {base_acc:.4f}')
 
     # Plot the test loss vs beta values
     plt.figure(figsize=(12, 8))
@@ -207,9 +209,9 @@ def main():
 
     # Transfer learning on CIFAR-10 using a k-NN classifier and test the model with different beta values of BetaReLU
     mode_2_beta_vals = {
-        'normal': np.arange(0.9, 1, 0.01),
-        'suboptimal': np.arange(0.9, 1, 0.01),
-        'overfit': np.arange(0.9, 1, 0.01)
+        'normal': np.arange(0.99, 1, 0.001),
+        'suboptimal': np.arange(0.99, 1, 0.001),
+        'overfit': np.arange(0.99, 1, 0.001)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_knn_on(mode, beta_vals)
