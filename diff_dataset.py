@@ -129,19 +129,23 @@ def transfer_knn(model):
 
 
 def main():
-    # Get the model pre-trained on CIFAR-100
+    # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     mode = 'normal'
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
-
-    # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     beta_vals = np.arange(0.9998, 1, 0.000004)
     _, test_loader = get_data_loaders('cifar10', 128)
     model = transfer_linear_probe(model, mode)
     replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10', __file__)
 
     mode = 'suboptimal'
+    ckpt_folder = os.path.join('./ckpts', mode)
+    model = resnet18().to(device)
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
+    beta_vals = np.arange(0.975, 1, 0.0005)
+    model = transfer_linear_probe(model, mode)
+    replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10', __file__)
 
 
 if __name__ == '__main__':
