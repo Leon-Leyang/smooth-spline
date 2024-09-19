@@ -4,6 +4,7 @@ import torch.nn as nn
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 from utils import ReplacementMapping, replace_module, get_file_name, test_epoch, get_data_loaders
 from resnet import resnet18
 
@@ -32,7 +33,7 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset):
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
-        print(f'Using BetaReLU with beta={beta:.5f}')
+        print(f'Using BetaReLU with beta={beta:.6f}')
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
         new_model = replace_module(orig_model, replacement_mapping)
@@ -44,16 +45,25 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset):
         beta_list.append(beta)
     test_loss_list.append(base_test_loss)
     beta_list.append(1)
-    print(f'Best test loss: {best_test_loss:.6f} with beta={best_beta:.5f}, compared to ReLU test loss: {base_test_loss:.6f}')
+    print(f'Best test loss: {best_test_loss:.6f} with beta={best_beta:.6f}, compared to ReLU test loss: {base_test_loss:.6f}')
 
     # Plot the test loss vs beta values
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 8))
     plt.plot(beta_list, test_loss_list)
     plt.axhline(y=base_test_loss, color='r', linestyle='--', label='ReLU Test Loss')
     plt.xlabel('Beta')
     plt.ylabel('Test Loss')
     plt.title('Test Loss vs Beta Values')
-    plt.gca().yaxis.get_major_formatter().set_useOffset(False)
+
+    # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
+    ax = plt.gca()
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.xaxis.get_major_formatter().set_scientific(False)
+    ax.xaxis.get_major_formatter().set_useOffset(False)
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.yaxis.get_major_formatter().set_scientific(False)
+    ax.yaxis.get_major_formatter().set_useOffset(False)
+
     plt.xticks(beta_list[::5], rotation=45)
     plt.legend()
     output_folder = os.path.join("./figures", get_file_name(__file__))
@@ -71,7 +81,7 @@ def main():
     _, test_loader = get_data_loaders(dataset, 128)
 
     # Replace ReLU with BetaReLU and test the model on the original dataset
-    beta_vals = np.arange(0.9995, 1, 0.00001)
+    beta_vals = np.arange(0.9999, 1, 0.000002)
     replace_and_test(model, test_loader, beta_vals, mode, dataset)
 
     mode = 'overfit'
