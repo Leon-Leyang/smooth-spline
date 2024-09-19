@@ -31,7 +31,7 @@ def transfer_linear_probe(model):
     model.fc.weight.requires_grad = True
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.fc, lr=learning_rate)
+    optimizer = torch.optim.Adam(model.fc.parameters(), lr=learning_rate)
 
     os.makedirs('./ckpts', exist_ok=True)
 
