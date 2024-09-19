@@ -240,7 +240,7 @@ class GaussianNoiseAdder:
         """
         mean, std = self.noise_params[target]
         noise = torch.randn_like(img) * std + mean
-        noisy_img = img + noise
+        noisy_img = img + noise * 255
         return noisy_img
 
 
