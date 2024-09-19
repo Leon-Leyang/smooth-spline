@@ -262,7 +262,7 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset, calling_file)
     """
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
-    assert mode in ['normal', 'overfit'], 'Mode must be either normal or overfit'
+    assert mode in ['normal', 'suboptimal'], 'Mode must be either normal or suboptimal'
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 

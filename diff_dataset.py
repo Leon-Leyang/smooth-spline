@@ -16,7 +16,7 @@ def transfer_linear_probe(model, mode, beta_val=None):
     """
     Transfer learning on CIFAR-10 using a linear probe.
     """
-    assert mode in ['normal', 'overfit'], 'Mode must be either normal or overfit'
+    assert mode in ['normal', 'suboptimal'], 'Mode must be either normal or suboptimal'
 
     # Hyperparameters
     batch_size = 128
@@ -140,6 +140,8 @@ def main():
     _, test_loader = get_data_loaders('cifar10', 128)
     model = transfer_linear_probe(model, mode)
     replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10', __file__)
+
+    mode = 'suboptimal'
 
 
 if __name__ == '__main__':
