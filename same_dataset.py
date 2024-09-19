@@ -12,7 +12,7 @@ def main():
     dataset = 'cifar100'
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
-    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth')))
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth'), weights_only=True))
     _, test_loader = get_data_loaders(dataset, 128)
 
     # Replace ReLU with BetaReLU and test the model on the original dataset
@@ -21,7 +21,7 @@ def main():
 
     mode = 'overfit'
     ckpt_folder = os.path.join('./ckpts', mode)
-    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth')))
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth'), weights_only=True))
     beta_vals = np.arange(0.975, 1, 0.0005)
     replace_and_test(model, test_loader, beta_vals, mode, dataset, __file__)
 

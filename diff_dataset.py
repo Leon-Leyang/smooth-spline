@@ -46,7 +46,7 @@ def transfer_linear_probe(model, mode, beta_val=None):
     else:
         file_to_check = os.path.join(ckpt_folder, f'resnet18_cifar100_beta{beta_val:.2f}_to_cifar10_epoch{num_epochs}.pth')
     if os.path.exists(file_to_check):
-        model.load_state_dict(torch.load(file_to_check))
+        model.load_state_dict(torch.load(file_to_check, weights_only=True))
         print(f'Loaded model from {file_to_check}')
         return model
 
@@ -133,7 +133,7 @@ def main():
     mode = 'normal'
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
-    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth')))
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
 
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     beta_vals = np.arange(0.8, 1, 0.01)
