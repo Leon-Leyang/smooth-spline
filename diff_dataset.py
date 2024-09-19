@@ -37,7 +37,8 @@ def transfer_linear_probe(model, mode, beta_val=None):
     optimizer = torch.optim.Adam(model.fc.parameters(), lr=learning_rate)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20, 40], gamma=0.2)
 
-    os.makedirs('./ckpts', exist_ok=True)
+    ckpt_folder = os.path.join('./ckpts', mode)
+    os.makedirs(f'{ckpt_folder}', exist_ok=True)
 
     best_test_loss = float('inf')
 
@@ -53,18 +54,18 @@ def transfer_linear_probe(model, mode, beta_val=None):
         # save every 10 epochs
         if epoch % 10 == 0:
             if not beta_val:
-                torch.save(model.state_dict(), f'./ckpts/resnet18_cifar100_{mode}_to_cifar10_epoch{epoch}.pth')
+                torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_to_cifar10_epoch{epoch}.pth'))
             else:
-                torch.save(model.state_dict(), f'./ckpts/resnet18_cifar100_{mode}_beta{beta_val:.2f}_to_cifar10_epoch{epoch}.pth')
+                torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_beta{beta_val:.2f}_to_cifar10_epoch{epoch}.pth'))
 
         # Save the model with the best test loss
         if test_loss < best_test_loss:
             print(f'Find new best model at Epoch {epoch}')
             best_test_loss = test_loss
             if not beta_val:
-                torch.save(model.state_dict(), f'./ckpts/resnet18_cifar100_{mode}_to_cifar10_best.pth')
+                torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_to_cifar10_best.pth'))
             else:
-                torch.save(model.state_dict(), f'./ckpts/resnet18_cifar100_{mode}_beta{beta_val:.2f}_to_cifar10_best.pth')
+                torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_beta{beta_val:.2f}_to_cifar10_best.pth'))
 
     wandb.finish()
 
@@ -127,9 +128,9 @@ def main():
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     beta_vals = np.arange(0.8, 1, 0.01)
     _, test_loader = get_data_loaders('cifar10', 128)
-    # model = transfer_linear_probe(model)  # Uncomment this line to train the model
+    # model = transfer_linear_probe(model, mode)  # Uncomment this line to train the model
     model.fc = nn.Linear(model.fc.in_features, 10)
-    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_{mode}_to_cifar10_epoch50.pth')))
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_to_cifar10_epoch50.pth')))
     replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10')
 
 
