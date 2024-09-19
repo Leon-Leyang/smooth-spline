@@ -278,13 +278,13 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset, calling_file)
     print('*' * 50)
     criterion = nn.CrossEntropyLoss()
 
-    test_loss_list = []
+    acc_list = []
     beta_list = []
 
     # Test the original model
     print('Testing the original model...')
-    base_test_loss, _ = test_epoch(-1, model, test_loader, criterion, device)
-    best_test_loss = base_test_loss
+    _, base_acc = test_epoch(-1, model, test_loader, criterion, device)
+    best_acc = base_acc
     best_beta = 1
 
     # Test the model with different beta values
@@ -293,23 +293,23 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset, calling_file)
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
         new_model = replace_module(orig_model, replacement_mapping)
-        test_loss, _ = test_epoch(-1, new_model, test_loader, criterion, device)
-        if test_loss < best_test_loss:
-            best_test_loss = test_loss
+        _, test_acc = test_epoch(-1, new_model, test_loader, criterion, device)
+        if test_acc > best_acc:
+            best_acc = test_acc
             best_beta = beta
-        test_loss_list.append(test_loss)
+        acc_list.append(test_acc)
         beta_list.append(beta)
-    test_loss_list.append(base_test_loss)
+    acc_list.append(base_acc)
     beta_list.append(1)
-    print(f'Best test loss: {best_test_loss:.6f} with beta={best_beta:.6f}, compared to ReLU test loss: {base_test_loss:.6f}')
+    print(f'Best accuracy: {best_acc:.4f} with beta={best_beta:.6f}, compared to ReLU accuracy: {base_acc:.4f}')
 
     # Plot the test loss vs beta values
     plt.figure(figsize=(12, 8))
-    plt.plot(beta_list, test_loss_list)
-    plt.axhline(y=base_test_loss, color='r', linestyle='--', label='ReLU Test Loss')
+    plt.plot(beta_list, acc_list)
+    plt.axhline(y=base_acc, color='r', linestyle='--', label='ReLU Test Accuracy')
     plt.xlabel('Beta')
-    plt.ylabel('Test Loss')
-    plt.title('Test Loss vs Beta Values')
+    plt.ylabel('Test Accuracy')
+    plt.title('Test Accuracy vs Beta Values')
 
     # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
     ax = plt.gca()
