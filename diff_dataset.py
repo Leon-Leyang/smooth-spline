@@ -139,7 +139,7 @@ def main():
     beta_vals = np.arange(0.8, 1, 0.01)
     _, test_loader = get_data_loaders('cifar10', 128)
     model = transfer_linear_probe(model, mode)
-    replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10')
+    replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10', __file__)
 
 
 if __name__ == '__main__':

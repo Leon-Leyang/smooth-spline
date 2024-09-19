@@ -258,7 +258,7 @@ def get_data_loaders(dataset, batch_size=128):
     return trainloader, testloader
 
 
-def replace_and_test(model, test_loader, beta_vals, mode, dataset):
+def replace_and_test(model, test_loader, beta_vals, mode, dataset, calling_file):
     """
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
@@ -315,7 +315,7 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset):
 
     plt.xticks(beta_list[::5], rotation=45)
     plt.legend()
-    output_folder = os.path.join("./figures", get_file_name(__file__))
+    output_folder = os.path.join("./figures", get_file_name(calling_file))
     os.makedirs(output_folder, exist_ok=True)
     plt.savefig(os.path.join(output_folder, f"replace_and_test_{dataset}_{mode}.png"))
     plt.show()
