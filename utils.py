@@ -9,8 +9,6 @@ from torchvision import transforms as transforms
 import wandb
 from torch.optim.lr_scheduler import _LRScheduler
 
-from same_dataset import device
-
 
 class ReplacementMapping:
     def __init__(self, beta=0.5):
@@ -265,6 +263,8 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset):
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
     assert mode in ['normal', 'overfit'], 'Mode must be either normal or overfit'
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     print('*' * 50)
     print(f'Running post-replace experiment on {dataset}...')
