@@ -136,7 +136,7 @@ def main():
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
 
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
-    beta_vals = np.arange(0.8, 1, 0.01)
+    beta_vals = np.arange(0.9998, 1, 0.000004)
     _, test_loader = get_data_loaders('cifar10', 128)
     model = transfer_linear_probe(model, mode)
     replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10', __file__)
