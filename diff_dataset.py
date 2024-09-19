@@ -2,6 +2,7 @@ import os
 import torch
 import wandb
 import torch.nn as nn
+import torch.optim as optim
 import numpy as np
 from resnet import resnet18
 from utils import train_epoch, test_epoch, get_data_loaders, replace_and_test
@@ -17,7 +18,7 @@ def transfer_linear_probe(model):
     """
     # Hyperparameters
     batch_size = 128
-    learning_rate = 0.001
+    learning_rate = 0.005
     num_epochs = 50
 
     # Get the data loaders for CIFAR-10
@@ -32,14 +33,17 @@ def transfer_linear_probe(model):
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.fc.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20, 40], gamma=0.2)
 
     os.makedirs('./ckpts', exist_ok=True)
 
     best_test_loss = float('inf')
 
     for epoch in range(1, num_epochs + 1):
+        if epoch > 1:
+            if scheduler is not None:
+                scheduler.step(epoch)
         train_epoch(epoch, model, train_loader, optimizer, criterion, device, None)
-
         test_loss, _ = test_epoch(epoch, model, test_loader, criterion, device)
 
         # save every 10 epochs
