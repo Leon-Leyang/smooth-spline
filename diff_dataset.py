@@ -200,18 +200,18 @@ def main():
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     _, test_loader = get_data_loaders('cifar10', 128)
     mode_2_beta_vals = {
-        'normal': np.arange(0.99, 1, 0.001),
-        'suboptimal': np.arange(0.99, 1, 0.001),
-        'overfit': np.arange(0.99, 1, 0.001)
+        'normal': np.arange(0.95, 1, 0.001),
+        'suboptimal': np.arange(0.95, 1, 0.001),
+        'overfit': np.arange(0.95, 1, 0.001)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_linear_probe_on(mode, test_loader, beta_vals)
 
     # Transfer learning on CIFAR-10 using a k-NN classifier and test the model with different beta values of BetaReLU
     mode_2_beta_vals = {
-        'normal': np.arange(0.99, 1, 0.001),
-        'suboptimal': np.arange(0.99, 1, 0.001),
-        'overfit': np.arange(0.99, 1, 0.001)
+        'normal': np.arange(0.95, 1, 0.001),
+        'suboptimal': np.arange(0.95, 1, 0.001),
+        'overfit': np.arange(0.95, 1, 0.001)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_knn_on(mode, beta_vals)

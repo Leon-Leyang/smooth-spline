@@ -20,9 +20,9 @@ def main():
     dataset = 'cifar100'
     _, test_loader = get_data_loaders(dataset, 128)
     mode_2_beta_vals = {
-        'normal': np.arange(0.99, 1, 0.001),
-        'suboptimal': np.arange(0.99, 1, 0.001),
-        'overfit': np.arange(0.99, 1, 0.001)
+        'normal': np.arange(0.9, 1, 0.002),
+        'suboptimal': np.arange(0.9, 1, 0.002),
+        'overfit': np.arange(0.9, 1, 0.002)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_on(mode, dataset, test_loader, model, beta_vals)
@@ -30,11 +30,6 @@ def main():
     # Replace ReLU with BetaReLU and test the model on different conditions on CIFAR-10
     dataset = 'cifar10'
     _, test_loader = get_data_loaders(dataset, 128)
-    mode_2_beta_vals = {
-        'normal': np.arange(0.99, 1, 0.001),
-        'suboptimal': np.arange(0.99, 1, 0.001),
-        'overfit': np.arange(0.99, 1, 0.001)
-    }
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_on(mode, dataset, test_loader, model, beta_vals)
 
