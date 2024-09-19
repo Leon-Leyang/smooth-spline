@@ -128,8 +128,8 @@ def transfer_knn(model):
 
     # Test the k-NN classifier
     predictions = knn.predict(test_features)
-    accuracy = accuracy_score(test_labels, predictions)
-    print(f'Accuracy of k-NN classifier: {accuracy:.4f}')
+    accuracy = accuracy_score(test_labels, predictions) * 100
+    print(f'Accuracy of k-NN classifier: {accuracy:.2f}')
     return accuracy
 
 
@@ -157,7 +157,7 @@ def replace_and_test_knn_on(mode, beta_vals):
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
-        print(f'Using BetaReLU with beta={beta:.6f}')
+        print(f'Using BetaReLU with beta={beta:.3f}')
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
         new_model = replace_module(orig_model, replacement_mapping)
@@ -169,7 +169,7 @@ def replace_and_test_knn_on(mode, beta_vals):
         beta_list.append(beta)
     acc_list.append(base_acc)
     beta_list.append(1)
-    print(f'Best accuracy: {best_acc:.4f} with beta={best_beta:.6f}, compared to ReLU accuracy: {base_acc:.4f}')
+    print(f'Best accuracy: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
 
     # Plot the test loss vs beta values
     plt.figure(figsize=(12, 8))
