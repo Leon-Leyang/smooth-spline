@@ -1,13 +1,15 @@
 import copy
 import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torchvision
+import wandb
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from torchvision import transforms as transforms
-import wandb
 from torch.optim.lr_scheduler import _LRScheduler
+from torch.utils.data import Subset
 
 
 class ReplacementMapping:
@@ -224,7 +226,7 @@ def test_epoch(epoch, model, testloader, criterion, device):
     return test_loss, test_accuracy
 
 
-def get_data_loaders(dataset, batch_size=128):
+def get_data_loaders(dataset, batch_size=128, mode='normal'):
     """
     Get the data loaders for the dataset.
     """
@@ -251,6 +253,11 @@ def get_data_loaders(dataset, batch_size=128):
             root='./data', train=True, download=True, transform=transform_train)
         testset = torchvision.datasets.CIFAR100(
             root='./data', train=False, download=True, transform=transform_test)
+
+    if mode == 'overfit':
+        indices = np.random.choice(len(trainset), 2000, replace=False)
+        trainset = Subset(trainset, indices)
+
     trainloader = torch.utils.data.DataLoader(
         trainset, batch_size=batch_size, shuffle=True, num_workers=8)
     testloader = torch.utils.data.DataLoader(

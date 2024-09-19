@@ -9,10 +9,10 @@ from utils import get_data_loaders, WarmUpLR, train_epoch, test_epoch
 def train(mode, dataset):
     """
     Train the model on the specified dataset.
-    :param mode: mode of the train, e.g. normal/suboptimal
+    :param mode: mode of the train, e.g. normal/suboptimal/overfit
     :param dataset: dataset to train on, e.g. cifar10/cifar100
     """
-    assert mode in ['normal', 'suboptimal'], 'Mode must be either normal or suboptimal'
+    assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
     assert dataset in ['cifar10', 'cifar100'], 'Dataset must be either cifar10 or cifar100'
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -23,7 +23,7 @@ def train(mode, dataset):
     num_epochs = 200
 
     # Get the data loaders
-    train_loader, test_loader = get_data_loaders(dataset, batch_size)
+    train_loader, test_loader = get_data_loaders(dataset, batch_size, mode)
 
     # Initialize the model
     model = resnet18()
@@ -77,6 +77,6 @@ def train(mode, dataset):
 if __name__ == '__main__':
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
-    train('suboptimal', 'cifar10')
+    train('overfit', 'cifar100')
 
     wandb.finish()
