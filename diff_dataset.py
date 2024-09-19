@@ -4,7 +4,7 @@ import wandb
 import torch.nn as nn
 import numpy as np
 from resnet import resnet18
-from utils import train_epoch, test_epoch, get_data_loaders
+from utils import train_epoch, test_epoch, get_data_loaders, replace_and_test
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 
@@ -55,7 +55,7 @@ def transfer_linear_probe(model):
     return model
 
 
-def extract_feautres(feature_extractor, dataloader):
+def extract_features(feature_extractor, dataloader):
     """
     Extract features from the model.
     """
@@ -88,8 +88,8 @@ def transfer_knn(model):
 
     # Extract features from the pre-trained model
     feature_extractor = nn.Sequential(*list(model.children())[:-1])
-    train_features, train_labels = extract_feautres(feature_extractor, cifar10_train_loader)
-    test_features, test_labels = extract_feautres(feature_extractor, cifar10_test_loader)
+    train_features, train_labels = extract_features(feature_extractor, cifar10_train_loader)
+    test_features, test_labels = extract_features(feature_extractor, cifar10_test_loader)
 
     # Train the k-NN classifier
     knn.fit(train_features, train_labels)
@@ -104,13 +104,16 @@ def transfer_knn(model):
 def main():
     # Get the model pre-trained on CIFAR-100
     mode = 'normal'
-    dataset = 'cifar100'
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
-    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth')))
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth')))
 
     # Transfer learning on CIFAR-10 using a linear probe
+    beta_vals = np.arange(0.8, 1, 0.01)
+    _, test_loader = get_data_loaders('cifar10', 128)
     model = transfer_linear_probe(model)
+    dataset = 'cifar100_to_cifar10'
+    replace_and_test(model, test_loader, beta_vals, mode, dataset)
 
 
 if __name__ == '__main__':
