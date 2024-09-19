@@ -20,9 +20,9 @@ def main():
     dataset = 'cifar100'
     _, test_loader = get_data_loaders(dataset, 128)
     mode_2_beta_vals = {
-        'normal': np.arange(0.9999, 1, 0.000002),
-        'suboptimal': np.arange(0.975, 1, 0.0005),
-        'overfit': np.arange(0.9999, 1, 0.000002)
+        'normal': np.arange(0.99, 1, 0.001),
+        'suboptimal': np.arange(0.99, 1, 0.001),
+        'overfit': np.arange(0.99, 1, 0.001)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_on(mode, dataset, test_loader, model, beta_vals)
@@ -31,9 +31,9 @@ def main():
     dataset = 'cifar10'
     _, test_loader = get_data_loaders(dataset, 128)
     mode_2_beta_vals = {
-        'normal': np.arange(0.9998, 1, 0.000004),
-        'suboptimal': np.arange(0.9999, 1, 0.000002),
-        'overfit': np.arange(0.9999, 1, 0.000002)
+        'normal': np.arange(0.99, 1, 0.001),
+        'suboptimal': np.arange(0.99, 1, 0.001),
+        'overfit': np.arange(0.99, 1, 0.001)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_on(mode, dataset, test_loader, model, beta_vals)
