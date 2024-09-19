@@ -244,6 +244,30 @@ class GaussianNoiseAdder:
         return noisy_img
 
 
+class CustomCIFAR10(torchvision.datasets.CIFAR10):
+    def __init__(self, *args, noise_adder=None, **kwargs):
+        super(CustomCIFAR10, self).__init__(*args, **kwargs)
+        self.noise_adder = noise_adder
+
+    def __getitem__(self, index):
+        img, target = super(CustomCIFAR10, self).__getitem__(index)
+        if self.noise_adder is not None:
+            img = self.noise_adder(img, target)
+        return img, target
+
+
+class CustomCIFAR100(torchvision.datasets.CIFAR100):
+    def __init__(self, *args, noise_adder=None, **kwargs):
+        super(CustomCIFAR100, self).__init__(*args, **kwargs)
+        self.noise_adder = noise_adder
+
+    def __getitem__(self, index):
+        img, target = super(CustomCIFAR100, self).__getitem__(index)
+        if self.noise_adder is not None:
+            img = self.noise_adder(img, target)
+        return img, target
+
+
 def get_data_loaders(dataset, batch_size=128, mode='normal'):
     """
     Get the data loaders for the dataset.
@@ -255,36 +279,35 @@ def get_data_loaders(dataset, batch_size=128, mode='normal'):
     elif dataset == 'noisy_cifar100':
         noise_params = {i: (i * 0.01, 0.05) for i in range(100)}
 
-    if 'noisy' not in dataset:
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
-        ])
-    else:
-        noise_adder = GaussianNoiseAdder(noise_params)
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15),
-            transforms.ToTensor(),
-            transforms.Lambda(lambda img: noise_adder(img, img.label)),
-            transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
-        ])
+    transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
+    ])
     transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
     ])
-    if dataset == 'cifar10' or dataset == 'noisy_cifar10':
+    if dataset == 'cifar10':
         trainset = torchvision.datasets.CIFAR10(
             root='./data', train=True, download=True, transform=transform_train)
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
-    elif dataset == 'cifar100' or dataset == 'noisy_cifar100':
+    elif dataset == 'cifar100':
         trainset = torchvision.datasets.CIFAR100(
             root='./data', train=True, download=True, transform=transform_train)
+        testset = torchvision.datasets.CIFAR100(
+            root='./data', train=False, download=True, transform=transform_test)
+    elif dataset == 'noisy_cifar10':
+        trainset = CustomCIFAR10(
+            root='./data', train=True, download=True, transform=transform_train, noise_adder=GaussianNoiseAdder(noise_params))
+        testset = torchvision.datasets.CIFAR10(
+            root='./data', train=False, download=True, transform=transform_test)
+    elif dataset == 'noisy_cifar100':
+        trainset = CustomCIFAR100(
+            root='./data', train=True, download=True, transform=transform_train, noise_adder=GaussianNoiseAdder(noise_params))
         testset = torchvision.datasets.CIFAR100(
             root='./data', train=False, download=True, transform=transform_test)
 
