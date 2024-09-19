@@ -1,7 +1,9 @@
 import os
 import torch
+import wandb
 import torch.nn as nn
 import numpy as np
+from resnet import resnet18
 from utils import train_epoch, test_epoch, get_data_loaders
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
@@ -19,7 +21,7 @@ def transfer_linear_probe(model):
     num_epochs = 50
 
     # Get the data loaders for CIFAR-10
-    cifar10_train_loader, cifar10_test_loader = get_data_loaders('cifar10', batch_size)
+    train_loader, test_loader = get_data_loaders('cifar10', batch_size)
 
     # Replace the last layer of the model with a linear layer for CIFAR-10
     model.fc = nn.Linear(model.fc.in_features, 10)
@@ -36,9 +38,9 @@ def transfer_linear_probe(model):
     best_test_loss = float('inf')
 
     for epoch in range(1, num_epochs + 1):
-        train_epoch(epoch, model, cifar10_train_loader, optimizer, criterion, device, None)
+        train_epoch(epoch, model, train_loader, optimizer, criterion, device, None)
 
-        test_loss, _ = test_epoch(epoch, model, cifar10_test_loader, criterion, device)
+        test_loss, _ = test_epoch(epoch, model, test_loader, criterion, device)
 
         # save every 10 epochs
         if epoch % 10 == 0:
@@ -100,10 +102,18 @@ def transfer_knn(model):
 
 
 def main():
-    # Train the model on CIFAR-10
+    # Get the model pre-trained on CIFAR-100
     mode = 'normal'
     dataset = 'cifar100'
+    ckpt_folder = os.path.join('./ckpts', mode)
+    model = resnet18().to(device)
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth')))
+
+    # Transfer learning on CIFAR-10 using a linear probe
+    model = transfer_linear_probe(model)
 
 
 if __name__ == '__main__':
+    wandb.init(project='smooth-spline', entity='leyang_hu')
     main()
+    wandb.finish()
