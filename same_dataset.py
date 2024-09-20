@@ -33,6 +33,11 @@ def main():
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_on(mode, dataset, test_loader, model, beta_vals)
 
+    # Replace ReLU with BetaReLU and test the model on different conditions on CIFAR-10
+    dataset = 'noisy_cifar10'
+    _, test_loader = get_data_loaders(dataset, 128)
+    replace_and_test_on('normal', dataset, test_loader, model, mode_2_beta_vals['normal'])
+
 
 if __name__ == '__main__':
     main()
