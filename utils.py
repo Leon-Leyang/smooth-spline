@@ -293,8 +293,8 @@ def get_data_loaders(dataset, batch_size=128, mode='normal'):
     assert dataset in ['cifar10', 'cifar100', 'noisy_cifar10', 'noisy_cifar100'], 'Dataset must be either cifar10, cifar100, noisy_cifar10 or noisy_cifar100'
 
     if dataset == 'noisy_cifar10':
-        gaussians = [(i, 10) for i in range(10)]
-        noise_adder = GMMNoiseAdder(gaussians, num_classes=10, alpha=0.001)
+        gaussians = [(i * 0.01, 0) for i in range(10)]
+        noise_adder = GMMNoiseAdder(gaussians, num_classes=10, alpha=0.8)
     elif dataset == 'noisy_cifar100':
         raise NotImplementedError('Noisy CIFAR-100 is not implemented yet.')
 
