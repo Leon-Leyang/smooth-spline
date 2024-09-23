@@ -34,7 +34,7 @@ def main():
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_acc_on(mode, dataset, test_loader, model, beta_vals)
         for threat in threat_models:
-            replace_and_test_robustness(mode, threat, beta_vals, model, dataset)
+            replace_and_test_robustness_on(mode, threat, beta_vals, model, dataset)
 
     # Replace ReLU with BetaReLU and test the model on different conditions on CIFAR-10
     dataset = 'cifar10'
@@ -42,7 +42,7 @@ def main():
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_acc_on(mode, dataset, test_loader, model, beta_vals)
         for threat in threat_models:
-            replace_and_test_robustness(mode, threat, beta_vals, model, dataset)
+            replace_and_test_robustness_on(mode, threat, beta_vals, model, dataset)
 
     # Replace ReLU with BetaReLU and test the model on different conditions on CIFAR-10
     dataset = 'noisy_cifar10'
