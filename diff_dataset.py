@@ -8,7 +8,7 @@ import numpy as np
 from resnet import resnet18
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
-from utils import train_epoch, test_epoch, get_data_loaders, replace_and_test, ReplacementMapping, replace_module, get_file_name
+from utils import train_epoch, test_epoch, get_data_loaders, replace_and_test_acc, ReplacementMapping, replace_module, get_file_name
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 
@@ -133,15 +133,15 @@ def transfer_knn(model):
     return accuracy
 
 
-def replace_and_test_linear_probe_on(mode, test_loader, beta_vals):
+def replace_and_test_linear_probe_acc_on(mode, test_loader, beta_vals):
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
     model = transfer_linear_probe(model, mode)
-    replace_and_test(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10_linear', __file__)
+    replace_and_test_acc(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10_linear', __file__)
 
 
-def replace_and_test_knn_on(mode, beta_vals):
+def replace_and_test_knn_acc_on(mode, beta_vals):
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
@@ -205,7 +205,7 @@ def main():
         'overfit': np.arange(0.95, 1, 0.001)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
-        replace_and_test_linear_probe_on(mode, test_loader, beta_vals)
+        replace_and_test_linear_probe_acc_on(mode, test_loader, beta_vals)
 
     # Transfer learning on CIFAR-10 using a k-NN classifier and test the model with different beta values of BetaReLU
     mode_2_beta_vals = {
@@ -214,7 +214,7 @@ def main():
         'overfit': np.arange(0.95, 1, 0.001)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
-        replace_and_test_knn_on(mode, beta_vals)
+        replace_and_test_knn_acc_on(mode, beta_vals)
 
 
 if __name__ == '__main__':

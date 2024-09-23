@@ -1,20 +1,27 @@
 import os
 import torch
 import numpy as np
-from utils import get_data_loaders, replace_and_test
+from utils import get_data_loaders, replace_and_test_acc, replace_and_test_robustness
 from resnet import resnet18
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def replace_and_test_on(mode, dataset, test_loader, model, beta_vals):
+def replace_and_test_acc_on(mode, dataset, test_loader, model, beta_vals):
     ckpt_folder = os.path.join('./ckpts', mode)
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth'), weights_only=True))
-    replace_and_test(model, test_loader, beta_vals, mode, dataset, __file__)
+    replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, __file__)
+
+
+def replace_and_test_robustness_on(mode, threat_model, beta_vals, model, dataset):
+    ckpt_folder = os.path.join('./ckpts', mode)
+    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth'), weights_only=True))
+    replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, __file__)
 
 
 def main():
     model = resnet18().to(device)
+    threat_models = ['Linf', 'L2']
 
     # Replace ReLU with BetaReLU and test the model trained on different conditions on CIFAR-100
     dataset = 'cifar100'
@@ -25,18 +32,24 @@ def main():
         'overfit': np.arange(0.9, 1, 0.002)
     }
     for mode, beta_vals in mode_2_beta_vals.items():
-        replace_and_test_on(mode, dataset, test_loader, model, beta_vals)
+        replace_and_test_acc_on(mode, dataset, test_loader, model, beta_vals)
+        for threat in threat_models:
+            replace_and_test_robustness(mode, threat, beta_vals, model, dataset)
 
     # Replace ReLU with BetaReLU and test the model on different conditions on CIFAR-10
     dataset = 'cifar10'
     _, test_loader = get_data_loaders(dataset, 128)
     for mode, beta_vals in mode_2_beta_vals.items():
-        replace_and_test_on(mode, dataset, test_loader, model, beta_vals)
+        replace_and_test_acc_on(mode, dataset, test_loader, model, beta_vals)
+        for threat in threat_models:
+            replace_and_test_robustness(mode, threat, beta_vals, model, dataset)
 
     # Replace ReLU with BetaReLU and test the model on different conditions on CIFAR-10
     dataset = 'noisy_cifar10'
     _, test_loader = get_data_loaders(dataset, 128)
-    replace_and_test_on('normal', dataset, test_loader, model, mode_2_beta_vals['normal'])
+    replace_and_test_acc_on('normal', dataset, test_loader, model, mode_2_beta_vals['normal'])
+    for threat in threat_models:
+        replace_and_test_robustness_on('normal', threat, mode_2_beta_vals['normal'], model, dataset)
 
 
 if __name__ == '__main__':

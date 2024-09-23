@@ -10,6 +10,7 @@ from matplotlib.ticker import ScalarFormatter
 from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import Subset
+from robustbench.eval import benchmark
 
 
 class ReplacementMapping:
@@ -338,7 +339,7 @@ def get_data_loaders(dataset, batch_size=128, mode='normal'):
     return trainloader, testloader
 
 
-def replace_and_test(model, test_loader, beta_vals, mode, dataset, calling_file):
+def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_file):
     """
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
@@ -347,7 +348,7 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset, calling_file)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     print('*' * 50)
-    print(f'Running post-replace experiment on {dataset}...')
+    print(f'Running post-replace accuracy test on {dataset}...')
     print('*' * 50)
     criterion = nn.CrossEntropyLoss()
 
@@ -376,7 +377,7 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset, calling_file)
     beta_list.append(1)
     print(f'Best accuracy: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
 
-    # Plot the test loss vs beta values
+    # Plot the test accuracy vs beta values
     plt.figure(figsize=(12, 8))
     plt.plot(beta_list, acc_list)
     plt.axhline(y=base_acc, color='r', linestyle='--', label='ReLU Test Accuracy')
@@ -397,5 +398,87 @@ def replace_and_test(model, test_loader, beta_vals, mode, dataset, calling_file)
     plt.legend()
     output_folder = os.path.join("./figures", get_file_name(calling_file))
     os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"replace_and_test_{dataset}_{mode}.png"))
+    plt.savefig(os.path.join(output_folder, f"replace_and_test_acc_{dataset}_{mode}.png"))
+    plt.show()
+
+
+def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, calling_file):
+    """
+    Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
+    """
+    assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
+    assert threat_model in ['Linf', 'L2'], 'Threat model must be either Linf or L2'
+    assert dataset in ['cifar10', 'cifar100'], 'Dataset must be either cifar10 or cifar100'
+
+    threat_to_eps = {
+        'Linf': 8 / 255,
+        'L2': 0.5
+    }
+
+    model.eval()
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
+    ])
+
+    print('*' * 50)
+    print(f'Running post-replace robustness test on {dataset}...')
+    print('*' * 50)
+
+    robust_acc_list = []
+    beta_list = []
+
+    # Test the original model
+    print('Testing the original model...')
+    _, base_robust_acc = benchmark(
+        model, dataset=dataset, threat_model=threat_model, eps=threat_to_eps[threat_model], device=device,
+        batch_size=2056, preprocessing=transform_test
+    )
+    best_robust_acc = base_robust_acc
+    best_beta = 1
+
+    # Test the model with different beta values
+    for i, beta in enumerate(beta_vals):
+        print(f'Using BetaReLU with beta={beta:.3f}')
+        replacement_mapping = ReplacementMapping(beta=beta)
+        orig_model = copy.deepcopy(model)
+        new_model = replace_module(orig_model, replacement_mapping)
+        _, robust_acc = benchmark(
+            new_model, dataset=dataset, threat_model=threat_model, eps=threat_to_eps[threat_model], device=device,
+            batch_size=2056, preprocessing=transform_test
+        )
+        if robust_acc > best_robust_acc:
+            best_robust_acc = robust_acc
+            best_beta = beta
+        robust_acc_list.append(robust_acc)
+        beta_list.append(beta)
+    robust_acc_list.append(base_robust_acc)
+    beta_list.append(1)
+    print(f'Best robust accuracy: {best_robust_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_robust_acc:.2f}')
+
+    # Plot the test accuracy vs beta values
+    plt.figure(figsize=(12, 8))
+    plt.plot(beta_list, robust_acc_list)
+    plt.axhline(y=base_robust_acc, color='r', linestyle='--', label='ReLU Robust Accuracy')
+    plt.xlabel('Beta')
+    plt.ylabel('Robust Accuracy')
+    plt.title('Robust Accuracy vs Beta Values')
+
+    # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
+    ax = plt.gca()
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.xaxis.get_major_formatter().set_scientific(False)
+    ax.xaxis.get_major_formatter().set_useOffset(False)
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.yaxis.get_major_formatter().set_scientific(False)
+    ax.yaxis.get_major_formatter().set_useOffset(False)
+
+    plt.xticks(beta_list[::5], rotation=45)
+    plt.legend()
+    output_folder = os.path.join("./figures", get_file_name(calling_file))
+    os.makedirs(output_folder, exist_ok=True)
+    plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{dataset}_{mode}_{threat_model}.png"))
     plt.show()
