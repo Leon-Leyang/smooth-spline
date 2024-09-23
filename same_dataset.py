@@ -25,7 +25,7 @@ def main():
 
     # Replace ReLU with BetaReLU and test the model trained on different conditions on CIFAR-100
     dataset = 'cifar100'
-    _, test_loader = get_data_loaders(dataset, 128)
+    _, test_loader = get_data_loaders(dataset, 2056)
     mode_2_beta_vals = {
         'normal': np.arange(0.9, 1, 0.002),
         'suboptimal': np.arange(0.9, 1, 0.002),
@@ -38,7 +38,7 @@ def main():
 
     # Replace ReLU with BetaReLU and test the model on different conditions on CIFAR-10
     dataset = 'cifar10'
-    _, test_loader = get_data_loaders(dataset, 128)
+    _, test_loader = get_data_loaders(dataset, 2056)
     for mode, beta_vals in mode_2_beta_vals.items():
         replace_and_test_acc_on(mode, dataset, test_loader, model, beta_vals)
         for threat in threat_models:
@@ -46,7 +46,7 @@ def main():
 
     # Replace ReLU with BetaReLU and test the model on different conditions on CIFAR-10
     dataset = 'noisy_cifar10'
-    _, test_loader = get_data_loaders(dataset, 128)
+    _, test_loader = get_data_loaders(dataset, 2056)
     replace_and_test_acc_on('normal', dataset, test_loader, model, mode_2_beta_vals['normal'])
     for threat in threat_models:
         replace_and_test_robustness_on('normal', threat, mode_2_beta_vals['normal'], model, dataset)

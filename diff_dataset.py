@@ -22,12 +22,12 @@ def transfer_linear_probe(model, mode, beta_val=None):
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
 
     # Hyperparameters
-    batch_size = 128
+    train_batch_size = 128
     learning_rate = 0.005
     num_epochs = 50
 
     # Get the data loaders for CIFAR-10
-    train_loader, test_loader = get_data_loaders('cifar10', batch_size)
+    train_loader, test_loader = get_data_loaders('cifar10', train_batch_size)
 
     # Replace the last layer of the model with a linear layer for CIFAR-10
     model.fc = nn.Linear(model.fc.in_features, 10)
@@ -111,11 +111,11 @@ def transfer_knn(model):
     Transfer learning on CIFAR-10 using a k-NN classifier.
     """
     # Hyperparameters
-    batch_size = 128
+    batch_size = 2056
     neighbors = 5
 
     # Get the data loaders for CIFAR-10
-    cifar10_train_loader, cifar10_test_loader = get_data_loaders('cifar10', batch_size)
+    cifar10_train_loader, cifar10_test_loader = get_data_loaders('cifar10', train_batch_size=batch_size)
     knn = KNeighborsClassifier(n_neighbors=neighbors)
 
     # Extract features from the pre-trained model
@@ -198,7 +198,7 @@ def replace_and_test_knn_acc_on(mode, beta_vals):
 
 def main():
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
-    _, test_loader = get_data_loaders('cifar10', 128)
+    _, test_loader = get_data_loaders('cifar10', 2056)
     mode_2_beta_vals = {
         'normal': np.arange(0.95, 1, 0.001),
         'suboptimal': np.arange(0.95, 1, 0.001),

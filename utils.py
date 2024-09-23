@@ -287,7 +287,7 @@ class NoisyCIFAR10(torchvision.datasets.CIFAR10):
         return img, target
 
 
-def get_data_loaders(dataset, batch_size=128, mode='normal'):
+def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2056, mode='normal'):
     """
     Get the data loaders for the dataset.
     """
@@ -333,9 +333,9 @@ def get_data_loaders(dataset, batch_size=128, mode='normal'):
         trainset = Subset(trainset, indices)
 
     trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=batch_size, shuffle=True, num_workers=8)
+        trainset, batch_size=train_batch_size, shuffle=True, num_workers=8)
     testloader = torch.utils.data.DataLoader(
-        testset, batch_size=batch_size, shuffle=False, num_workers=8)
+        testset, batch_size=test_batch_size, shuffle=False, num_workers=8)
     return trainloader, testloader
 
 
