@@ -27,14 +27,14 @@ def main():
     dataset = 'cifar100'
     _, test_loader = get_data_loaders(dataset, 2056)
     mode_2_beta_vals_acc = {
-        'normal': np.arange(0.9, 1, 0.002),
-        'suboptimal': np.arange(0.9, 1, 0.002),
-        'overfit': np.arange(0.9, 1, 0.002)
+        'normal': np.arange(0.9, 1 - 1e-6, 0.002),
+        'suboptimal': np.arange(0.9, 1 - 1e-6, 0.002),
+        'overfit': np.arange(0.9, 1 - 1e-6, 0.002)
     }
     mode_2_beta_vals_robustness = {
-        'normal': np.arange(0.95, 1, 0.01),
-        'suboptimal': np.arange(0.95, 1, 0.01),
-        'overfit': np.arange(0.95, 1, 0.01)
+        'normal': np.arange(0.95, 1 - 1e-6, 0.01),
+        'suboptimal': np.arange(0.95, 1 - 1e-6, 0.01),
+        'overfit': np.arange(0.95, 1 - 1e-6, 0.01)
     }
     for mode, beta_vals in mode_2_beta_vals_acc.items():
         replace_and_test_acc_on(mode, dataset, test_loader, model, beta_vals)

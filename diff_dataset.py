@@ -219,14 +219,14 @@ def main():
     _, test_loader = get_data_loaders('cifar10', 2056)
     threat_models = ['Linf', 'L2', 'corruptions']
     mode_2_beta_vals_acc = {
-        'normal': np.arange(0.95, 1, 0.001),
-        'suboptimal': np.arange(0.95, 1, 0.001),
-        'overfit': np.arange(0.95, 1, 0.001)
+        'normal': np.arange(0.95, 1 - 1e-6, 0.001),
+        'suboptimal': np.arange(0.95, 1 - 1e-6, 0.001),
+        'overfit': np.arange(0.95, 1 - 1e-6, 0.001)
     }
     mode_2_beta_vals_robustness = {
-        'normal': np.arange(0.95, 1, 0.01),
-        'suboptimal': np.arange(0.95, 1, 0.01),
-        'overfit': np.arange(0.95, 1, 0.01)
+        'normal': np.arange(0.95, 1 - 1e-6, 0.01),
+        'suboptimal': np.arange(0.95, 1 - 1e-6, 0.01),
+        'overfit': np.arange(0.95, 1 - 1e-6, 0.01)
     }
     for mode, beta_vals in mode_2_beta_vals_acc.items():
         replace_and_test_linear_probe_acc_on(mode, test_loader, beta_vals)
@@ -236,9 +236,9 @@ def main():
 
     # Transfer learning on CIFAR-10 using a k-NN classifier and test the model with different beta values of BetaReLU
     mode_2_beta_vals_acc = {
-        'normal': np.arange(0.95, 1, 0.001),
-        'suboptimal': np.arange(0.95, 1, 0.001),
-        'overfit': np.arange(0.95, 1, 0.001)
+        'normal': np.arange(0.95, 1 - 1e-6, 0.001),
+        'suboptimal': np.arange(0.95, 1 - 1e-6, 0.001),
+        'overfit': np.arange(0.95, 1 - 1e-6, 0.001)
     }
     for mode, beta_vals in mode_2_beta_vals_acc.items():
         replace_and_test_knn_acc_on(mode, beta_vals)
