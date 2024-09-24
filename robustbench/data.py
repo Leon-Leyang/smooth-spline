@@ -2,6 +2,7 @@ import math
 import os
 from pathlib import Path
 from typing import Callable, Dict, Optional, Sequence, Set, Tuple, Union
+from collections import defaultdict
 
 import numpy as np
 import timm
@@ -103,18 +104,30 @@ def _load_dataset(
                                   shuffle=False,
                                   num_workers=0)
 
+    # Get number of classes from the dataset
+    n_classes = len(dataset.classes)
+
     x_test, y_test = [], []
+    class_counts = defaultdict(int)
+    n_examples_per_class = n_examples // n_classes if n_examples is not None else None
+
     for i, (x, y) in enumerate(test_loader):
-        x_test.append(x)
-        y_test.append(y)
-        if n_examples is not None and batch_size * i >= n_examples:
+        for j in range(len(y)):
+            label = y[j].item()
+            if n_examples_per_class is None or class_counts[label] < n_examples_per_class:
+                x_test.append(x[j].unsqueeze(0))
+                y_test.append(y[j].unsqueeze(0))
+                class_counts[label] += 1
+
+            # Check if we have enough examples for all classes
+            if n_examples_per_class is not None and all(
+                    count >= n_examples_per_class for count in class_counts.values()):
+                break
+        if n_examples_per_class is not None and all(count >= n_examples_per_class for count in class_counts.values()):
             break
+
     x_test_tensor = torch.cat(x_test)
     y_test_tensor = torch.cat(y_test)
-
-    if n_examples is not None:
-        x_test_tensor = x_test_tensor[:n_examples]
-        y_test_tensor = y_test_tensor[:n_examples]
 
     return x_test_tensor, y_test_tensor
 
