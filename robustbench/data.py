@@ -227,7 +227,7 @@ def load_cifar10c(
         data_dir: str = './data',
         shuffle: bool = False,
         corruptions: Sequence[str] = CORRUPTIONS,
-        _: Callable = PREPROCESSINGS[None]
+        prepr: Callable = PREPROCESSINGS[None]
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     return load_corruptions_cifar(BenchmarkDataset.cifar_10, n_examples,
                                   severity, data_dir, corruptions, shuffle)
@@ -239,7 +239,7 @@ def load_cifar100c(
         data_dir: str = './data',
         shuffle: bool = False,
         corruptions: Sequence[str] = CORRUPTIONS,
-        _: Callable = PREPROCESSINGS[None]
+        prepr: Callable = PREPROCESSINGS[None]
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     return load_corruptions_cifar(BenchmarkDataset.cifar_100, n_examples,
                                   severity, data_dir, corruptions, shuffle)
