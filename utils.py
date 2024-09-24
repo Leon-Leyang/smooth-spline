@@ -407,8 +407,6 @@ def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, c
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
-    assert threat_model in ['Linf', 'L2'], 'Threat model must be either Linf or L2'
-    assert dataset in ['cifar10', 'cifar100'], 'Dataset must be either cifar10 or cifar100'
 
     threat_to_eps = {
         'Linf': 8 / 255,
@@ -433,10 +431,16 @@ def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, c
 
     # Test the original model
     print('Testing the original model...')
-    _, base_robust_acc = benchmark(
-        model, dataset=dataset, threat_model=threat_model, eps=threat_to_eps[threat_model], device=device,
-        batch_size=2056, preprocessing=transform_test, n_examples=n_examples
-    )
+    if threat_model != 'corruptions':
+        _, base_robust_acc = benchmark(
+            model, dataset=dataset, threat_model=threat_model, eps=threat_to_eps[threat_model], device=device,
+            batch_size=2056, preprocessing=transform_test, n_examples=n_examples
+        )
+    else:
+        _, base_robust_acc = benchmark(
+            model, dataset=dataset, threat_model=threat_model, device=device,
+            batch_size=2056, preprocessing=transform_test, n_examples=n_examples
+        )
     best_robust_acc = base_robust_acc
     best_beta = 1
 
