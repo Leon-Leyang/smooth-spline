@@ -436,16 +436,10 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
 
     # Test the original model
     print('Testing the original model...')
-    if threat != 'corruptions':
-        _, base_robust_acc = benchmark(
-            model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-            batch_size=2056, preprocessing=transform_test, n_examples=n_examples
-        )
-    else:
-        _, base_robust_acc = benchmark(
-            model, dataset=dataset_to_use, threat_model=threat, device=device,
-            batch_size=2056, preprocessing=transform_test, n_examples=n_examples
-        )
+    _, base_robust_acc = benchmark(
+        model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
+        batch_size=2056, preprocessing=transform_test, n_examples=n_examples
+    )
     best_robust_acc = base_robust_acc
     best_beta = 1
 
@@ -457,7 +451,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
         new_model = replace_module(orig_model, replacement_mapping)
         _, robust_acc = benchmark(
             new_model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-            batch_size=2056, preprocessing=transform_test
+            batch_size=2056, preprocessing=transform_test, n_examples=n_examples
         )
         if robust_acc > best_robust_acc:
             best_robust_acc = robust_acc
