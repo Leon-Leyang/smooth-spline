@@ -424,6 +424,8 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
 
     if 'cifar100_to_cifar10' in dataset:
         dataset_to_use = 'cifar10'
+    elif 'noisy_cifar10' in dataset:
+        dataset_to_use = 'cifar10'
     else:
         dataset_to_use = dataset
 
