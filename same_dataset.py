@@ -13,10 +13,10 @@ def replace_and_test_acc_on(mode, dataset, test_loader, model, beta_vals):
     replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, __file__)
 
 
-def replace_and_test_robustness_on(mode, threat_model, beta_vals, model, dataset):
+def replace_and_test_robustness_on(mode, threat, beta_vals, model, dataset):
     ckpt_folder = os.path.join('./ckpts', mode)
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch200.pth'), weights_only=True))
-    replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, __file__)
+    replace_and_test_robustness(model, threat, beta_vals, mode, dataset, __file__)
 
 
 def main():
