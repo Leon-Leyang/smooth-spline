@@ -402,7 +402,7 @@ def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_f
     plt.show()
 
 
-def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, calling_file):
+def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, calling_file, n_examples=1000):
     """
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
@@ -435,7 +435,7 @@ def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, c
     print('Testing the original model...')
     _, base_robust_acc = benchmark(
         model, dataset=dataset, threat_model=threat_model, eps=threat_to_eps[threat_model], device=device,
-        batch_size=2056, preprocessing=transform_test
+        batch_size=2056, preprocessing=transform_test, n_examples=n_examples
     )
     best_robust_acc = base_robust_acc
     best_beta = 1
