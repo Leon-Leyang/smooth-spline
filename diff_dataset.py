@@ -8,7 +8,7 @@ import numpy as np
 from resnet import resnet18
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
-from utils import train_epoch, test_epoch, get_data_loaders, replace_and_test_acc, ReplacementMapping, replace_module, get_file_name
+from utils import train_epoch, test_epoch, get_data_loaders, replace_and_test_acc, ReplacementMapping, replace_module, get_file_name, replace_and_test_robustness
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 
@@ -134,6 +134,9 @@ def transfer_knn(model):
 
 
 def replace_and_test_linear_probe_acc_on(mode, test_loader, beta_vals):
+    """
+    Do transfer learning on CIFAR-10 using a linear probe and test the model's accuracy with different beta values of BetaReLU.
+    """
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
@@ -141,7 +144,22 @@ def replace_and_test_linear_probe_acc_on(mode, test_loader, beta_vals):
     replace_and_test_acc(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10_linear', __file__)
 
 
+def replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals):
+    """
+    Replace ReLU with BetaReLU and test the model's robustness on different threats on CIFAR-10.
+    """
+    ckpt_folder = os.path.join('./ckpts', mode)
+    model = resnet18().to(device)
+    model.load_state_dict(
+        torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
+    model = transfer_linear_probe(model, mode)
+    replace_and_test_robustness(model, threat, beta_vals, mode, 'cifar100_to_cifar10_linear', __file__)
+
+
 def replace_and_test_knn_acc_on(mode, beta_vals):
+    """
+    Replace ReLU with BetaReLU and test the model's accuracy with different beta values of BetaReLU using a k-NN classifier.
+    """
     ckpt_folder = os.path.join('./ckpts', mode)
     model = resnet18().to(device)
     model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
@@ -199,21 +217,30 @@ def replace_and_test_knn_acc_on(mode, beta_vals):
 def main():
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     _, test_loader = get_data_loaders('cifar10', 2056)
-    mode_2_beta_vals = {
+    threat_models = ['Linf', 'L2', 'corruptions']
+    mode_2_beta_vals_acc = {
         'normal': np.arange(0.95, 1, 0.001),
         'suboptimal': np.arange(0.95, 1, 0.001),
         'overfit': np.arange(0.95, 1, 0.001)
     }
-    for mode, beta_vals in mode_2_beta_vals.items():
+    mode_2_beta_vals_robustness = {
+        'normal': np.arange(0.95, 1, 0.01),
+        'suboptimal': np.arange(0.95, 1, 0.01),
+        'overfit': np.arange(0.95, 1, 0.01)
+    }
+    for mode, beta_vals in mode_2_beta_vals_acc.items():
         replace_and_test_linear_probe_acc_on(mode, test_loader, beta_vals)
+    for mode, beta_vals in mode_2_beta_vals_robustness.items():
+        for threat in threat_models:
+            replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals)
 
     # Transfer learning on CIFAR-10 using a k-NN classifier and test the model with different beta values of BetaReLU
-    mode_2_beta_vals = {
+    mode_2_beta_vals_acc = {
         'normal': np.arange(0.95, 1, 0.001),
         'suboptimal': np.arange(0.95, 1, 0.001),
         'overfit': np.arange(0.95, 1, 0.001)
     }
-    for mode, beta_vals in mode_2_beta_vals.items():
+    for mode, beta_vals in mode_2_beta_vals_acc.items():
         replace_and_test_knn_acc_on(mode, beta_vals)
 
 

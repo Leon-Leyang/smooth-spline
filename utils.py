@@ -402,7 +402,7 @@ def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_f
     plt.show()
 
 
-def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, calling_file, n_examples=1000):
+def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling_file, n_examples=1000):
     """
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
@@ -422,8 +422,13 @@ def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, c
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
     ])
 
+    if 'cifar100_to_cifar10' in dataset:
+        dataset_to_use = 'cifar10'
+    else:
+        dataset_to_use = dataset
+
     print('*' * 50)
-    print(f'Running post-replace robustness test on {dataset}...')
+    print(f'Running post-replace robustness test on {dataset_to_use}...')
     print('*' * 50)
 
     robust_acc_list = []
@@ -431,14 +436,14 @@ def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, c
 
     # Test the original model
     print('Testing the original model...')
-    if threat_model != 'corruptions':
+    if threat != 'corruptions':
         _, base_robust_acc = benchmark(
-            model, dataset=dataset, threat_model=threat_model, eps=threat_to_eps[threat_model], device=device,
+            model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
             batch_size=2056, preprocessing=transform_test, n_examples=n_examples
         )
     else:
         _, base_robust_acc = benchmark(
-            model, dataset=dataset, threat_model=threat_model, device=device,
+            model, dataset=dataset_to_use, threat_model=threat, device=device,
             batch_size=2056, preprocessing=transform_test, n_examples=n_examples
         )
     best_robust_acc = base_robust_acc
@@ -451,7 +456,7 @@ def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, c
         orig_model = copy.deepcopy(model)
         new_model = replace_module(orig_model, replacement_mapping)
         _, robust_acc = benchmark(
-            new_model, dataset=dataset, threat_model=threat_model, eps=threat_to_eps[threat_model], device=device,
+            new_model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
             batch_size=2056, preprocessing=transform_test
         )
         if robust_acc > best_robust_acc:
@@ -484,5 +489,5 @@ def replace_and_test_robustness(model, threat_model, beta_vals, mode, dataset, c
     plt.legend()
     output_folder = os.path.join("./figures", get_file_name(calling_file))
     os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{dataset}_{mode}_{threat_model}.png"))
+    plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{dataset}_{mode}_{threat}.png"))
     plt.show()
