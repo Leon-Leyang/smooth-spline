@@ -21,7 +21,7 @@ def replace_and_test_robustness_on(mode, threat, beta_vals, model, dataset):
 
 def main():
     model = resnet18().to(device)
-    threat_models = ['Linf', 'L2', 'corruptions']
+    threat_models = ['Linf', 'L2']
 
     # Replace ReLU with BetaReLU and test the model trained on different conditions on CIFAR-100
     dataset = 'cifar100'

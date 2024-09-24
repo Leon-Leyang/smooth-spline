@@ -217,7 +217,7 @@ def replace_and_test_knn_acc_on(mode, beta_vals):
 def main():
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     _, test_loader = get_data_loaders('cifar10', 2056)
-    threat_models = ['Linf', 'L2', 'corruptions']
+    threat_models = ['Linf', 'L2']
     mode_2_beta_vals_acc = {
         'normal': np.arange(0.95, 1 - 1e-6, 0.001),
         'suboptimal': np.arange(0.95, 1 - 1e-6, 0.001),
