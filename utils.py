@@ -138,7 +138,7 @@ class WarmUpLR(_LRScheduler):
     """warmup_training learning rate scheduler
     Args:
         optimizer: optimzier(e.g. SGD)
-        total_iters: totoal_iters of warmup phase
+        total_iters: total_iters of warmup phase
     """
     def __init__(self, optimizer, total_iters, last_epoch=-1):
 
