@@ -25,7 +25,7 @@ def train(mode, dataset):
     num_epochs = 200
 
     # Get the data loaders
-    train_loader, test_loader = get_data_loaders(dataset, batch_size, mode)
+    train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, mode=mode)
 
     # Initialize the model
     model = resnet18()
