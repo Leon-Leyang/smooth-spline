@@ -13,6 +13,12 @@ from torch.utils.data import Subset
 from robustbench.eval import benchmark
 
 
+DEFAULT_TRANSFORM = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
+])
+
+
 class ReplacementMapping:
     def __init__(self, beta=0.5):
         self.beta = beta
@@ -402,7 +408,8 @@ def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_f
     plt.show()
 
 
-def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling_file, n_examples=1000):
+def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling_file, batch_size=2000, n_examples=1000,
+                                transform_test=DEFAULT_TRANSFORM):
     """
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
@@ -416,11 +423,6 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     model.eval()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
-    ])
 
     if 'cifar100_to_cifar10' in dataset:
         dataset_to_use = 'cifar10'
@@ -440,7 +442,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     print('Testing the original model...')
     _, base_robust_acc = benchmark(
         model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-        batch_size=2000, preprocessing=transform_test, n_examples=n_examples
+        batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples
     )
     best_robust_acc = base_robust_acc
     best_beta = 1
@@ -453,7 +455,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
         new_model = replace_module(orig_model, replacement_mapping)
         _, robust_acc = benchmark(
             new_model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-            batch_size=2000, preprocessing=transform_test, n_examples=n_examples
+            batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples
         )
         if robust_acc > best_robust_acc:
             best_robust_acc = robust_acc
