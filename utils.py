@@ -287,7 +287,7 @@ class NoisyCIFAR10(torchvision.datasets.CIFAR10):
         return img, target
 
 
-def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2056, mode='normal'):
+def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, mode='normal'):
     """
     Get the data loaders for the dataset.
     """
@@ -440,7 +440,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     print('Testing the original model...')
     _, base_robust_acc = benchmark(
         model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-        batch_size=2056, preprocessing=transform_test, n_examples=n_examples
+        batch_size=2000, preprocessing=transform_test, n_examples=n_examples
     )
     best_robust_acc = base_robust_acc
     best_beta = 1
@@ -453,7 +453,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
         new_model = replace_module(orig_model, replacement_mapping)
         _, robust_acc = benchmark(
             new_model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-            batch_size=2056, preprocessing=transform_test, n_examples=n_examples
+            batch_size=2000, preprocessing=transform_test, n_examples=n_examples
         )
         if robust_acc > best_robust_acc:
             best_robust_acc = robust_acc
