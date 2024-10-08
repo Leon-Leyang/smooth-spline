@@ -87,7 +87,7 @@ class AutoAttack():
                                 return_accs=False):
         if state_path is not None and state_path.exists():
             state = EvaluationState.from_disk(state_path)
-            if set(self.attacks_to_run) != state.attacks_to_run:
+            if self.attacks_to_run != state.attacks_to_run:
                 raise ValueError("The state was created with a different set of attacks "
                                  "to run. You are probably using the wrong state file.")
             if self.verbose:
