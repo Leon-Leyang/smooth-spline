@@ -164,3 +164,4 @@ data/
 figures/
 wandb/
 ckpts/
+models/
