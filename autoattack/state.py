@@ -29,6 +29,7 @@ class EvaluationState:
         if self.robust_flags is not None:
             d["_robust_flags"] = d["_robust_flags"].cpu().tolist()
         d["_run_attacks"] = list(self._run_attacks)
+        d["_attacks_to_run"] = list(self._attacks_to_run)
         with self.path.open("w", ) as f:
             json.dump(d, f, default=str)
 
