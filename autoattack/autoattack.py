@@ -235,6 +235,7 @@ class AutoAttack():
                 robust_accuracy = torch.sum(robust_flags).item() / x_orig.shape[0]
                 robust_accuracy_dict[attack] = robust_accuracy
                 state.add_run_attack(attack)
+                state.to_disk(force=True)
                 if self.verbose:
                     self.logger.log('robust accuracy after {}: {:.2%} (total time {:.1f} s)'.format(
                         attack.upper(), robust_accuracy, time.time() - startt))
