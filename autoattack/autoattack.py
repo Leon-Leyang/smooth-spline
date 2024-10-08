@@ -118,7 +118,8 @@ class AutoAttack():
             logger=self.logger)
         checks.check_n_classes(n_cls, self.attacks_to_run, self.apgd_targeted.n_target_classes,
             self.fab.n_target_classes, logger=self.logger)
-        
+
+        y_adv = None    # Hack to avoid error, don't use it to return labels
         with torch.no_grad():
             # calculate accuracy
             n_batches = int(np.ceil(x_orig.shape[0] / bs))
@@ -152,6 +153,7 @@ class AutoAttack():
                     self.logger.log('robust accuracy at the time of restoring the state: {:.2%}'.format(robust_accuracy))
                     
             x_adv = x_orig.clone().detach()
+            y_adv = torch.empty_like(y_orig) if y_adv is None else y_adv    # Hack to avoid error, don't use it to return labels
             startt = time.time()
             for attack in attacks_to_run:
                 # item() is super important as pytorch int division uses floor rounding
