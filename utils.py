@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import wandb
+from pathlib import Path
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from torchvision import transforms as transforms
@@ -443,7 +444,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
 
     # Test the original model
     print('Testing the original model...')
-    state_path = state_path_format_str.format(beta=1)
+    state_path = Path(state_path_format_str.format(beta=1))
     _, base_robust_acc = benchmark(
         model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
         batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples, aa_state_path=state_path
@@ -455,7 +456,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         print(f'Using BetaReLU with beta={beta:.2f}')
-        state_path = state_path_format_str.format(beta=beta)
+        state_path = Path(state_path_format_str.format(beta=beta))
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
         new_model = replace_module(orig_model, replacement_mapping)
