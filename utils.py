@@ -421,6 +421,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     }
 
     model.eval()
+    model_name = model.__class__.__name__
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -438,25 +439,31 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     robust_acc_list = []
     beta_list = []
 
+    state_path_format_str = f"./cache/{model_name}_{dataset}_{mode}_{threat}_{{beta:.2f}}.json"
+
     # Test the original model
     print('Testing the original model...')
+    state_path = state_path_format_str.format(beta=1)
     _, base_robust_acc = benchmark(
         model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-        batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples
+        batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples, aa_state_path=state_path
     )
+    base_robust_acc *= 100
     best_robust_acc = base_robust_acc
     best_beta = 1
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
-        print(f'Using BetaReLU with beta={beta:.3f}')
+        print(f'Using BetaReLU with beta={beta:.2f}')
+        state_path = state_path_format_str.format(beta=beta)
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
         new_model = replace_module(orig_model, replacement_mapping)
         _, robust_acc = benchmark(
             new_model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-            batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples
+            batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples, aa_state_path=state_path
         )
+        robust_acc *= 100
         if robust_acc > best_robust_acc:
             best_robust_acc = robust_acc
             best_beta = beta
@@ -464,7 +471,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
         beta_list.append(beta)
     robust_acc_list.append(base_robust_acc)
     beta_list.append(1)
-    print(f'Best robust accuracy: {best_robust_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_robust_acc:.2f}')
+    print(f'Best robust accuracy: {best_robust_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_robust_acc:.2f}')
 
     # Plot the test accuracy vs beta values
     plt.figure(figsize=(12, 8))
@@ -487,5 +494,5 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     plt.legend()
     output_folder = os.path.join("./figures", get_file_name(calling_file))
     os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{dataset}_{mode}_{threat}.png"))
+    plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{model_name}_{dataset}_{mode}_{threat}.png"))
     plt.show()

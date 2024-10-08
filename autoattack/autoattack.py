@@ -83,7 +83,8 @@ class AutoAttack():
                                 y_orig,
                                 bs=250,
                                 return_labels=False,
-                                state_path=None):
+                                state_path=None,
+                                return_accs=False):
         if state_path is not None and state_path.exists():
             state = EvaluationState.from_disk(state_path)
             if set(self.attacks_to_run) != state.attacks_to_run:
@@ -255,6 +256,8 @@ class AutoAttack():
                 self.logger.log('max {} perturbation: {:.5f}, nan in tensor: {}, max: {:.5f}, min: {:.5f}'.format(
                     self.norm, res.max(), (x_adv != x_adv).sum(), x_adv.max(), x_adv.min()))
                 self.logger.log('robust accuracy: {:.2%}'.format(robust_accuracy))
+        if return_accs:
+            return state.clean_accuracy, robust_accuracy
         if return_labels:
             return x_adv, y_adv
         else:

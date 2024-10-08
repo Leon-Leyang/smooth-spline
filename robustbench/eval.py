@@ -85,12 +85,11 @@ def benchmark(
     clean_x_test, clean_y_test = load_clean_dataset(dataset_, n_examples,
                                                     data_dir, prepr)
 
-    accuracy = clean_accuracy(model,
-                              clean_x_test,
-                              clean_y_test,
-                              batch_size=batch_size,
-                              device=device)
-    print(f'Clean accuracy: {accuracy:.2%}')
+    # accuracy = clean_accuracy(model,
+    #                           clean_x_test,
+    #                           clean_y_test,
+    #                           batch_size=batch_size,
+    #                           device=device)
 
     extra_metrics = {}  # dict to store corruptions_mce for corruptions threat models
     if threat_model_ in {ThreatModel.Linf, ThreatModel.L2}:
@@ -104,20 +103,21 @@ def benchmark(
                                version='standard',
                                device=device,
                                log_path=log_path)
-        x_adv = adversary.run_standard_evaluation(clean_x_test,
-                                                  clean_y_test,
-                                                  bs=batch_size,
-                                                  state_path=aa_state_path)
-        if aa_state_path is None:
-            adv_accuracy = clean_accuracy(model,
-                                        x_adv,
-                                        clean_y_test,
-                                        batch_size=batch_size,
-                                        device=device)
-        else:
-            aa_state = EvaluationState.from_disk(aa_state_path)
-            assert aa_state.robust_flags is not None
-            adv_accuracy = aa_state.robust_flags.mean().item()
+        accuracy, robust_accuracy = adversary.run_standard_evaluation(clean_x_test,
+                                                                            clean_y_test,
+                                                                            bs=batch_size,
+                                                                            state_path=aa_state_path,
+                                                                            return_accs=True)
+        # if aa_state_path is None:
+        #     adv_accuracy = clean_accuracy(model,
+        #                                 x_adv,
+        #                                 clean_y_test,
+        #                                 batch_size=batch_size,
+        #                                 device=device)
+        # else:
+        #     aa_state = EvaluationState.from_disk(aa_state_path)
+        #     assert aa_state.robust_flags is not None
+        #     adv_accuracy = aa_state.robust_flags.mean().item()
     
     elif threat_model_ in [ThreatModel.corruptions, ThreatModel.corruptions_3d]:
         corruptions = CORRUPTIONS_DICT[dataset_][threat_model_]
@@ -134,6 +134,7 @@ def benchmark(
         extra_metrics['corruptions_mce'] = adv_mce
     else:
         raise NotImplementedError
+    print(f'Clean accuracy: {accuracy:.2%}')
     print(f'Adversarial accuracy: {adv_accuracy:.2%}')
 
     if to_disk:
