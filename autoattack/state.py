@@ -38,6 +38,8 @@ class EvaluationState:
             d = json.load(f)
         d["_robust_flags"] = torch.tensor(d["_robust_flags"], dtype=torch.bool)
         d["path"] = Path(d["path"])
+        d["_run_attacks"] = set(d["_run_attacks"])
+        d["_attacks_to_run"] = set(d["_attacks_to_run"])
         if path != d["path"]:
             warnings.warn(
                 UserWarning(
