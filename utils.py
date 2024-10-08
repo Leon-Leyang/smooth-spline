@@ -441,6 +441,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     beta_list = []
 
     state_path_format_str = f"./cache/{model_name}_{dataset}_{mode}_{threat}_{{beta:.2f}}.json"
+    os.path.makedirs('./cache', exist_ok=True)
 
     # Test the original model
     print('Testing the original model...')
