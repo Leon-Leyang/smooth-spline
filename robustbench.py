@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 from robustbench.utils import load_model
 from utils import replace_and_test_robustness
@@ -12,11 +13,16 @@ def replace_and_test_robustness_on(model_id, threat, beta_vals, dataset):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Run robustness tests on models.")
+    parser.add_argument('--model_ids', type=str, nargs='+', default=['Peng2023Robust', 'Bartoldson2024Adversarial_WRN-94-16'], help='List of model IDs to test')
+    parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to use')
+    args = parser.parse_args()
+
     threat = 'Linf'
     beta_vals = np.arange(0.95, 1 - 1e-6, 0.01)
-    dataset = 'cifar10'
+    dataset = args.dataset
 
-    for model_id in ['Peng2023Robust', 'Bartoldson2024Adversarial_WRN-94-16']:
+    for model_id in args.model_ids:
         replace_and_test_robustness_on(model_id, threat, beta_vals, dataset)
 
 
