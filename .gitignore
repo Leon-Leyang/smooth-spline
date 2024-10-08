@@ -165,3 +165,4 @@ figures/
 wandb/
 ckpts/
 models/
+cache/
