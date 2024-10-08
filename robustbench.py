@@ -9,7 +9,7 @@ def replace_and_test_robustness_on(model_id, threat, beta_vals, dataset):
     batch_size = 70
     mode = 'normal'
     model = load_model(model_name=model_id, dataset=dataset, threat_model=threat)
-    replace_and_test_robustness(model, threat, beta_vals, mode, dataset, __file__, batch_size=batch_size, n_examples=n_examples, transform_test=None)
+    replace_and_test_robustness(model, threat, beta_vals, mode, dataset, __file__, batch_size=batch_size, n_examples=n_examples, transform_test=None, model_id=model_id)
 
 
 def main():

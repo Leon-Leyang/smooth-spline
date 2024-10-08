@@ -410,7 +410,7 @@ def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_f
 
 
 def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling_file, batch_size=2000, n_examples=1000,
-                                transform_test=DEFAULT_TRANSFORM):
+                                transform_test=DEFAULT_TRANSFORM, model_id=None):
     """
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
@@ -422,7 +422,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     }
 
     model.eval()
-    model_name = model.__class__.__name__
+    model_name = model_id if model_id is not None else model.__class__.__name__
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
