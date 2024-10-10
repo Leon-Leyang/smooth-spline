@@ -4,8 +4,7 @@ from robustbench.utils import load_model
 from utils import replace_and_test_robustness
 
 
-def replace_and_test_robustness_on(model_id, threat, beta_vals, dataset):
-    n_examples = 10000
+def replace_and_test_robustness_on(model_id, threat, beta_vals, dataset, n_examples):
     batch_size = 70
     mode = 'normal'
     model = load_model(model_name=model_id, dataset=dataset, threat_model=threat)
@@ -16,14 +15,16 @@ def main():
     parser = argparse.ArgumentParser(description="Run robustness tests on models.")
     parser.add_argument('--model_ids', type=str, nargs='+', default=['Peng2023Robust', 'Wang2023Better_WRN-70-16'], help='List of model IDs to test')
     parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to use')
+    parser.add_argument('--n_examples', type=int, default=10000, help='Number of examples to use')
     args = parser.parse_args()
 
     threat = 'Linf'
     beta_vals = np.arange(0.95, 1 - 1e-6, 0.01)
     dataset = args.dataset
+    n_examples = args.n_examples
 
     for model_id in args.model_ids:
-        replace_and_test_robustness_on(model_id, threat, beta_vals, dataset)
+        replace_and_test_robustness_on(model_id, threat, beta_vals, dataset, n_examples)
 
 
 if __name__ == "__main__":

@@ -440,7 +440,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     robust_acc_list = []
     beta_list = []
 
-    state_path_format_str = f"./cache/{model_name}_{dataset}_{mode}_{threat}_{{beta:.2f}}.json"
+    state_path_format_str = f"./cache/{model_name}_{dataset}_{mode}_{threat}_{n_examples}_{{beta:.2f}}.json"
     os.makedirs('./cache', exist_ok=True)
 
     # Test the original model
@@ -496,5 +496,5 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     plt.legend()
     output_folder = os.path.join("./figures", get_file_name(calling_file))
     os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{model_name}_{dataset}_{mode}_{threat}.png"))
+    plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{model_name}_{dataset}_{mode}_{threat}_{n_examples}.png"))
     plt.show()
