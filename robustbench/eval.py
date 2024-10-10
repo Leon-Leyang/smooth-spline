@@ -103,7 +103,7 @@ def benchmark(
                                version='standard',
                                device=device,
                                log_path=log_path)
-        accuracy, robust_accuracy = adversary.run_standard_evaluation(clean_x_test,
+        accuracy, adv_accuracy = adversary.run_standard_evaluation(clean_x_test,
                                                                             clean_y_test,
                                                                             bs=batch_size,
                                                                             state_path=aa_state_path,
