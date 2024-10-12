@@ -415,6 +415,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
+    test_only = len(beta_vals) == 1
 
     threat_to_eps = {
         'Linf': 8 / 255,
@@ -444,15 +445,16 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
     os.makedirs('./cache', exist_ok=True)
 
     # Test the original model
-    print('Testing the original model...')
-    state_path = Path(state_path_format_str.format(beta=1))
-    _, base_robust_acc = benchmark(
-        model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
-        batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples, aa_state_path=state_path
-    )
-    base_robust_acc *= 100
-    best_robust_acc = base_robust_acc
-    best_beta = 1
+    if not test_only:
+        print('Testing the original model...')
+        state_path = Path(state_path_format_str.format(beta=1))
+        _, base_robust_acc = benchmark(
+            model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
+            batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples, aa_state_path=state_path
+        )
+        base_robust_acc *= 100
+        best_robust_acc = base_robust_acc
+        best_beta = 1
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
@@ -471,30 +473,32 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
             best_beta = beta
         robust_acc_list.append(robust_acc)
         beta_list.append(beta)
-    robust_acc_list.append(base_robust_acc)
-    beta_list.append(1)
-    print(f'Best robust accuracy: {best_robust_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_robust_acc:.2f}')
 
-    # Plot the test accuracy vs beta values
-    plt.figure(figsize=(12, 8))
-    plt.plot(beta_list, robust_acc_list)
-    plt.axhline(y=base_robust_acc, color='r', linestyle='--', label='ReLU Robust Accuracy')
-    plt.xlabel('Beta')
-    plt.ylabel('Robust Accuracy')
-    plt.title('Robust Accuracy vs Beta Values')
+    if not test_only:
+        robust_acc_list.append(base_robust_acc)
+        beta_list.append(1)
+        print(f'Best robust accuracy: {best_robust_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_robust_acc:.2f}')
 
-    # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
-    ax = plt.gca()
-    ax.xaxis.set_major_formatter(ScalarFormatter())
-    ax.xaxis.get_major_formatter().set_scientific(False)
-    ax.xaxis.get_major_formatter().set_useOffset(False)
-    ax.yaxis.set_major_formatter(ScalarFormatter())
-    ax.yaxis.get_major_formatter().set_scientific(False)
-    ax.yaxis.get_major_formatter().set_useOffset(False)
+        # Plot the test accuracy vs beta values
+        plt.figure(figsize=(12, 8))
+        plt.plot(beta_list, robust_acc_list)
+        plt.axhline(y=base_robust_acc, color='r', linestyle='--', label='ReLU Robust Accuracy')
+        plt.xlabel('Beta')
+        plt.ylabel('Robust Accuracy')
+        plt.title('Robust Accuracy vs Beta Values')
 
-    plt.xticks(beta_list[::5], rotation=45)
-    plt.legend()
-    output_folder = os.path.join("./figures", get_file_name(calling_file))
-    os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{model_name}_{dataset}_{mode}_{threat}_{n_examples}.png"))
-    plt.show()
+        # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
+        ax = plt.gca()
+        ax.xaxis.set_major_formatter(ScalarFormatter())
+        ax.xaxis.get_major_formatter().set_scientific(False)
+        ax.xaxis.get_major_formatter().set_useOffset(False)
+        ax.yaxis.set_major_formatter(ScalarFormatter())
+        ax.yaxis.get_major_formatter().set_scientific(False)
+        ax.yaxis.get_major_formatter().set_useOffset(False)
+
+        plt.xticks(beta_list[::5], rotation=45)
+        plt.legend()
+        output_folder = os.path.join("./figures", get_file_name(calling_file))
+        os.makedirs(output_folder, exist_ok=True)
+        plt.savefig(os.path.join(output_folder, f"replace_and_test_robustness_{model_name}_{dataset}_{mode}_{threat}_{n_examples}.png"))
+        plt.show()
