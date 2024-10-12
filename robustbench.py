@@ -16,10 +16,11 @@ def main():
     parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to use')
     parser.add_argument('--n_examples', type=int, default=10000, help='Number of examples to use')
     parser.add_argument('--batch_size', type=int, default=70, help='Batch size for testing')
+    parser.add_argument('--beta_range', type=float, nargs=2, default=[0.95, 1], help='Range of beta values to test')
     args = parser.parse_args()
 
     threat = 'Linf'
-    beta_vals = np.arange(0.95, 1 - 1e-6, 0.01)
+    beta_vals = np.arange(args.beta_range[0], args.beta_range[1] - 1e-6, 0.01)
     dataset = args.dataset
     n_examples = args.n_examples
     batch_size = args.batch_size
