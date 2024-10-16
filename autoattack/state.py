@@ -15,6 +15,7 @@ class EvaluationState:
     _run_attacks: Set[str] = field(default_factory=set)
     _robust_flags: Optional[torch.Tensor] = None
     _last_saved: datetime = datetime(1, 1, 1)
+    _last_batch: int = -1
     _SAVE_TIMEOUT: int = 60
     _clean_accuracy: float = float("nan")
 
@@ -91,3 +92,12 @@ class EvaluationState:
             warnings.warn("You are checking `robust_accuracy` before all the attacks"
                           " have been run.")
         return self.robust_flags.float().mean().item()
+
+    @property
+    def last_batch(self) -> int:
+        return self._last_batch
+
+    @last_batch.setter
+    def last_batch(self, batch: int) -> None:
+        self._last_batch = batch
+        self.to_disk(force=True)

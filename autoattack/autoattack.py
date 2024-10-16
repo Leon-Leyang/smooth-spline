@@ -155,7 +155,7 @@ class AutoAttack():
             x_adv = x_orig.clone().detach()
             y_adv = torch.empty_like(y_orig) if y_adv is None else y_adv    # Hack to avoid error, don't use it to return labels
             startt = time.time()
-            for attack in attacks_to_run:
+            for idx, attack in enumerate(attacks_to_run):
                 # item() is super important as pytorch int division uses floor rounding
                 num_robust = torch.sum(robust_flags).item()
 
@@ -167,8 +167,10 @@ class AutoAttack():
                 robust_lin_idcs = torch.nonzero(robust_flags, as_tuple=False)
                 if num_robust > 1:
                     robust_lin_idcs.squeeze_()
-                
-                for batch_idx in range(n_batches):
+
+                batch_iterator = range(n_batches) if idx != 0 else range(state.last_batch + 1, n_batches)   # Consider possible resumption for the first attack
+
+                for batch_idx in batch_iterator:
                     start_idx = batch_idx * bs
                     end_idx = min((batch_idx + 1) * bs, num_robust)
 
@@ -226,6 +228,7 @@ class AutoAttack():
                     non_robust_lin_idcs = batch_datapoint_idcs[false_batch]
                     robust_flags[non_robust_lin_idcs] = False
                     state.robust_flags = robust_flags
+                    state.last_batch = batch_idx
 
                     x_adv[non_robust_lin_idcs] = adv_curr[false_batch].detach().to(x_adv.device)
                     y_adv[non_robust_lin_idcs] = output[false_batch].detach().to(x_adv.device)
