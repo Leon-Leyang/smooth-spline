@@ -5,11 +5,10 @@ from torchvision import models as pt_models
 
 from robustbench.model_zoo.enums import ThreatModel
 from robustbench.model_zoo.architectures.utils_architectures import normalize_model
-from robustbench.model_zoo.architectures import alexnet, xcit, deit  # needed to register models
 from robustbench.model_zoo.architectures.convstem_models import get_convstem_models
 from robustbench.model_zoo.architectures.robustarch_wide_resnet import get_model as get_robustarch_model
 from robustbench.model_zoo.architectures.comp_model import get_nonlin_mixed_classifier
-from robustbench.model_zoo.architectures.sparsified_model import get_sparse_model
+from utils.robustbench.model_zoo.architectures.sparsified_model import get_sparse_model
 
 
 mu = (0.485, 0.456, 0.406)

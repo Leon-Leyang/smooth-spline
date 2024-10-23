@@ -14,7 +14,7 @@ import time
 
 import torch
 
-from autoattack.fab_projections import projection_linf, projection_l2,\
+from utils.autoattack.fab_projections import projection_linf, projection_l2,\
     projection_l1
 
 DEFAULT_EPS_DICT_BY_NORM = {'Linf': .3, 'L2': 1., 'L1': 5.0}

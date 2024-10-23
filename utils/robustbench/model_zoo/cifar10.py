@@ -23,7 +23,7 @@ from robustbench.model_zoo.architectures import robust_resnet
 from robustbench.model_zoo.architectures.comp_model import get_composite_model, \
     get_nonlin_mixed_classifier
 from robustbench.model_zoo.architectures.robustarch_wide_resnet import get_model as get_robustarch_model
-from robustbench.model_zoo.architectures.sparsified_model import get_sparse_model
+from utils.robustbench.model_zoo.architectures.sparsified_model import get_sparse_model
 
 
 class Hendrycks2020AugMixResNeXtNet(CifarResNeXt):

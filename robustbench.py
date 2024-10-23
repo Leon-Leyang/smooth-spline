@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
-from robustbench.utils import load_model
-from utils import replace_and_test_robustness
+from utils.robustbench.utils import load_model
+from utils.eval_post_replace import replace_and_test_robustness
 
 
 def replace_and_test_robustness_on(model_id, threat, beta_vals, dataset, n_examples, batch_size):

@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 import random
-from autoattack import AutoAttack
-from autoattack.state import EvaluationState
+from utils.autoattack import AutoAttack
 from torch import nn
 from tqdm import tqdm
 
@@ -16,7 +15,6 @@ from robustbench.data import CORRUPTIONS_DICT, get_preprocessing, load_clean_dat
     CORRUPTION_DATASET_LOADERS
 from robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
 from robustbench.utils import clean_accuracy, load_model, parse_args, update_json
-from robustbench.model_zoo import model_dicts as all_models
 
 
 def benchmark(

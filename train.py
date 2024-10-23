@@ -3,7 +3,8 @@ import torch
 import wandb
 from torch import nn as nn, optim as optim
 from resnet import resnet18
-from utils import get_data_loaders, WarmUpLR, train_epoch, test_epoch
+from utils.utils import WarmUpLR, train_epoch, test_epoch
+from utils.data import get_data_loaders
 
 
 def train(mode, dataset):

@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils import Network, replace_module, ReplacementMapping, get_file_name
+from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name
 
 
 # Adapted from https://github.com/RandallBalestriero/POLICE
@@ -45,7 +45,7 @@ def plot_classification_case(
     target = torch.from_numpy(np.array([0] * (N // 2) + [1] * (N // 2))).long().cuda()
 
     # model and optimizer definition
-    model = Network(2, depth, width, nn.ReLU()).cuda()
+    model = MLP(2, depth, width, nn.ReLU()).cuda()
     if beta != 1:
         print(f"Using BetaReLU with beta={beta}")
         replacement_mapping = ReplacementMapping(beta=beta)

@@ -1,18 +1,15 @@
 import os
 import argparse
 from pathlib import Path
-import warnings
 
-import torch
-import torch.nn as nn
 import torchvision.datasets as datasets
 import torch.utils.data as data
 import torchvision.transforms as transforms
 
 import sys
-sys.path.insert(0,'..')
+sys.path.insert(0, '..')
 
-from resnet import *
+from utils.autoattack.examples.resnet import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -48,7 +45,7 @@ if __name__ == '__main__':
         os.makedirs(args.save_dir)
     
     # load attack    
-    from autoattack import AutoAttack
+    from utils.autoattack import AutoAttack
     adversary = AutoAttack(model, norm=args.norm, eps=args.epsilon, log_path=args.log_path,
         version=args.version)
     

@@ -5,15 +5,12 @@ import numpy as np
 import tensorflow as tf
 
 import torch
-import torch.nn as nn
-import torchvision.datasets as datasets
-import torch.utils.data as data
-import torchvision.transforms as transforms
 
 import sys
 sys.path.insert(0, '..')
 
-from autoattack import AutoAttack, utils_tf2
+from utils.autoattack import AutoAttack
+from utils.autoattack import utils_tf2
 
 
 #%%
