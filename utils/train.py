@@ -29,8 +29,7 @@ def train(mode, dataset):
 
     # Initialize the model
     num_classes = 100 if 'cifar100' in dataset else 10
-    in_channels = 1 if 'mnist' in dataset else 3
-    model = resnet18(num_classes=num_classes, in_channels=in_channels)
+    model = resnet18(num_classes=num_classes)
     model = model.to(device)
 
     # Create the checkpoint folder

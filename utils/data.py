@@ -65,6 +65,16 @@ class GMMNoiseAdder:
         return noisy_img
 
 
+def replicate_if_needed(x):
+    """
+    Replicate a single-channel tensor to three channels if needed.
+    If the input has more than one channel, it is returned as is.
+    """
+    if x.shape[0] == 1:  # Check if there's only one channel
+        return x.repeat(3, 1, 1)  # Replicate to 3 channels
+    return x  # Return unchanged if already has more than 1 channel
+
+
 def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_size=None):
     """
     Get the data loaders for the dataset.
@@ -97,12 +107,14 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
     elif 'mnist' in transform_to_use:
         transform_train = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+            transforms.Normalize((0.1307, 0.1307, 0.1307), (0.3081, 0.3081, 0.3081))  # For 3 channels
         ])
         transform_test = transforms.Compose([
             transforms.Resize((28, 28)),
             transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+            transforms.Normalize((0.1307, 0.1307, 0.1307), (0.3081, 0.3081, 0.3081))  # For 3 channels
         ])
     elif 'imagenet' in transform_to_use:
         transform_train = None

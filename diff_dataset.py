@@ -96,8 +96,7 @@ def get_pretrained_model(pretrained_ds='cifar100', mode='normal'):
     if 'cifar' in pretrained_ds:
         ckpt_folder = os.path.join('./ckpts', mode)
         num_classes = 100 if 'cifar100' in pretrained_ds else 10
-        in_channels = 1 if 'mnist' in pretrained_ds else 3
-        model = resnet18(num_classes=num_classes, in_channels=in_channels).to(device)
+        model = resnet18(num_classes=num_classes).to(device)
         model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch200.pth'), weights_only=True))
     elif pretrained_ds == 'imagenet':
         model = torchvision.models.resnet18(weights='IMAGENET1K_V1').to(device)
