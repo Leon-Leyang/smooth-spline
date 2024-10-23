@@ -34,7 +34,7 @@ def train(mode, dataset):
     model = model.to(device)
 
     # Create the checkpoint folder
-    ckpt_folder = os.path.join('../ckpts', mode)
+    ckpt_folder = os.path.join('./ckpts', mode)
     os.makedirs(f'{ckpt_folder}', exist_ok=True)
 
     # Loss function and optimizer
