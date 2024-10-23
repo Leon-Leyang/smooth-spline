@@ -22,7 +22,7 @@ def train(mode, dataset):
     # Hyperparameters
     batch_size = 128
     learning_rate = 0.1
-    num_epochs = 200
+    num_epochs = 200 if dataset != 'mnist' else 10
 
     # Get the data loaders
     train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, train_size=2000 if mode == 'overfit' else None)
@@ -43,7 +43,10 @@ def train(mode, dataset):
 
     # Learning rate scheduler with specific milestones for reduction
     if mode == 'normal':
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
+        if dataset != 'mnist':
+            scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
+        else:
+            scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 9], gamma=0.2)
     else:
         scheduler = None
 
