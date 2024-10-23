@@ -6,7 +6,7 @@ import geotorch
 from torch.nn.parameter import Parameter
 from torchdiffeq import odeint_adjoint as odeint
 
-from robustbench.model_zoo.architectures.dm_wide_resnet import CIFAR10_MEAN, CIFAR10_STD, \
+from utils.robustbench.model_zoo.architectures.dm_wide_resnet import CIFAR10_MEAN, CIFAR10_STD, \
     DMWideResNet, Swish
 
 

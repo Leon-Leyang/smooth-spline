@@ -5,8 +5,8 @@ from typing import Union
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
-from robustbench.utils import ACC_FIELDS
+from utils.robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
+from utils.robustbench.utils import ACC_FIELDS
 
 
 def generate_leaderboard(dataset: Union[str, BenchmarkDataset],

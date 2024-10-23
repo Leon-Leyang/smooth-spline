@@ -13,10 +13,10 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from torch import nn
 
-from robustbench.model_zoo import model_dicts as all_models
-from robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
-from robustbench.zenodo_download import DownloadError, zenodo_download
-from robustbench.loaders import CustomImageFolder
+from utils.robustbench.model_zoo import model_dicts as all_models
+from utils.robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
+from utils.robustbench.zenodo_download import DownloadError, zenodo_download
+from utils.robustbench.loaders import CustomImageFolder
 
 PREPROCESSINGS = {
     'Res256Crop224':

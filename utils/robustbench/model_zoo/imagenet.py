@@ -3,11 +3,11 @@ from collections import OrderedDict
 import timm
 from torchvision import models as pt_models
 
-from robustbench.model_zoo.enums import ThreatModel
-from robustbench.model_zoo.architectures.utils_architectures import normalize_model
-from robustbench.model_zoo.architectures.convstem_models import get_convstem_models
-from robustbench.model_zoo.architectures.robustarch_wide_resnet import get_model as get_robustarch_model
-from robustbench.model_zoo.architectures.comp_model import get_nonlin_mixed_classifier
+from utils.robustbench.model_zoo.enums import ThreatModel
+from utils.robustbench.model_zoo.architectures.utils_architectures import normalize_model
+from utils.robustbench.model_zoo.architectures.convstem_models import get_convstem_models
+from utils.robustbench.model_zoo.architectures.robustarch_wide_resnet import get_model as get_robustarch_model
+from utils.robustbench.model_zoo.architectures.comp_model import get_nonlin_mixed_classifier
 from utils.robustbench.model_zoo.architectures.sparsified_model import get_sparse_model
 
 

@@ -14,8 +14,8 @@ import torch
 from torch import nn
 import gdown
 
-from robustbench.model_zoo import model_dicts as all_models
-from robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
+from utils.robustbench.model_zoo import model_dicts as all_models
+from utils.robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
 
 ACC_FIELDS = {
     ThreatModel.corruptions: "corruptions_acc",

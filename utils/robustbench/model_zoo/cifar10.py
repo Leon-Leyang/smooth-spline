@@ -4,25 +4,25 @@ import timm
 import torch
 from torch import nn
 
-from robustbench.model_zoo.architectures.dm_wide_resnet import CIFAR10_MEAN, CIFAR10_STD, \
+from utils.robustbench.model_zoo.architectures.dm_wide_resnet import CIFAR10_MEAN, CIFAR10_STD, \
     DMWideResNet, Swish, DMPreActResNet
-from robustbench.model_zoo.architectures.resnet import Bottleneck, BottleneckChen2020AdversarialNet, \
+from utils.robustbench.model_zoo.architectures.resnet import Bottleneck, BottleneckChen2020AdversarialNet, \
     PreActBlock, PreActBlockV2, PreActResNet, ResNet, ResNet18, BasicBlock
-from robustbench.model_zoo.architectures.resnext import CifarResNeXt, \
+from utils.robustbench.model_zoo.architectures.resnext import CifarResNeXt, \
     ResNeXtBottleneck
-from robustbench.model_zoo.architectures.resnest import ResNest152
-from robustbench.model_zoo.architectures.wide_resnet import WideResNet
-from robustbench.model_zoo.architectures.robust_wide_resnet import RobustWideResNet
-from robustbench.model_zoo.architectures.boosting_wide_resnet import BoostingWideResNet
-from robustbench.model_zoo.enums import ThreatModel
-from robustbench.model_zoo.architectures.CARD_resnet import LRR_ResNet, WidePreActResNet
-from robustbench.model_zoo.architectures.paf_wide_resnet import pssilu_wrn_28_10
-from robustbench.model_zoo.architectures.sodef_layers import rebuffi_sodef
-from robustbench.model_zoo.architectures import xcit
-from robustbench.model_zoo.architectures import robust_resnet
-from robustbench.model_zoo.architectures.comp_model import get_composite_model, \
+from utils.robustbench.model_zoo.architectures.resnest import ResNest152
+from utils.robustbench.model_zoo.architectures.wide_resnet import WideResNet
+from utils.robustbench.model_zoo.architectures.robust_wide_resnet import RobustWideResNet
+from utils.robustbench.model_zoo.architectures.boosting_wide_resnet import BoostingWideResNet
+from utils.robustbench.model_zoo.enums import ThreatModel
+from utils.robustbench.model_zoo.architectures.CARD_resnet import LRR_ResNet, WidePreActResNet
+from utils.robustbench.model_zoo.architectures.paf_wide_resnet import pssilu_wrn_28_10
+from utils.robustbench.model_zoo.architectures.sodef_layers import rebuffi_sodef
+from utils.robustbench.model_zoo.architectures import xcit
+from utils.robustbench.model_zoo.architectures import robust_resnet
+from utils.robustbench.model_zoo.architectures.comp_model import get_composite_model, \
     get_nonlin_mixed_classifier
-from robustbench.model_zoo.architectures.robustarch_wide_resnet import get_model as get_robustarch_model
+from utils.robustbench.model_zoo.architectures.robustarch_wide_resnet import get_model as get_robustarch_model
 from utils.robustbench.model_zoo.architectures.sparsified_model import get_sparse_model
 
 

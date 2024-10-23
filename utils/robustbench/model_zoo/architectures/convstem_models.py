@@ -12,7 +12,7 @@ from timm.models import create_model
 import torch.nn.functional as F
 import math
 
-from robustbench.model_zoo.architectures.utils_architectures import normalize_model
+from utils.robustbench.model_zoo.architectures.utils_architectures import normalize_model
 
 
 IMAGENET_MEAN = [c * 1. for c in (0.485, 0.456, 0.406)]

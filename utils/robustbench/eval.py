@@ -11,10 +11,10 @@ from utils.autoattack import AutoAttack
 from torch import nn
 from tqdm import tqdm
 
-from robustbench.data import CORRUPTIONS_DICT, get_preprocessing, load_clean_dataset, \
+from utils.robustbench.data import CORRUPTIONS_DICT, get_preprocessing, load_clean_dataset, \
     CORRUPTION_DATASET_LOADERS
-from robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
-from robustbench.utils import clean_accuracy, load_model, parse_args, update_json
+from utils.robustbench.model_zoo.enums import BenchmarkDataset, ThreatModel
+from utils.robustbench.utils import clean_accuracy, load_model, parse_args, update_json
 
 
 def benchmark(

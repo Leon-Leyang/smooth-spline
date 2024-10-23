@@ -8,14 +8,14 @@ import yaml
 import os
 import timm
 
-from robustbench.model_zoo.architectures.mixing_net import MixingNetV3, MixingNetV4, \
+from utils.robustbench.model_zoo.architectures.mixing_net import MixingNetV3, MixingNetV4, \
     NonLinMixedClassifier
-from robustbench.model_zoo.architectures import bit_rn, dm_rn, bit_rn_v2, convnext_v2
-from robustbench.model_zoo.architectures.output_maps import HardMaxMap, LNClampPowerScaleMap
-from robustbench.model_zoo.architectures.robustarch_wide_resnet import get_model as get_robustarch_model
-from robustbench.model_zoo.architectures.dm_wide_resnet import CIFAR100_MEAN, CIFAR100_STD, \
+from utils.robustbench.model_zoo.architectures import bit_rn, dm_rn, bit_rn_v2, convnext_v2
+from utils.robustbench.model_zoo.architectures.output_maps import HardMaxMap, LNClampPowerScaleMap
+from utils.robustbench.model_zoo.architectures.robustarch_wide_resnet import get_model as get_robustarch_model
+from utils.robustbench.model_zoo.architectures.dm_wide_resnet import CIFAR100_MEAN, CIFAR100_STD, \
     DMWideResNet
-from robustbench.model_zoo.architectures.utils_architectures import normalize_model
+from utils.robustbench.model_zoo.architectures.utils_architectures import normalize_model
 
 
 class CompositeModel(nn.Module):

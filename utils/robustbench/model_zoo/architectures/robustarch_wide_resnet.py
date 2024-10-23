@@ -17,7 +17,7 @@ from torchvision.ops.misc import SqueezeExcitation
 from collections import OrderedDict
 from torchvision.ops.misc import Conv2dNormActivation, SqueezeExcitation
 
-from robustbench.model_zoo.architectures.dm_wide_resnet import CIFAR10_MEAN, CIFAR10_STD
+from utils.robustbench.model_zoo.architectures.dm_wide_resnet import CIFAR10_MEAN, CIFAR10_STD
 
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
