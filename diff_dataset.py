@@ -1,87 +1,45 @@
 import os
 import torch
 import copy
-import wandb
 import torch.nn as nn
-import torch.optim as optim
 import numpy as np
 from resnet import resnet18
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
-from utils import train_epoch, test_epoch, get_data_loaders, replace_and_test_acc, ReplacementMapping, replace_module, get_file_name, replace_and_test_robustness
+from utils import get_data_loaders, replace_and_test_acc, ReplacementMapping, replace_module, get_file_name, replace_and_test_robustness
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LogisticRegression
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def transfer_linear_probe(model, mode, beta_val=None):
+def transfer_linear_probe(model, mode):
     """
     Transfer learning on CIFAR-10 using a linear probe.
     """
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
 
-    # Hyperparameters
-    train_batch_size = 128
-    learning_rate = 0.005
-    num_epochs = 50
-
     # Get the data loaders for CIFAR-10
-    train_loader, test_loader = get_data_loaders('cifar10', train_batch_size)
+    train_loader, test_loader = get_data_loaders('cifar10', train_batch_size=2000)
+
+    # Remove the last layer of the model
+    model = model.to(device)
+    feature_extractor = nn.Sequential(*list(model.children())[:-1])
+    train_features, train_labels = extract_features(feature_extractor, train_loader)
+
+    # Fit sklearn LogisticRegression as the linear probe
+    logistic_regressor = LogisticRegression(max_iter=1000, multi_class='multinomial')
+    logistic_regressor.fit(train_features, train_labels)
 
     # Replace the last layer of the model with a linear layer for CIFAR-10
-    model.fc = nn.Linear(model.fc.in_features, 10)
-    model = model.to(device)
-    for param in model.parameters():
-        param.requires_grad = False
-    model.fc.weight.requires_grad = True
+    model.fc = nn.Linear(model.fc.in_features, 10).to(device)
+    model.fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
+    model.fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
+    model.fc.weight.requires_grad = False
+    model.fc.bias.requires_grad = False
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.fc.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20, 40], gamma=0.2)
-
-    ckpt_folder = os.path.join('./ckpts', mode)
-    os.makedirs(f'{ckpt_folder}', exist_ok=True)
-
-    # Load the weights if the model has been trained before
-    if not beta_val:
-        file_to_check = os.path.join(ckpt_folder, f'resnet18_cifar100_to_cifar10_epoch{num_epochs}.pth')
-    else:
-        file_to_check = os.path.join(ckpt_folder, f'resnet18_cifar100_beta{beta_val:.2f}_to_cifar10_epoch{num_epochs}.pth')
-    if os.path.exists(file_to_check):
-        model.load_state_dict(torch.load(file_to_check, weights_only=True))
-        print(f'Loaded model from {file_to_check}')
-        return model
-
-    best_test_loss = float('inf')
-
-    wandb.init(project='smooth-spline', entity='leyang_hu')
-
-    for epoch in range(1, num_epochs + 1):
-        if epoch > 1:
-            if scheduler is not None:
-                scheduler.step(epoch)
-        train_epoch(epoch, model, train_loader, optimizer, criterion, device, None)
-        test_loss, _ = test_epoch(epoch, model, test_loader, criterion, device)
-
-        # save every 10 epochs
-        if epoch % 10 == 0:
-            if not beta_val:
-                torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_to_cifar10_epoch{epoch}.pth'))
-            else:
-                torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_beta{beta_val:.2f}_to_cifar10_epoch{epoch}.pth'))
-
-        # Save the model with the best test loss
-        if test_loss < best_test_loss:
-            print(f'Find new best model at Epoch {epoch}')
-            best_test_loss = test_loss
-            if not beta_val:
-                torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_to_cifar10_best.pth'))
-            else:
-                torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_cifar100_beta{beta_val:.2f}_to_cifar10_best.pth'))
-
-    wandb.finish()
-
+    # No further training required
     return model
 
 
