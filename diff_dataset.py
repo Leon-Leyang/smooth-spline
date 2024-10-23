@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def transfer_linear_probe(model, mode):
+def transfer_linear_probe(model, mode, transfer_ds):
     """
     Transfer learning on CIFAR-10 using a linear probe.
     """
@@ -91,27 +91,37 @@ def transfer_knn(model):
     return accuracy
 
 
-def replace_and_test_linear_probe_acc_on(mode, test_loader, beta_vals):
+def get_pretrained_model(pretrained_ds='cifar100', mode='normal'):
     """
-    Do transfer learning on CIFAR-10 using a linear probe and test the model's accuracy with different beta values of BetaReLU.
+    Get the pre-trained model.
     """
-    ckpt_folder = os.path.join('./ckpts', mode)
-    model = resnet18().to(device)
-    model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
-    model = transfer_linear_probe(model, mode)
-    replace_and_test_acc(model, test_loader, beta_vals, mode, 'cifar100_to_cifar10_linear', __file__)
+    if 'cifar' in pretrained_ds:
+        ckpt_folder = os.path.join('./ckpts', mode)
+        model = resnet18().to(device)
+        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch200.pth'), weights_only=True))
+    elif pretrained_ds == 'imagenet':
+        model = resnet18(weights="IMAGENET1K_V1")
+
+    return model
 
 
-def replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals):
+def replace_and_test_linear_probe_acc_on(mode, beta_vals, pretrained_ds, test_ds):
     """
-    Replace ReLU with BetaReLU and test the model's robustness on different threats on CIFAR-10.
+    Do transfer learning using a linear probe and test the model's accuracy with different beta values of BetaReLU.
     """
-    ckpt_folder = os.path.join('./ckpts', mode)
-    model = resnet18().to(device)
-    model.load_state_dict(
-        torch.load(os.path.join(ckpt_folder, f'resnet18_cifar100_epoch200.pth'), weights_only=True))
+    model = get_pretrained_model(pretrained_ds, mode)
+    model = transfer_linear_probe(model, mode, test_ds)
+    _, test_loader = get_data_loaders(test_ds)
+    replace_and_test_acc(model, test_loader, beta_vals, mode, f'{pretrained_ds}_to_{test_ds}', __file__)
+
+
+def replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals, pretrained_ds, test_ds):
+    """
+    Do transfer learning using a linear probe and test the model's robustness with different beta values of BetaReLU.
+    """
+    model = get_pretrained_model(pretrained_ds, mode)
     model = transfer_linear_probe(model, mode)
-    replace_and_test_robustness(model, threat, beta_vals, mode, 'cifar100_to_cifar10_linear', __file__)
+    replace_and_test_robustness(model, threat, beta_vals, mode, f'{pretrained_ds}_to_{test_ds}', __file__)
 
 
 def replace_and_test_knn_acc_on(mode, beta_vals):
@@ -174,7 +184,6 @@ def replace_and_test_knn_acc_on(mode, beta_vals):
 
 def main():
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
-    _, test_loader = get_data_loaders('cifar10', 2056)
     threat_models = ['Linf', 'L2']
     mode_2_beta_vals_acc = {
         'normal': np.arange(0.95, 1 - 1e-6, 0.001),
@@ -187,10 +196,10 @@ def main():
         'overfit': np.arange(0.95, 1 - 1e-6, 0.01)
     }
     for mode, beta_vals in mode_2_beta_vals_acc.items():
-        replace_and_test_linear_probe_acc_on(mode, test_loader, beta_vals)
+        replace_and_test_linear_probe_acc_on(mode, beta_vals, pretrained_ds='cifar100', test_ds='cifar10')
     for mode, beta_vals in mode_2_beta_vals_robustness.items():
         for threat in threat_models:
-            replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals)
+            replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals, pretrained_ds='cifar100', test_ds='cifar10')
 
     # # Transfer learning on CIFAR-10 using a k-NN classifier and test the model with different beta values of BetaReLU
     # mode_2_beta_vals_acc = {
