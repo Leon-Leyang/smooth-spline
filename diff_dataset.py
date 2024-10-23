@@ -192,14 +192,14 @@ def main():
         for threat in threat_models:
             replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals)
 
-    # Transfer learning on CIFAR-10 using a k-NN classifier and test the model with different beta values of BetaReLU
-    mode_2_beta_vals_acc = {
-        'normal': np.arange(0.95, 1 - 1e-6, 0.001),
-        'suboptimal': np.arange(0.95, 1 - 1e-6, 0.001),
-        'overfit': np.arange(0.95, 1 - 1e-6, 0.001)
-    }
-    for mode, beta_vals in mode_2_beta_vals_acc.items():
-        replace_and_test_knn_acc_on(mode, beta_vals)
+    # # Transfer learning on CIFAR-10 using a k-NN classifier and test the model with different beta values of BetaReLU
+    # mode_2_beta_vals_acc = {
+    #     'normal': np.arange(0.95, 1 - 1e-6, 0.001),
+    #     'suboptimal': np.arange(0.95, 1 - 1e-6, 0.001),
+    #     'overfit': np.arange(0.95, 1 - 1e-6, 0.001)
+    # }
+    # for mode, beta_vals in mode_2_beta_vals_acc.items():
+    #     replace_and_test_knn_acc_on(mode, beta_vals)
 
 
 if __name__ == '__main__':

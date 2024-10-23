@@ -353,9 +353,10 @@ def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_f
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model_name = model.__class__.__name__
 
     print('*' * 50)
-    print(f'Running post-replace accuracy test on {dataset}...')
+    print(f'Running post-replace accuracy test for {model_name}-{mode} on {dataset}...')
     print('*' * 50)
     criterion = nn.CrossEntropyLoss()
 
@@ -363,7 +364,7 @@ def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_f
     beta_list = []
 
     # Test the original model
-    print('Testing the original model...')
+    print('Using ReLU...')
     _, base_acc = test_epoch(-1, model, test_loader, criterion, device)
     best_acc = base_acc
     best_beta = 1
@@ -405,7 +406,7 @@ def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_f
     plt.legend()
     output_folder = os.path.join("./figures", get_file_name(calling_file))
     os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"replace_and_test_acc_{dataset}_{mode}.png"))
+    plt.savefig(os.path.join(output_folder, f"replace_and_test_acc_{model_name}_{dataset}_{mode}.png"))
     plt.show()
 
 
@@ -435,7 +436,8 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
         dataset_to_use = dataset
 
     print('*' * 50)
-    print(f'Running post-replace robustness test on {dataset_to_use}...')
+    print(f'Running post-replace robustness test for {model_name}-{mode} on {dataset} with {threat} attack...')
+    print(f'Number of examples: {n_examples}')
     print('*' * 50)
 
     robust_acc_list = []
@@ -446,7 +448,7 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
 
     # Test the original model
     if not test_only:
-        print('Testing the original model...')
+        print('Using ReLU...')
         state_path = Path(state_path_format_str.format(beta=1))
         _, base_robust_acc = benchmark(
             model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
