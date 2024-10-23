@@ -134,11 +134,11 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
 
     if dataset != 'imagenet':
        trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=train_batch_size, shuffle=True, num_workers=8)
+        trainset, batch_size=train_batch_size, shuffle=True, num_workers=6)
     else:
         trainloader = None
     testloader = torch.utils.data.DataLoader(
-        testset, batch_size=test_batch_size, shuffle=False, num_workers=8)
+        testset, batch_size=test_batch_size, shuffle=False, num_workers=6)
     return trainloader, testloader
 
 
