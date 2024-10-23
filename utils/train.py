@@ -14,7 +14,6 @@ def train(mode, dataset):
     :param dataset: dataset to train on, e.g. cifar10/cifar100
     """
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
-    assert dataset in ['cifar10', 'cifar100', 'noisy_cifar10', 'noisy_cifar100'], 'Dataset must be either cifar10, cifar100, noisy_cifar10 or noisy_cifar100'
 
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
@@ -26,10 +25,12 @@ def train(mode, dataset):
     num_epochs = 200
 
     # Get the data loaders
-    train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, mode=mode)
+    train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, train_size=2000 if mode == 'overfit' else None)
 
     # Initialize the model
-    model = resnet18()
+    num_classes = 10 if ('cifar10' in dataset or 'mnist' in dataset) else 100
+    in_channels = 1 if 'mnist' in dataset else 3
+    model = resnet18(num_classes=num_classes, in_channels=in_channels)
     model = model.to(device)
 
     # Create the checkpoint folder
@@ -77,7 +78,3 @@ def train(mode, dataset):
     wandb.finish()
 
     return model
-
-
-if __name__ == '__main__':
-    train('normal', 'noisy_cifar10')

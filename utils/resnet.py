@@ -79,13 +79,13 @@ class BottleNeck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, num_block, num_classes=100):
+    def __init__(self, block, num_block, num_classes=100, in_channels=3):
         super().__init__()
 
         self.in_channels = 64
 
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(in_channels, 64, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True))
         #we use a different inputsize than the original paper
@@ -134,10 +134,10 @@ class ResNet(nn.Module):
 
         return output
 
-def resnet18():
+def resnet18(num_classes=100, in_channels=3):
     """ return a ResNet 18 object
     """
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+    return ResNet(BasicBlock, [2, 2, 2, 2], num_classes=num_classes, in_channels=in_channels)
 
 def resnet34():
     """ return a ResNet 34 object

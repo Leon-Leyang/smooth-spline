@@ -65,7 +65,7 @@ class GMMNoiseAdder:
         return noisy_img
 
 
-def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, mode='normal'):
+def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_size=None):
     """
     Get the data loaders for the dataset.
     """
@@ -90,6 +90,14 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, mode='
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])
+    elif dataset == 'imagenet':
+        transform_train = None
+        transform_test = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
 
     if dataset == 'cifar10':
         trainset = torchvision.datasets.CIFAR10(
@@ -113,15 +121,22 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, mode='
             root='./data', train=True, download=True, transform=transform_train)
         testset = torchvision.datasets.MNIST(
             root='./data', train=False, download=True, transform=transform_test)
+    elif dataset == 'imagenet':
+        trainset = None
+        testset = torchvision.datasets.ImageNet(
+            root='./data/imagenet', split='val', transform=transform_test)
     else:
         raise NotImplementedError(f'The specified dataset {dataset} is not implemented.')
 
-    if mode == 'overfit':
-        indices = np.random.choice(len(trainset), 2000, replace=False)
+    if train_size is not None:
+        indices = np.random.choice(len(trainset), train_size, replace=False)
         trainset = Subset(trainset, indices)
 
-    trainloader = torch.utils.data.DataLoader(
+    if dataset != 'imagenet':
+       trainloader = torch.utils.data.DataLoader(
         trainset, batch_size=train_batch_size, shuffle=True, num_workers=8)
+    else:
+        trainloader = None
     testloader = torch.utils.data.DataLoader(
         testset, batch_size=test_batch_size, shuffle=False, num_workers=8)
     return trainloader, testloader
