@@ -69,25 +69,28 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, mode='
     """
     Get the data loaders for the dataset.
     """
-    assert dataset in ['cifar10', 'cifar100', 'noisy_cifar10', 'noisy_cifar100'], 'Dataset must be either cifar10, cifar100, noisy_cifar10 or noisy_cifar100'
+    if 'cifar' in dataset:
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
+        ])
+        transform_test = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
+        ])
+    elif dataset == 'mnist':
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
+        transform_test = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
 
-    if dataset == 'noisy_cifar10':
-        gaussians = [(i * 0.01, 0) for i in range(10)]
-        noise_adder = GMMNoiseAdder(gaussians, num_classes=10, alpha=0.8)
-    elif dataset == 'noisy_cifar100':
-        raise NotImplementedError('Noisy CIFAR-100 is not implemented yet.')
-
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
-    ])
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
-    ])
     if dataset == 'cifar10':
         trainset = torchvision.datasets.CIFAR10(
             root='./data', train=True, download=True, transform=transform_train)
@@ -99,12 +102,19 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, mode='
         testset = torchvision.datasets.CIFAR100(
             root='./data', train=False, download=True, transform=transform_test)
     elif dataset == 'noisy_cifar10':
+        gaussians = [(i * 0.01, 0) for i in range(10)]
+        noise_adder = GMMNoiseAdder(gaussians, num_classes=10, alpha=0.8)
         trainset = NoisyCIFAR10(
             root='./data', train=True, download=True, transform=transform_train, noise_adder=noise_adder)
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
-    elif dataset == 'noisy_cifar100':
-        raise NotImplementedError('Noisy CIFAR-100 is not implemented yet.')
+    elif dataset == 'mnist':
+        trainset = torchvision.datasets.MNIST(
+            root='./data', train=True, download=True, transform=transform_train)
+        testset = torchvision.datasets.MNIST(
+            root='./data', train=False, download=True, transform=transform_test)
+    else:
+        raise NotImplementedError(f'The specified dataset {dataset} is not implemented.')
 
     if mode == 'overfit':
         indices = np.random.choice(len(trainset), 2000, replace=False)
@@ -115,3 +125,7 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, mode='
     testloader = torch.utils.data.DataLoader(
         testset, batch_size=test_batch_size, shuffle=False, num_workers=8)
     return trainloader, testloader
+
+
+if __name__ == '__main__':
+    train_loader, test_loader = get_data_loaders('mnist')
