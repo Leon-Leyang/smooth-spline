@@ -12,6 +12,7 @@ from utils.data import get_data_loaders
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
+import torchvision
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -35,7 +36,8 @@ def transfer_linear_probe(model, mode, transfer_ds):
     logistic_regressor.fit(train_features, train_labels)
 
     # Replace the last layer of the model with a linear layer for CIFAR-10
-    model.fc = nn.Linear(model.fc.in_features, 10).to(device)
+    num_classes = 100 if 'cifar100' in transfer_ds else 10
+    model.fc = nn.Linear(model.fc.in_features, num_classes).to(device)
     model.fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
     model.fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
     model.fc.weight.requires_grad = False
@@ -99,10 +101,12 @@ def get_pretrained_model(pretrained_ds='cifar100', mode='normal'):
     """
     if 'cifar' in pretrained_ds:
         ckpt_folder = os.path.join('./ckpts', mode)
-        model = resnet18().to(device)
+        num_classes = 100 if 'cifar100' in pretrained_ds else 10
+        in_channels = 1 if 'mnist' in pretrained_ds else 3
+        model = resnet18(num_classes=num_classes, in_channels=in_channels).to(device)
         model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch200.pth'), weights_only=True))
     elif pretrained_ds == 'imagenet':
-        model = resnet18(weights="IMAGENET1K_V1")
+        model = torchvision.models.resnet18(weights='IMAGENET1K_V1').to(device)
 
     return model
 
@@ -113,8 +117,7 @@ def replace_and_test_linear_probe_acc_on(mode, beta_vals, pretrained_ds, transfe
     """
     model = get_pretrained_model(pretrained_ds, mode)
     model = transfer_linear_probe(model, mode, transfer_ds)
-    _, test_loader = get_data_loaders(transfer_ds)
-    replace_and_test_acc(model, test_loader, beta_vals, mode, f'{pretrained_ds}_to_{transfer_ds}', __file__)
+    replace_and_test_acc(model, beta_vals, mode, f'{pretrained_ds}_to_{transfer_ds}', __file__)
 
 
 def replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals, pretrained_ds, transfer_ds):

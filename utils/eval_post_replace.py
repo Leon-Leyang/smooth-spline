@@ -7,9 +7,10 @@ from matplotlib.ticker import ScalarFormatter
 from torch import nn as nn
 from utils.robustbench import benchmark
 from utils.utils import test_epoch, ReplacementMapping, replace_module, get_file_name, DEFAULT_TRANSFORM
+from utils.data import get_data_loaders
 
 
-def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_file):
+def replace_and_test_acc(model, beta_vals, mode, dataset, calling_file):
     """
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
@@ -17,6 +18,12 @@ def replace_and_test_acc(model, test_loader, beta_vals, mode, dataset, calling_f
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_name = model.__class__.__name__
+
+    if '_' in dataset:
+        dataset_to_use = dataset.split('_')[-1]
+    else:
+        dataset_to_use = dataset
+    _, test_loader = get_data_loaders(dataset_to_use)
 
     print('*' * 50)
     print(f'Running post-replace accuracy test for {model_name}-{mode} on {dataset}...')
@@ -91,12 +98,8 @@ def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    if 'cifar100_to_cifar10' in dataset:
-        dataset_to_use = 'cifar10'
-    elif 'noisy_cifar10' in dataset:
-        dataset_to_use = 'cifar10'
-    else:
-        dataset_to_use = dataset
+    if '_' in dataset:
+        dataset_to_use = dataset.split('_')[-1]
 
     print('*' * 50)
     print(f'Running post-replace robustness test for {model_name}-{mode} on {dataset} with {threat} attack...')

@@ -28,7 +28,7 @@ def train(mode, dataset):
     train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, train_size=2000 if mode == 'overfit' else None)
 
     # Initialize the model
-    num_classes = 10 if ('cifar10' in dataset or 'mnist' in dataset) else 100
+    num_classes = 100 if 'cifar100' in dataset else 10
     in_channels = 1 if 'mnist' in dataset else 3
     model = resnet18(num_classes=num_classes, in_channels=in_channels)
     model = model.to(device)
