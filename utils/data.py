@@ -69,7 +69,19 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
     """
     Get the data loaders for the dataset.
     """
-    if 'cifar' in dataset:
+    if '_to_' in dataset:  # e.g., cifar10_to_cifar100
+        transform_to_use = dataset.split('_to_')[0]
+    elif '_' in dataset:  # e.g., noisy_cifar10
+        transform_to_use = dataset.split('_')[1]
+    else:
+        transform_to_use = dataset
+
+    if '_to_' in dataset:
+        dataset_to_use = dataset.split('_to_')[1]
+    else:
+        dataset_to_use = dataset
+
+    if 'cifar' in transform_to_use:
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
@@ -78,19 +90,21 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
             transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
         ])
         transform_test = transforms.Compose([
+            transforms.Resize((32, 32)),
             transforms.ToTensor(),
             transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
         ])
-    elif dataset == 'mnist':
+    elif 'mnist' in transform_to_use:
         transform_train = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])
         transform_test = transforms.Compose([
+            transforms.Resize((28, 28)),
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])
-    elif dataset == 'imagenet':
+    elif 'imagenet' in transform_to_use:
         transform_train = None
         transform_test = transforms.Compose([
             transforms.Resize(256),
@@ -99,34 +113,34 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
-    if dataset == 'cifar10':
+    if dataset_to_use == 'cifar10':
         trainset = torchvision.datasets.CIFAR10(
             root='./data', train=True, download=True, transform=transform_train)
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
-    elif dataset == 'cifar100':
+    elif dataset_to_use == 'cifar100':
         trainset = torchvision.datasets.CIFAR100(
             root='./data', train=True, download=True, transform=transform_train)
         testset = torchvision.datasets.CIFAR100(
             root='./data', train=False, download=True, transform=transform_test)
-    elif dataset == 'noisy_cifar10':
+    elif dataset_to_use == 'noisy_cifar10':
         gaussians = [(i * 0.01, 0) for i in range(10)]
         noise_adder = GMMNoiseAdder(gaussians, num_classes=10, alpha=0.8)
         trainset = NoisyCIFAR10(
             root='./data', train=True, download=True, transform=transform_train, noise_adder=noise_adder)
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
-    elif dataset == 'mnist':
+    elif dataset_to_use == 'mnist':
         trainset = torchvision.datasets.MNIST(
             root='./data', train=True, download=True, transform=transform_train)
         testset = torchvision.datasets.MNIST(
             root='./data', train=False, download=True, transform=transform_test)
-    elif dataset == 'imagenet':
+    elif dataset_to_use == 'imagenet':
         trainset = None
         testset = torchvision.datasets.ImageNet(
             root='./data/imagenet', split='val', transform=transform_test)
     else:
-        raise NotImplementedError(f'The specified dataset {dataset} is not implemented.')
+        raise NotImplementedError(f'The specified dataset {dataset_to_use} is not implemented.')
 
     if train_size is not None:
         indices = np.random.choice(len(trainset), train_size, replace=False)
@@ -140,7 +154,3 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
     testloader = torch.utils.data.DataLoader(
         testset, batch_size=test_batch_size, shuffle=False, num_workers=6)
     return trainloader, testloader
-
-
-if __name__ == '__main__':
-    train_loader, test_loader = get_data_loaders('mnist')
