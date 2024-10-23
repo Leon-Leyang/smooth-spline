@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
-from resnet import resnet18
+from utils.resnet import resnet18
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 

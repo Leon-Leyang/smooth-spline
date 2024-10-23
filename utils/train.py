@@ -2,7 +2,7 @@ import os
 import torch
 import wandb
 from torch import nn as nn, optim as optim
-from resnet import resnet18
+from utils.resnet import resnet18
 from utils.utils import WarmUpLR, train_epoch, test_epoch
 from utils.data import get_data_loaders
 
@@ -33,7 +33,7 @@ def train(mode, dataset):
     model = model.to(device)
 
     # Create the checkpoint folder
-    ckpt_folder = os.path.join('./ckpts', mode)
+    ckpt_folder = os.path.join('../ckpts', mode)
     os.makedirs(f'{ckpt_folder}', exist_ok=True)
 
     # Loss function and optimizer

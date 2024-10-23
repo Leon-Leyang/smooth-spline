@@ -3,7 +3,7 @@ import torch
 import copy
 import torch.nn as nn
 import numpy as np
-from resnet import resnet18
+from utils.resnet import resnet18
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from utils.utils import ReplacementMapping, replace_module, get_file_name
