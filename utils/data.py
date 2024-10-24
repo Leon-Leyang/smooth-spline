@@ -97,11 +97,13 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15),
             transforms.ToTensor(),
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761])
         ])
         transform_test = transforms.Compose([
             transforms.Resize(32),
             transforms.ToTensor(),
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761]),
         ])
     elif 'mnist' in transform_to_use:
@@ -122,6 +124,7 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
             transforms.Resize(256),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
