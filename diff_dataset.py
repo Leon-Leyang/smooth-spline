@@ -192,15 +192,15 @@ def main():
     #     replace_and_test_knn_acc_on(mode, beta_vals)
 
     pretrained_datasets = ['cifar100', 'imagenet', 'cifar10', 'mnist']
-    transfer_datasets = pretrained_datasets
+    transfer_datasets = ['cifar100', 'cifar10', 'mnist']
     for pretrained_ds in pretrained_datasets:
         for transfer_ds in transfer_datasets:
             if pretrained_ds == transfer_ds:
                 continue
             mode = 'normal'
             replace_and_test_linear_probe_acc_on(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
-            for threat in threat_models:
-                replace_and_test_linear_probe_robustness_on(mode, threat, mode_2_beta_vals_robustness[mode], pretrained_ds, transfer_ds)
+            # for threat in threat_models:
+            #     replace_and_test_linear_probe_robustness_on(mode, threat, mode_2_beta_vals_robustness[mode], pretrained_ds, transfer_ds)
 
 
 if __name__ == '__main__':
