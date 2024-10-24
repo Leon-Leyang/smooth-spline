@@ -5,8 +5,6 @@ import torchvision
 import wandb
 from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
-
-from diff_dataset import device
 from utils.resnet import resnet18
 
 DEFAULT_TRANSFORM = transforms.Compose([
@@ -195,7 +193,7 @@ def test_epoch(epoch, model, testloader, criterion, device):
     return test_loss, test_accuracy
 
 
-def get_pretrained_model(pretrained_ds='cifar100', mode='normal'):
+def get_pretrained_model(pretrained_ds='cifar100', mode='normal', device='cuda'):
     """
     Get the pre-trained model.
     """
