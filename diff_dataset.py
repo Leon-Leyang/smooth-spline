@@ -1,12 +1,10 @@
-import os
 import torch
 import torch.nn as nn
 import numpy as np
-from utils.resnet import resnet18
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
-import torchvision
+from utils.utils import get_pretrained_model
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -87,26 +85,6 @@ def extract_features(feature_extractor, dataloader):
 #     accuracy = accuracy_score(test_labels, predictions) * 100
 #     print(f'Accuracy of k-NN classifier: {accuracy:.2f}')
 #     return accuracy
-
-
-def get_pretrained_model(pretrained_ds='cifar100', mode='normal'):
-    """
-    Get the pre-trained model.
-    """
-    if 'cifar' in pretrained_ds:
-        ckpt_folder = os.path.join('./ckpts', mode)
-        num_classes = 100 if 'cifar100' in pretrained_ds else 10
-        model = resnet18(num_classes=num_classes).to(device)
-        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch200.pth'), weights_only=True))
-    elif 'mnist' in pretrained_ds:
-        ckpt_folder = os.path.join('./ckpts', mode)
-        num_classes = 10
-        model = resnet18(num_classes=num_classes).to(device)
-        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch10.pth'), weights_only=True))
-    elif pretrained_ds == 'imagenet':
-        model = torchvision.models.resnet18(weights='IMAGENET1K_V1').to(device)
-
-    return model
 
 
 def replace_and_test_linear_probe_acc_on(mode, beta_vals, pretrained_ds, transfer_ds):

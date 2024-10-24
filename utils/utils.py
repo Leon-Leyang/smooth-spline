@@ -1,9 +1,13 @@
 import os
 import torch
 import torch.nn as nn
+import torchvision
 import wandb
 from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
+
+from diff_dataset import device
+from utils.resnet import resnet18
 
 DEFAULT_TRANSFORM = transforms.Compose([
     transforms.ToTensor(),
@@ -189,3 +193,23 @@ def test_epoch(epoch, model, testloader, criterion, device):
         print(f'Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
 
     return test_loss, test_accuracy
+
+
+def get_pretrained_model(pretrained_ds='cifar100', mode='normal'):
+    """
+    Get the pre-trained model.
+    """
+    if 'cifar' in pretrained_ds:
+        ckpt_folder = os.path.join('./ckpts', mode)
+        num_classes = 100 if 'cifar100' in pretrained_ds else 10
+        model = resnet18(num_classes=num_classes).to(device)
+        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch200.pth'), weights_only=True))
+    elif 'mnist' in pretrained_ds:
+        ckpt_folder = os.path.join('./ckpts', mode)
+        num_classes = 10
+        model = resnet18(num_classes=num_classes).to(device)
+        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch10.pth'), weights_only=True))
+    elif pretrained_ds == 'imagenet':
+        model = torchvision.models.resnet18(weights='IMAGENET1K_V1').to(device)
+
+    return model
