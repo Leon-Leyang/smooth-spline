@@ -19,7 +19,7 @@ def replace_and_test_acc(model, beta_vals, mode, dataset, calling_file):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_name = model.__class__.__name__
 
-    _, test_loader = get_data_loaders(dataset)
+    _, test_loader = get_data_loaders(dataset, test_batch_size=500 if dataset=='imagenet' else 2000)
 
     print('*' * 50)
     print(f'Running post-replace accuracy test for {model_name}-{mode} on {dataset}...')
