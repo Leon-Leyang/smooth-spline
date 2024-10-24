@@ -97,24 +97,24 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15),
             transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
+            transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761])
         ])
         transform_test = transforms.Compose([
-            transforms.Resize((32, 32)),
+            transforms.Resize(32),
             transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
+            transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761]),
         ])
     elif 'mnist' in transform_to_use:
         transform_train = transforms.Compose([
             transforms.ToTensor(),
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize((0.1307, 0.1307, 0.1307), (0.3081, 0.3081, 0.3081))  # For 3 channels
+            transforms.Normalize([0.1307, 0.1307, 0.1307], [0.3081, 0.3081, 0.3081])  # For 3 channels
         ])
         transform_test = transforms.Compose([
-            transforms.Resize((28, 28)),
+            transforms.Resize(28),
             transforms.ToTensor(),
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize((0.1307, 0.1307, 0.1307), (0.3081, 0.3081, 0.3081))  # For 3 channels
+            transforms.Normalize([0.1307, 0.1307, 0.1307], [0.3081, 0.3081, 0.3081])  # For 3 channels
         ])
     elif 'imagenet' in transform_to_use:
         transform_train = None
