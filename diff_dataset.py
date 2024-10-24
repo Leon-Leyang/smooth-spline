@@ -9,14 +9,14 @@ from utils.utils import get_pretrained_model
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def transfer_linear_probe(model, mode, transfer_ds):
+def transfer_linear_probe(model, mode, ds):
     """
-    Transfer learning on CIFAR-10 using a linear probe.
+    Transfer learning.
     """
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
 
-    # Get the data loaders for CIFAR-10
-    train_loader, test_loader = get_data_loaders(transfer_ds, train_batch_size=2000)
+    # Get the data loaders
+    train_loader, _ = get_data_loaders(ds, train_batch_size=2000)
 
     # Remove the last layer of the model
     model = model.to(device)
@@ -28,7 +28,7 @@ def transfer_linear_probe(model, mode, transfer_ds):
     logistic_regressor.fit(train_features, train_labels)
 
     # Replace the last layer of the model with a linear layer for CIFAR-10
-    num_classes = 100 if 'cifar100' in transfer_ds else 10
+    num_classes = 100 if 'cifar100' in ds else 1000 if 'imagenet' in ds else 10
     model.fc = nn.Linear(model.fc.in_features, num_classes).to(device)
     model.fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
     model.fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
@@ -92,7 +92,7 @@ def replace_and_test_linear_probe_acc_on(mode, beta_vals, pretrained_ds, transfe
     Do transfer learning using a linear probe and test the model's accuracy with different beta values of BetaReLU.
     """
     model = get_pretrained_model(pretrained_ds, mode)
-    model = transfer_linear_probe(model, mode, transfer_ds)
+    model = transfer_linear_probe(model, mode, f'{pretrained_ds}_to_{transfer_ds}')
     replace_and_test_acc(model, beta_vals, mode, f'{pretrained_ds}_to_{transfer_ds}', __file__)
 
 
@@ -101,7 +101,7 @@ def replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals, pretrai
     Do transfer learning using a linear probe and test the model's robustness with different beta values of BetaReLU.
     """
     model = get_pretrained_model(pretrained_ds, mode)
-    model = transfer_linear_probe(model, mode, transfer_ds)
+    model = transfer_linear_probe(model, mode, f'{pretrained_ds}_to_{transfer_ds}')
     replace_and_test_robustness(model, threat, beta_vals, mode, f'{pretrained_ds}_to_{transfer_ds}', __file__)
 
 
