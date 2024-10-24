@@ -84,7 +84,7 @@ def replicate_if_needed(x):
     return x  # Return unchanged if already has more than 1 channel
 
 
-def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_size=None):
+def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None):
     """
     Get the data loaders for the dataset.
     """
@@ -196,9 +196,9 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
         indices = np.random.choice(len(trainset), train_size, replace=False)
         trainset = Subset(trainset, indices)
 
-    if dataset != 'imagenet':
+    if dataset_to_use != 'imagenet':
        trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=train_batch_size, shuffle=True, num_workers=6)
+           trainset, batch_size=train_batch_size, shuffle=True, num_workers=6)
     else:
         trainloader = None
     testloader = torch.utils.data.DataLoader(
