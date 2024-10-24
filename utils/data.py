@@ -5,6 +5,15 @@ from torch.utils.data import Subset
 from torchvision import transforms as transforms
 
 
+# Predefined normalization values for different datasets
+NORMALIZATION_VALUES = {
+    'cifar10': ([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010]),
+    'cifar100': ([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761]),
+    'mnist': ([0.1307, 0.1307, 0.1307], [0.3081, 0.3081, 0.3081]),
+    'imagenet': ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+}
+
+
 class NoisyCIFAR10(torchvision.datasets.CIFAR10):
     def __init__(self, *args, noise_adder=None, **kwargs):
         super(NoisyCIFAR10, self).__init__(*args, **kwargs)
@@ -82,41 +91,61 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
     if '_to_' in dataset:  # e.g., cifar10_to_cifar100
         transform_to_use = dataset.split('_to_')[0]
     elif '_' in dataset:  # e.g., noisy_cifar10
-        transform_to_use = dataset.split('_')[1]
+        transform_to_use = dataset.split('_')[-1]
     else:
         transform_to_use = dataset
 
     if '_to_' in dataset:
-        dataset_to_use = dataset.split('_to_')[1]
+        dataset_to_use = dataset.split('_to_')[-1]
     else:
         dataset_to_use = dataset
 
-    if 'cifar' in transform_to_use:
+    if '_' in dataset:
+        normalization_to_use = dataset.split('_')[-1]
+    else:
+        normalization_to_use = dataset
+
+    if 'cifar10' in transform_to_use:
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15),
             transforms.ToTensor(),
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761])
+            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
         transform_test = transforms.Compose([
             transforms.Resize(32),
             transforms.ToTensor(),
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761]),
+            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+        ])
+    elif 'cifar100' in transform_to_use:
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+        ])
+        transform_test = transforms.Compose([
+            transforms.Resize(32),
+            transforms.ToTensor(),
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
     elif 'mnist' in transform_to_use:
         transform_train = transforms.Compose([
             transforms.ToTensor(),
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize([0.1307, 0.1307, 0.1307], [0.3081, 0.3081, 0.3081])  # For 3 channels
+            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
         transform_test = transforms.Compose([
             transforms.Resize(28),
             transforms.ToTensor(),
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize([0.1307, 0.1307, 0.1307], [0.3081, 0.3081, 0.3081])  # For 3 channels
+            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
     elif 'imagenet' in transform_to_use:
         transform_train = None
@@ -125,7 +154,7 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
 
     if dataset_to_use == 'cifar10':
