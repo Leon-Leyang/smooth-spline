@@ -52,7 +52,7 @@ def main():
     # for threat in threat_models:
     #     replace_and_test_robustness_on('normal', threat, mode_2_beta_vals_robustness['normal'], dataset)
 
-    datasets = ['cifar100', 'imagetnet', 'cifar10', 'mnist']
+    datasets = ['cifar100', 'imagenet', 'cifar10', 'mnist']
     mode = 'normal'
     for ds in datasets:
         replace_and_test_acc_on(mode, ds, mode_2_beta_vals_acc[mode])
