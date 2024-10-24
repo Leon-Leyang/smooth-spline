@@ -148,7 +148,13 @@ def get_data_loaders(dataset, train_batch_size=128, test_batch_size=2000, train_
             transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
     elif 'imagenet' in transform_to_use:
-        transform_train = None
+        transform_train = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Lambda(replicate_if_needed),
+            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+        ])
         transform_test = transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
