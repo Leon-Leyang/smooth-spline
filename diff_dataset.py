@@ -94,7 +94,7 @@ def replace_then_lp_test_acc(mode, beta_vals, pretrained_ds, transfer_ds):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_name = model.__class__.__name__
 
-    _, test_loader = get_data_loaders(transfer_ds)
+    _, test_loader = get_data_loaders(dataset)
 
     print('*' * 50)
     print(f'Running replace then linear probe accuracy test for {model_name}-{mode} on {dataset}...')
