@@ -4,7 +4,11 @@ import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
-from utils.utils import get_pretrained_model
+from utils.utils import get_pretrained_model, test_epoch, ReplacementMapping, replace_module, get_file_name
+import copy
+from matplotlib import pyplot as plt
+from matplotlib.ticker import ScalarFormatter
+import os
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -13,6 +17,7 @@ def transfer_linear_probe(model, mode, pretrained_ds, transfer_ds):
     """
     Transfer learning.
     """
+    print('Transferring learning with linear probe...')
     assert mode in ['normal', 'suboptimal', 'overfit'], 'Mode must be either normal, suboptimal or overfit'
 
     # Get the data loaders
@@ -35,7 +40,7 @@ def transfer_linear_probe(model, mode, pretrained_ds, transfer_ds):
     model.fc.weight.requires_grad = False
     model.fc.bias.requires_grad = False
 
-    # No further training required
+    print('Finishing transferring learning...')
     return model
 
 
@@ -60,7 +65,7 @@ def extract_features(feature_extractor, dataloader):
     return features, labels
 
 
-def replace_and_test_linear_probe_acc_on(mode, beta_vals, pretrained_ds, transfer_ds):
+def lp_then_replace_test_acc(mode, beta_vals, pretrained_ds, transfer_ds):
     """
     Do transfer learning using a linear probe and test the model's accuracy with different beta values of BetaReLU.
     """
@@ -74,8 +79,79 @@ def replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals, pretrai
     Do transfer learning using a linear probe and test the model's robustness with different beta values of BetaReLU.
     """
     model = get_pretrained_model(pretrained_ds, mode)
-    model = transfer_linear_probe(model, mode, f'{pretrained_ds}_to_{transfer_ds}')
+    model = transfer_linear_probe(model, mode, pretrained_ds, transfer_ds)
     replace_and_test_robustness(model, threat, beta_vals, mode, f'{pretrained_ds}_to_{transfer_ds}', __file__)
+
+
+def replace_then_lp_test_acc(mode, beta_vals, pretrained_ds, transfer_ds):
+    """
+    Replace ReLU with BetaReLU and then do transfer learning using a linear probe and test the model's accuracy.
+    """
+    dataset = f'{pretrained_ds}_to_{transfer_ds}'
+
+    model = get_pretrained_model(pretrained_ds, mode)
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model_name = model.__class__.__name__
+
+    _, test_loader = get_data_loaders(transfer_ds)
+
+    print('*' * 50)
+    print(f'Running replace then linear probe accuracy test for {model_name}-{mode} on {dataset}...')
+    print('*' * 50)
+    criterion = nn.CrossEntropyLoss()
+
+    acc_list = []
+    beta_list = []
+
+    # Test the original model
+    print('Using ReLU...')
+    orig_model = copy.deepcopy(model)
+    transfer_model = transfer_linear_probe(orig_model, mode, pretrained_ds, transfer_ds)
+    _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
+    best_acc = base_acc
+    best_beta = 1
+
+    # Test the model with different beta values
+    for i, beta in enumerate(beta_vals):
+        print(f'Using BetaReLU with beta={beta:.3f}')
+        replacement_mapping = ReplacementMapping(beta=beta)
+        orig_model = copy.deepcopy(model)
+        new_model = replace_module(orig_model, replacement_mapping)
+        transfer_model = transfer_linear_probe(new_model, mode, pretrained_ds, transfer_ds)
+        _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
+        if test_acc > best_acc:
+            best_acc = test_acc
+            best_beta = beta
+        acc_list.append(test_acc)
+        beta_list.append(beta)
+    acc_list.append(base_acc)
+    beta_list.append(1)
+    print(f'Best accuracy: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
+
+    # Plot the test accuracy vs beta values
+    plt.figure(figsize=(12, 8))
+    plt.plot(beta_list, acc_list)
+    plt.axhline(y=base_acc, color='r', linestyle='--', label='ReLU Test Accuracy')
+    plt.xlabel('Beta')
+    plt.ylabel('Test Accuracy')
+    plt.title('Test Accuracy vs Beta Values')
+
+    # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
+    ax = plt.gca()
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.xaxis.get_major_formatter().set_scientific(False)
+    ax.xaxis.get_major_formatter().set_useOffset(False)
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.yaxis.get_major_formatter().set_scientific(False)
+    ax.yaxis.get_major_formatter().set_useOffset(False)
+
+    plt.xticks(beta_list[::5], rotation=45)
+    plt.legend()
+    output_folder = os.path.join("../figures", get_file_name(__file__))
+    os.makedirs(output_folder, exist_ok=True)
+    plt.savefig(os.path.join(output_folder, f"replace_and_lp_test_acc_{model_name}_{dataset}_{mode}.png"))
+    plt.show()
 
 
 def main():
@@ -99,7 +175,9 @@ def main():
             if pretrained_ds == transfer_ds:
                 continue
             mode = 'normal'
-            replace_and_test_linear_probe_acc_on(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+            # lp_then_replace_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+            replace_then_lp_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+
             # for threat in threat_models:
             #     replace_and_test_linear_probe_robustness_on(mode, threat, mode_2_beta_vals_robustness[mode], pretrained_ds, transfer_ds)
 
