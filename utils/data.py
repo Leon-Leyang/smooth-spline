@@ -137,6 +137,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         ])
     elif 'mnist' in transform_to_use:
         transform_train = transforms.Compose([
+            transforms.Resize(28),
             transforms.ToTensor(),
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
