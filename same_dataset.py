@@ -55,10 +55,9 @@ def main():
     datasets = ['cifar100', 'imagenet', 'cifar10', 'mnist']
     mode = 'normal'
     for ds in datasets:
+        fix_seed(42)
         replace_and_test_acc_on(mode, ds, mode_2_beta_vals_acc[mode])
 
 
 if __name__ == '__main__':
-    fix_seed(42)
-
     main()

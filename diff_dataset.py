@@ -9,6 +9,7 @@ import copy
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import os
+import argparse
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -154,7 +155,7 @@ def replace_then_lp_test_acc(mode, beta_vals, pretrained_ds, transfer_ds):
     plt.show()
 
 
-def main():
+def main(args):
     # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
     threat_models = ['Linf', 'L2']
     mode_2_beta_vals_acc = {
@@ -175,14 +176,30 @@ def main():
             if pretrained_ds == transfer_ds:
                 continue
             mode = 'normal'
-            # lp_then_replace_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
-            replace_then_lp_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+            fix_seed(42)
+            if args.order == 'lp_replace':
+                lp_then_replace_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+            elif args.order == 'replace_lp':
+                replace_then_lp_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+            else:
+                raise ValueError(f'Invalid order: {args.order}')
 
             # for threat in threat_models:
             #     replace_and_test_linear_probe_robustness_on(mode, threat, mode_2_beta_vals_robustness[mode], pretrained_ds, transfer_ds)
 
 
-if __name__ == '__main__':
-    fix_seed(42)
+def get_args():
+    parser = argparse.ArgumentParser(description='Transfer learning with linear probe')
+    parser.add_argument(
+        '--order',
+        type=str,
+        choices=['lp_replace', 'replace_lp'],
+        default='lp_replace',
+        help='Order of operations: lp_replace or replace_lp'
+    )
+    return parser.parse_args()
 
-    main()
+
+if __name__ == '__main__':
+    args = get_args()
+    main(args)
