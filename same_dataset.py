@@ -2,7 +2,7 @@ import os
 import torch
 import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
-from utils.utils import get_pretrained_model
+from utils.utils import get_pretrained_model, fix_seed
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -59,4 +59,6 @@ def main():
 
 
 if __name__ == '__main__':
+    fix_seed(42)
+
     main()

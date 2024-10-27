@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name
+from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed
 
 
 # Adapted from https://github.com/RandallBalestriero/POLICE
@@ -109,6 +109,8 @@ def plot_classification_case(
 
 
 if __name__ == "__main__":
+    fix_seed(42)
+
     beta_vals = np.arange(0, 1 + 1e-6, 0.125)
     width = 128
     depth = 2

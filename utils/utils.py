@@ -6,6 +6,7 @@ import wandb
 from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
 from utils.resnet import resnet18
+import numpy as np
 
 DEFAULT_TRANSFORM = transforms.Compose([
     transforms.ToTensor(),
@@ -211,3 +212,16 @@ def get_pretrained_model(pretrained_ds='cifar100', mode='normal', device='cuda')
         model = torchvision.models.resnet18(weights='IMAGENET1K_V1').to(device)
 
     return model
+
+
+def fix_seed(seed=42):
+    """
+    Fix the random seed for reproducibility.
+    """
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+

@@ -4,7 +4,7 @@ import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
-from utils.utils import get_pretrained_model, test_epoch, ReplacementMapping, replace_module, get_file_name
+from utils.utils import get_pretrained_model, test_epoch, ReplacementMapping, replace_module, get_file_name, fix_seed
 import copy
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
@@ -183,4 +183,6 @@ def main():
 
 
 if __name__ == '__main__':
+    fix_seed(42)
+
     main()

@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 from utils.robustbench.utils import load_model
 from utils.eval_post_replace import replace_and_test_robustness
+from utils.utils import fix_seed
 
 
 def replace_and_test_robustness_on(model_id, threat, beta_vals, dataset, n_examples, batch_size):
@@ -30,4 +31,6 @@ def main():
 
 
 if __name__ == "__main__":
+    fix_seed(42)
+
     main()
