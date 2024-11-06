@@ -134,7 +134,6 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
         logger.info(args)
         logger.info("=> creating model ...")
         logger.info("Classes: {}".format(args.classes))
-        logger.info(model)
     if args.distributed:
         torch.cuda.set_device(gpu)
         args.batch_size = int(args.batch_size / ngpus_per_node)
@@ -393,7 +392,7 @@ def validate(val_loader, model, criterion):
 def main_test(beta):
     args.save_folder = f'exp/diff_task_part/results/{beta:.2f}'
     os.makedirs(args.save_folder, exist_ok=True)
-    args.model_path = args.save_path + '/train_epoch_50.pth'
+    args.model_path = args.save_path + f'/train_epoch_{args.epochs}.pth'
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.test_gpu)
     logger.info(args)
     logger.info("=> creating model ...")
@@ -426,7 +425,6 @@ def main_test(beta):
             model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, pretrained=False)
         elif args.arch == 'psa':
             raise ValueError("PSANet not supported")
-        logger.info(model)
         model = torch.nn.DataParallel(model).cuda()
         cudnn.benchmark = True
         if os.path.isfile(args.model_path):
