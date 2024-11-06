@@ -114,6 +114,10 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
             logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
             replacement_mapping = ReplacementMapping(beta=beta)
             modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
+        # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
+        with torch.no_grad():
+            dummy_input = torch.randn(1, 3, args.train_h, args.train_w)
+            model(dummy_input)
 
     elif args.arch == 'psa':
         raise ValueError("PSANet not supported")
@@ -346,6 +350,11 @@ def main_test(beta):
                 logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
                 replacement_mapping = ReplacementMapping(beta=beta)
                 modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
+                # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
+                with torch.no_grad():
+                    dummy_input = torch.randn(1, 3, args.test_h, args.test_w)
+                    model(dummy_input)
+
         elif args.arch == 'psa':
             raise ValueError("PSANet not supported")
         model = torch.nn.DataParallel(model).cuda()
