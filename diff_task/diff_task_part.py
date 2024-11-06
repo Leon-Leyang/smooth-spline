@@ -94,6 +94,8 @@ def main_train(beta):
 
 def main_worker(gpu, ngpus_per_node, argss, beta):
     global args, logger, writer
+    logger = get_logger()
+
     args = argss
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
@@ -435,11 +437,11 @@ def main_test(beta):
         else:
             raise RuntimeError("=> no checkpoint found at '{}'".format(args.model_path))
         test(test_loader, test_data.data_list, model, args.classes, mean, std, args.base_size, args.test_h, args.test_w, args.scales, gray_folder, color_folder, colors)
-        return None, None, None
     if args.split != 'test':
         mIoU, mAcc, allAcc = cal_acc(test_data.data_list, gray_folder, args.classes, names)
         return mIoU, mAcc, allAcc
-
+    else:
+        return None, None, None
 
 def net_process(model, image, mean, std=None, flip=True):
     input = torch.from_numpy(image.transpose((2, 0, 1))).float()
