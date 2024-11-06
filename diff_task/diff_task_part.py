@@ -93,7 +93,7 @@ def main_train(beta):
         main_worker(args.train_gpu, args.ngpus_per_node, args, beta)
 
 def main_worker(gpu, ngpus_per_node, argss, beta):
-    global args
+    global args, logger, writer
     args = argss
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
@@ -129,7 +129,6 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
         model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     if main_process():
-        global logger, writer
         logger = get_logger()
         writer = SummaryWriter(args.save_path)
         logger.info(args)
