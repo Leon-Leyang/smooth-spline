@@ -166,3 +166,5 @@ wandb/
 ckpts/
 models/
 cache/
+exp/
+dataset/
