@@ -27,10 +27,10 @@ TRAIN:
   power: 0.9
   momentum: 0.9
   weight_decay: 0.0001
-  manual_seed:
+  manual_seed: 42
   print_freq: 10
   save_freq: 1
-  save_path: exp/voc2012/pspnet50/model
+  save_path:
   weight:  # path to initial weight (default: none)
   resume:  # path to latest checkpoint (default: none)
   evaluate: False  # evaluate on validation set, extra gpu memory needed and small batch_size_val is recommend
@@ -52,7 +52,7 @@ TEST:
   index_start: 0  # evaluation start index in list
   index_step: 0  # evaluation step index in list, 0 means to end
   test_gpu: [0]
-  model_path: exp/voc2012/pspnet50/model/train_epoch_50.pth  # evaluation model path
-  save_folder: exp/voc2012/pspnet50/result/epoch_50/val/ss  # results save folder
+  model_path: # evaluation model path
+  save_folder: # results save folder
   colors_path: data/VOC2012/voc2012_colors.txt  # path of dataset colors
   names_path: data/VOC2012/voc2012_names.txt  # path of dataset category names

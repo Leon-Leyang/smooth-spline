@@ -18,6 +18,7 @@ from tensorboardX import SummaryWriter
 
 from utils.semseg.util import dataset, transform, config
 from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, colorize, poly_learning_rate, find_free_port
+from utils.utils import ReplacementMapping, replace_module
 
 cv2.ocl.setUseOpenCL(False)
 
@@ -63,7 +64,8 @@ def check(args):
         raise Exception('architecture not supported yet'.format(args.arch))
 
 
-def main_train():
+def main_train(beta):
+    args.save_path = f'exp/diff_task_part/{beta:.2f}'
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.train_gpu)
     if args.manual_seed is not None:
         random.seed(args.manual_seed)
@@ -85,11 +87,11 @@ def main_train():
         port = find_free_port()
         args.dist_url = f"tcp://127.0.0.1:{port}"
         args.world_size = args.ngpus_per_node * args.world_size
-        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node, args))
+        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node, args, beta))
     else:
-        main_worker(args.train_gpu, args.ngpus_per_node, args)
+        main_worker(args.train_gpu, args.ngpus_per_node, args, beta)
 
-def main_worker(gpu, ngpus_per_node, argss):
+def main_worker(gpu, ngpus_per_node, argss, beta):
     global args
     args = argss
     if args.distributed:
@@ -105,11 +107,20 @@ def main_worker(gpu, ngpus_per_node, argss):
         model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, criterion=criterion)
         modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
         modules_new = [model.ppm, model.cls, model.aux]
+        if beta != 1:
+            logger.info(f"Using BetaReLU with beta={beta: .2f}")
+            replacement_mapping = ReplacementMapping(beta=beta)
+            modules_ori = replace_module(modules_ori, replacement_mapping)
+
     elif args.arch == 'psa':
         raise ValueError("PSANet not supported")
     params_list = []
+
+    # Freeze the feature extractor
     for module in modules_ori:
-        params_list.append(dict(params=module.parameters(), lr=args.base_lr))
+        for param in module.parameters():
+            param.requires_grad = False
+
     for module in modules_new:
         params_list.append(dict(params=module.parameters(), lr=args.base_lr * 10))
     args.index_split = 5
@@ -382,7 +393,9 @@ def validate(val_loader, model, criterion):
     return loss_meter.avg, mIoU, mAcc, allAcc
 
 
-def main_test():
+def main_test(beta):
+    args.save_folder = f'exp/diff_task_part/results/{beta:.2f}'
+    args.model_path = args.save_path + '/train_epoch_50.pth'
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.test_gpu)
     logger.info(args)
     logger.info("=> creating model ...")
@@ -426,8 +439,10 @@ def main_test():
         else:
             raise RuntimeError("=> no checkpoint found at '{}'".format(args.model_path))
         test(test_loader, test_data.data_list, model, args.classes, mean, std, args.base_size, args.test_h, args.test_w, args.scales, gray_folder, color_folder, colors)
+        return None, None, None
     if args.split != 'test':
-        cal_acc(test_data.data_list, gray_folder, args.classes, names)
+        mIoU, mAcc, allAcc = cal_acc(test_data.data_list, gray_folder, args.classes, names)
+        return mIoU, mAcc, allAcc
 
 
 def net_process(model, image, mean, std=None, flip=True):
@@ -560,10 +575,30 @@ def cal_acc(data_list, pred_folder, classes, names):
     for i in range(classes):
         logger.info('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, iou_class[i], accuracy_class[i], names[i]))
 
+    return mIoU, mAcc, allAcc
+
 
 if __name__ == '__main__':
     args = get_parser()
     check(args)
     logger = get_logger()
-    main_train()
-    main_test()
+
+    logger.info('*' * 50)
+    logger.info('Testing with ReLU')
+    logger.info('*' * 50)
+    main_train(1)
+    mIoU, _, _ = main_test(1)
+    best_mIoU = mIoU
+    best_beta = 1
+
+    for beta in np.arange(0.95, 1 - 1e-6, 0.01):
+        logger.info('*' * 50)
+        logger.info(f"Testing with beta={beta:.2f}")
+        logger.info('*' * 50)
+        main_train(beta)
+        mIoU, _, _ = main_test(beta)
+        if mIoU > best_mIoU:
+            best_mIoU = mIoU
+            best_beta = beta
+
+    logger.info(f'Best mIoU: {best_mIoU:.4f} with beta={best_beta:.2f}, compared to ReLU mIoU: {mIoU:.4f}')
