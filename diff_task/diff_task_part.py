@@ -66,6 +66,7 @@ def check(args):
 
 def main_train(beta):
     args.save_path = f'exp/diff_task_part/{beta:.2f}'
+    os.makedirs(args.save_path, exist_ok=True)
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.train_gpu)
     if args.manual_seed is not None:
         random.seed(args.manual_seed)
@@ -395,6 +396,7 @@ def validate(val_loader, model, criterion):
 
 def main_test(beta):
     args.save_folder = f'exp/diff_task_part/results/{beta:.2f}'
+    os.makedirs(args.save_folder, exist_ok=True)
     args.model_path = args.save_path + '/train_epoch_50.pth'
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.test_gpu)
     logger.info(args)

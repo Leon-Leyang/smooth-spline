@@ -20,16 +20,6 @@ conda activate spline
 
 export PYTHONPATH=./
 
-dataset=voc2012
-exp_name=pspnet50
-exp_dir=exp/${dataset}/${exp_name}
-model_dir=${exp_dir}/model
-result_dir=${exp_dir}/result
-config=diff_task/${dataset}_${exp_name}.yaml
-now=$(date +"%Y%m%d_%H%M%S")
+config=diff_task/voc2012_pspnet50.yaml
 
-mkdir -p ${model_dir} ${result_dir}
-cp diff_task/run.sh diff_task/diff_task.py ${config} ${exp_dir}
-
-python -u ${exp_dir}/diff_task.py \
-  --config=${config}
+python -u diff_task/diff_task_part.py --config=${config}
