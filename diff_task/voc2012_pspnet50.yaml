@@ -1,7 +1,7 @@
 DATA:
-  data_root: dataset/VOC2012
-  train_list: dataset/VOC2012/list/train_aug.txt
-  val_list: dataset/VOC2012/list/val.txt
+  data_root: data/VOC2012
+  train_list: data/VOC2012/list/train_aug.txt
+  val_list: data/VOC2012/list/val.txt
   classes: 21
 
 TRAIN:
@@ -42,7 +42,7 @@ Distributed:
   rank: 0
 
 TEST:
-  test_list: dataset/VOC2012/list/val.txt
+  test_list: data/VOC2012/list/val.txt
   split: val  # split in [train, val and test]
   base_size: 512  # based size for scaling
   test_h: 473
@@ -54,5 +54,5 @@ TEST:
   test_gpu: [0]
   model_path: exp/voc2012/pspnet50/model/train_epoch_50.pth  # evaluation model path
   save_folder: exp/voc2012/pspnet50/result/epoch_50/val/ss  # results save folder
-  colors_path: dataset/VOC2012/voc2012_colors.txt  # path of dataset colors
-  names_path: dataset/VOC2012/voc2012_names.txt  # path of dataset category names
+  colors_path: data/VOC2012/voc2012_colors.txt  # path of dataset colors
+  names_path: data/VOC2012/voc2012_names.txt  # path of dataset category names
