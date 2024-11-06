@@ -31,5 +31,5 @@ now=$(date +"%Y%m%d_%H%M%S")
 mkdir -p ${model_dir} ${result_dir}
 cp diff_task/run.sh diff_task/diff_task.py ${config} ${exp_dir}
 
-python -u ${exp_dir}/train.py \
+python -u ${exp_dir}/diff_task.py \
   --config=${config}
