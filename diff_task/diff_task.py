@@ -85,7 +85,7 @@ def main_train():
         port = find_free_port()
         args.dist_url = f"tcp://127.0.0.1:{port}"
         args.world_size = args.ngpus_per_node * args.world_size
-        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node))
+        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node,))
     else:
         main_worker(args.train_gpu, args.ngpus_per_node)
 
