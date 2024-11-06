@@ -20,8 +20,8 @@ conda activate spline
 
 export PYTHONPATH=./
 
-dataset=$1
-exp_name=$2
+dataset=voc2012
+exp_name=pspnet50
 exp_dir=exp/${dataset}/${exp_name}
 model_dir=${exp_dir}/model
 result_dir=${exp_dir}/result
