@@ -147,7 +147,7 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
         if os.path.isfile(args.weight):
             if main_process():
                 logger.info("=> loading weight '{}'".format(args.weight))
-            checkpoint = torch.load(args.weight)
+            checkpoint = torch.load(args.weight, weights_only=True)
             model.load_state_dict(checkpoint['state_dict'])
             if main_process():
                 logger.info("=> loaded weight '{}'".format(args.weight))
@@ -160,7 +160,7 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
             if main_process():
                 logger.info("=> loading checkpoint '{}'".format(args.resume))
             # checkpoint = torch.load(args.resume)
-            checkpoint = torch.load(args.resume, map_location=lambda storage, loc: storage.cuda())
+            checkpoint = torch.load(args.resume, map_location=lambda storage, loc: storage.cuda(), weights_only=True)
             args.start_epoch = checkpoint['epoch']
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
@@ -429,7 +429,7 @@ def main_test(beta):
         cudnn.benchmark = True
         if os.path.isfile(args.model_path):
             logger.info("=> loading checkpoint '{}'".format(args.model_path))
-            checkpoint = torch.load(args.model_path)
+            checkpoint = torch.load(args.model_path, weights_only=True)
             model.load_state_dict(checkpoint['state_dict'], strict=False)
             logger.info("=> loaded checkpoint '{}'".format(args.model_path))
         else:
