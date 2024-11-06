@@ -111,9 +111,9 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
         modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
         modules_new = [model.ppm, model.cls, model.aux]
         if beta != 1:
-            logger.info(f"Using BetaReLU with beta={beta: .2f}")
+            logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
             replacement_mapping = ReplacementMapping(beta=beta)
-            modules_ori = replace_module(modules_ori, replacement_mapping)
+            modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
 
     elif args.arch == 'psa':
         raise ValueError("PSANet not supported")
@@ -192,17 +192,6 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
     else:
         train_sampler = None
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=(train_sampler is None), num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True)
-    if args.evaluate:
-        val_transform = transform.Compose([
-            transform.Crop([args.train_h, args.train_w], crop_type='center', padding=mean, ignore_label=args.ignore_label),
-            transform.ToTensor(),
-            transform.Normalize(mean=mean, std=std)])
-        val_data = dataset.SemData(split='val', data_root=args.data_root, data_list=args.val_list, transform=val_transform)
-        if args.distributed:
-            val_sampler = torch.utils.data.distributed.DistributedSampler(val_data)
-        else:
-            val_sampler = None
-        val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size_val, shuffle=False, num_workers=args.workers, pin_memory=True, sampler=val_sampler)
 
     for epoch in range(args.start_epoch, args.epochs):
         epoch_log = epoch + 1
@@ -222,13 +211,6 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
             if epoch_log / args.save_freq > 2:
                 deletename = args.save_path + '/train_epoch_' + str(epoch_log - args.save_freq * 2) + '.pth'
                 os.remove(deletename)
-        if args.evaluate:
-            loss_val, mIoU_val, mAcc_val, allAcc_val = validate(val_loader, model, criterion)
-            if main_process():
-                writer.add_scalar('loss_val', loss_val, epoch_log)
-                writer.add_scalar('mIoU_val', mIoU_val, epoch_log)
-                writer.add_scalar('mAcc_val', mAcc_val, epoch_log)
-                writer.add_scalar('allAcc_val', allAcc_val, epoch_log)
 
 
 def train(train_loader, model, optimizer, epoch):
@@ -325,72 +307,6 @@ def train(train_loader, model, optimizer, epoch):
     return main_loss_meter.avg, mIoU, mAcc, allAcc
 
 
-def validate(val_loader, model, criterion):
-    if main_process():
-        logger.info('>>>>>>>>>>>>>>>> Start Evaluation >>>>>>>>>>>>>>>>')
-    batch_time = AverageMeter()
-    data_time = AverageMeter()
-    loss_meter = AverageMeter()
-    intersection_meter = AverageMeter()
-    union_meter = AverageMeter()
-    target_meter = AverageMeter()
-
-    model.eval()
-    end = time.time()
-    for i, (input, target) in enumerate(val_loader):
-        data_time.update(time.time() - end)
-        input = input.cuda(non_blocking=True)
-        target = target.cuda(non_blocking=True)
-        output = model(input)
-        if args.zoom_factor != 8:
-            output = F.interpolate(output, size=target.size()[1:], mode='bilinear', align_corners=True)
-        loss = criterion(output, target)
-
-        n = input.size(0)
-        if args.multiprocessing_distributed:
-            loss = loss * n  # not considering ignore pixels
-            count = target.new_tensor([n], dtype=torch.long)
-            dist.all_reduce(loss), dist.all_reduce(count)
-            n = count.item()
-            loss = loss / n
-        else:
-            loss = torch.mean(loss)
-
-        output = output.max(1)[1]
-        intersection, union, target = intersectionAndUnionGPU(output, target, args.classes, args.ignore_label)
-        if args.multiprocessing_distributed:
-            dist.all_reduce(intersection), dist.all_reduce(union), dist.all_reduce(target)
-        intersection, union, target = intersection.cpu().numpy(), union.cpu().numpy(), target.cpu().numpy()
-        intersection_meter.update(intersection), union_meter.update(union), target_meter.update(target)
-
-        accuracy = sum(intersection_meter.val) / (sum(target_meter.val) + 1e-10)
-        loss_meter.update(loss.item(), input.size(0))
-        batch_time.update(time.time() - end)
-        end = time.time()
-        if ((i + 1) % args.print_freq == 0) and main_process():
-            logger.info('Test: [{}/{}] '
-                        'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
-                        'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}) '
-                        'Loss {loss_meter.val:.4f} ({loss_meter.avg:.4f}) '
-                        'Accuracy {accuracy:.4f}.'.format(i + 1, len(val_loader),
-                                                          data_time=data_time,
-                                                          batch_time=batch_time,
-                                                          loss_meter=loss_meter,
-                                                          accuracy=accuracy))
-
-    iou_class = intersection_meter.sum / (union_meter.sum + 1e-10)
-    accuracy_class = intersection_meter.sum / (target_meter.sum + 1e-10)
-    mIoU = np.mean(iou_class)
-    mAcc = np.mean(accuracy_class)
-    allAcc = sum(intersection_meter.sum) / (sum(target_meter.sum) + 1e-10)
-    if main_process():
-        logger.info('Val result: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.'.format(mIoU, mAcc, allAcc))
-        for i in range(args.classes):
-            logger.info('Class_{} Result: iou/accuracy {:.4f}/{:.4f}.'.format(i, iou_class[i], accuracy_class[i]))
-        logger.info('<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<')
-    return loss_meter.avg, mIoU, mAcc, allAcc
-
-
 def main_test(beta):
     args.save_folder = f'exp/diff_task_part/results/{beta:.2f}'
     os.makedirs(args.save_folder, exist_ok=True)
@@ -425,6 +341,11 @@ def main_test(beta):
         if args.arch == 'psp':
             from utils.semseg.model.pspnet import PSPNet
             model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, pretrained=False)
+            modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
+            if beta != 1:
+                logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
+                replacement_mapping = ReplacementMapping(beta=beta)
+                modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
         elif args.arch == 'psa':
             raise ValueError("PSANet not supported")
         model = torch.nn.DataParallel(model).cuda()
