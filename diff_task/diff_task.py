@@ -85,12 +85,13 @@ def main_train():
         port = find_free_port()
         args.dist_url = f"tcp://127.0.0.1:{port}"
         args.world_size = args.ngpus_per_node * args.world_size
-        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node,))
+        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node, args))
     else:
-        main_worker(args.train_gpu, args.ngpus_per_node)
+        main_worker(args.train_gpu, args.ngpus_per_node, args)
 
-
-def main_worker(gpu, ngpus_per_node):
+def main_worker(gpu, ngpus_per_node, argss):
+    global args
+    args = argss
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
             args.rank = int(os.environ["RANK"])
