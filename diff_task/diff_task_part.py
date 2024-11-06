@@ -124,7 +124,6 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
 
     for module in modules_new:
         params_list.append(dict(params=module.parameters(), lr=args.base_lr * 10))
-    args.index_split = 5
     optimizer = torch.optim.SGD(params_list, lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
     if args.sync_bn:
         model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -286,9 +285,7 @@ def train(train_loader, model, optimizer, epoch):
 
         current_iter = epoch * len(train_loader) + i + 1
         current_lr = poly_learning_rate(args.base_lr, current_iter, max_iter, power=args.power)
-        for index in range(0, args.index_split):
-            optimizer.param_groups[index]['lr'] = current_lr
-        for index in range(args.index_split, len(optimizer.param_groups)):
+        for index in range(0, len(optimizer.param_groups)):
             optimizer.param_groups[index]['lr'] = current_lr * 10
         remain_iter = max_iter - current_iter
         remain_time = remain_iter * batch_time.avg
