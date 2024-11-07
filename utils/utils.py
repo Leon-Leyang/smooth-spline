@@ -70,8 +70,8 @@ class LazyBetaReLU(nn.modules.lazy.LazyModuleMixin, BetaReLU):
         if self.has_uninitialized_params():
             with torch.no_grad():
                 s = [1 for _ in range(input.ndim)]
-                for i in self.axis:
-                    s[i] = input.size(i)
+                # for i in self.axis:
+                #     s[i] = input.size(i)
                 self.beta.materialize(s)
                 self.beta.copy_(torch.Tensor([self.val_beta]))
 
