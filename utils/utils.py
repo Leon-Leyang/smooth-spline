@@ -18,7 +18,7 @@ class ReplacementMapping:
     def __init__(self, beta=0.5):
         self.beta = beta
 
-    def __call__(self, name, module):
+    def __call__(self, module):
         if isinstance(module, torch.nn.ReLU):
             return LazyBetaReLU(beta=self.beta)
         return module
@@ -31,7 +31,7 @@ def replace_module(model, replacement_mapping):
     for name, module in model.named_modules():
         if name == "":
             continue
-        replacement = replacement_mapping(name, module).to(device)
+        replacement = replacement_mapping(module).to(device)
         module_names = name.split(".")
         # we go down the tree up to the parent
         parent = model

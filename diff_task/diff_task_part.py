@@ -1,7 +1,5 @@
 import os
 import time
-import logging
-import argparse
 
 import cv2
 import random
@@ -14,58 +12,18 @@ import torch.nn.parallel
 import torch.utils.data
 import torch.multiprocessing as mp
 import torch.distributed as dist
-from tensorboardX import SummaryWriter
 
-from utils.semseg.util import dataset, transform, config
-from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, colorize, poly_learning_rate, find_free_port
+from utils.semseg.util import dataset, transform
+from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, \
+    colorize, poly_learning_rate, find_free_port, get_logger, get_parser, main_process, check
+from utils.semseg.model.pspnet import PSPNet
 from utils.utils import ReplacementMapping, replace_module
 
 cv2.ocl.setUseOpenCL(False)
 
 
-def get_parser():
-    parser = argparse.ArgumentParser(description='PyTorch Semantic Segmentation')
-    parser.add_argument('--config', type=str, default='config/ade20k/ade20k_pspnet50.yaml', help='config file')
-    parser.add_argument('opts', help='see config/ade20k/ade20k_pspnet50.yaml for all options', default=None, nargs=argparse.REMAINDER)
-    args = parser.parse_args()
-    assert args.config is not None
-    cfg = config.load_cfg_from_cfg_file(args.config)
-    if args.opts is not None:
-        cfg = config.merge_cfg_from_list(cfg, args.opts)
-    return cfg
-
-
-def get_logger():
-    logger_name = "main-logger"
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler()
-    fmt = "[%(asctime)s %(levelname)s %(filename)s line %(lineno)d %(process)d] %(message)s"
-    handler.setFormatter(logging.Formatter(fmt))
-    logger.addHandler(handler)
-    return logger
-
-
-def worker_init_fn(worker_id):
-    random.seed(args.manual_seed + worker_id)
-
-
-def main_process():
-    return not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % args.ngpus_per_node == 0)
-
-
-def check(args):
-    assert args.classes > 1
-    assert args.zoom_factor in [1, 2, 4, 8]
-    assert args.split in ['train', 'val', 'test']
-    if args.arch == 'psp':
-        assert (args.train_h - 1) % 8 == 0 and (args.train_w - 1) % 8 == 0
-    else:
-        raise Exception('architecture not supported yet'.format(args.arch))
-
-
 def main_train(beta):
-    args.save_path = f'exp/diff_task_part/{beta:.2f}'
+    args.save_path = f'exp/diff_task_part/models/{beta:.2f}'
     os.makedirs(args.save_path, exist_ok=True)
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.train_gpu)
     if args.manual_seed is not None:
@@ -88,12 +46,13 @@ def main_train(beta):
         port = find_free_port()
         args.dist_url = f"tcp://127.0.0.1:{port}"
         args.world_size = args.ngpus_per_node * args.world_size
-        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node, args, beta))
+        mp.spawn(train_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node, args, beta))
     else:
-        main_worker(args.train_gpu, args.ngpus_per_node, args, beta)
+        train_worker(args.train_gpu, args.ngpus_per_node, args, beta)
 
-def main_worker(gpu, ngpus_per_node, argss, beta):
-    global args, logger, writer
+
+def train_worker(gpu, ngpus_per_node, argss, beta):
+    global args, logger
     logger = get_logger()
 
     args = argss
@@ -105,40 +64,34 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
 
     criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_label)
-    if args.arch == 'psp':
-        from utils.semseg.model.pspnet import PSPNet
-        model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, criterion=criterion)
-        modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
-        modules_new = [model.ppm, model.cls, model.aux]
-        if beta != 1:
-            logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
-            replacement_mapping = ReplacementMapping(beta=beta)
-            modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
-            # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
-            with torch.no_grad():
-                model.eval()
-                dummy_input = torch.randn(1, 3, args.train_h, args.train_w)
-                model(dummy_input)
-                model.train()
 
-    elif args.arch == 'psa':
-        raise ValueError("PSANet not supported")
-    params_list = []
+    model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, criterion=criterion)
+    modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
+    modules_new = [model.ppm, model.cls, model.aux]
+    if beta != 1:
+        logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
+        replacement_mapping = ReplacementMapping(beta=beta)
+        modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
+        # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
+        with torch.no_grad():
+            model.eval()
+            dummy_input = torch.randn(1, 3, args.train_h, args.train_w)
+            model(dummy_input)
+            model.train()
 
     # Freeze the feature extractor
     for module in modules_ori:
         for param in module.parameters():
             param.requires_grad = False
 
+    params_list = []
     for module in modules_new:
         params_list.append(dict(params=module.parameters(), lr=args.base_lr * 10))
     optimizer = torch.optim.SGD(params_list, lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
     if args.sync_bn:
         model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-    if main_process():
-        logger = get_logger()
-        writer = SummaryWriter(args.save_path)
+    if main_process(args):
         logger.info(args)
         logger.info("=> creating model ...")
         logger.info("Classes: {}".format(args.classes))
@@ -151,38 +104,8 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
     else:
         model = torch.nn.DataParallel(model.cuda())
 
-    if args.weight:
-        if os.path.isfile(args.weight):
-            if main_process():
-                logger.info("=> loading weight '{}'".format(args.weight))
-            checkpoint = torch.load(args.weight, weights_only=True)
-            model.load_state_dict(checkpoint['state_dict'])
-            if main_process():
-                logger.info("=> loaded weight '{}'".format(args.weight))
-        else:
-            if main_process():
-                logger.info("=> no weight found at '{}'".format(args.weight))
-
-    if args.resume:
-        if os.path.isfile(args.resume):
-            if main_process():
-                logger.info("=> loading checkpoint '{}'".format(args.resume))
-            # checkpoint = torch.load(args.resume)
-            checkpoint = torch.load(args.resume, map_location=lambda storage, loc: storage.cuda(), weights_only=True)
-            args.start_epoch = checkpoint['epoch']
-            model.load_state_dict(checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            if main_process():
-                logger.info("=> loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
-        else:
-            if main_process():
-                logger.info("=> no checkpoint found at '{}'".format(args.resume))
-
-    value_scale = 255
     mean = [0.485, 0.456, 0.406]
-    mean = [item * value_scale for item in mean]
     std = [0.229, 0.224, 0.225]
-    std = [item * value_scale for item in std]
 
     train_transform = transform.Compose([
         transform.RandScale([args.scale_min, args.scale_max]),
@@ -203,14 +126,9 @@ def main_worker(gpu, ngpus_per_node, argss, beta):
         epoch_log = epoch + 1
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        loss_train, mIoU_train, mAcc_train, allAcc_train = train(train_loader, model, optimizer, epoch)
-        if main_process():
-            writer.add_scalar('loss_train', loss_train, epoch_log)
-            writer.add_scalar('mIoU_train', mIoU_train, epoch_log)
-            writer.add_scalar('mAcc_train', mAcc_train, epoch_log)
-            writer.add_scalar('allAcc_train', allAcc_train, epoch_log)
+        train(train_loader, model, optimizer, epoch)
 
-        if (epoch_log % args.save_freq == 0) and main_process():
+        if (epoch_log % args.save_freq == 0) and main_process(args):
             filename = args.save_path + '/train_epoch_' + str(epoch_log) + '.pth'
             logger.info('Saving checkpoint to: ' + filename)
             torch.save({'epoch': epoch_log, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}, filename)
@@ -281,7 +199,7 @@ def train(train_loader, model, optimizer, epoch):
         t_h, t_m = divmod(t_m, 60)
         remain_time = '{:02d}:{:02d}:{:02d}'.format(int(t_h), int(t_m), int(t_s))
 
-        if (i + 1) % args.print_freq == 0 and main_process():
+        if (i + 1) % args.print_freq == 0 and main_process(args):
             logger.info('Epoch: [{}/{}][{}/{}] '
                         'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
                         'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}) '
@@ -297,18 +215,13 @@ def train(train_loader, model, optimizer, epoch):
                                                           aux_loss_meter=aux_loss_meter,
                                                           loss_meter=loss_meter,
                                                           accuracy=accuracy))
-        if main_process():
-            writer.add_scalar('loss_train_batch', main_loss_meter.val, current_iter)
-            writer.add_scalar('mIoU_train_batch', np.mean(intersection / (union + 1e-10)), current_iter)
-            writer.add_scalar('mAcc_train_batch', np.mean(intersection / (target + 1e-10)), current_iter)
-            writer.add_scalar('allAcc_train_batch', accuracy, current_iter)
 
     iou_class = intersection_meter.sum / (union_meter.sum + 1e-10)
     accuracy_class = intersection_meter.sum / (target_meter.sum + 1e-10)
     mIoU = np.mean(iou_class)
     mAcc = np.mean(accuracy_class)
     allAcc = sum(intersection_meter.sum) / (sum(target_meter.sum) + 1e-10)
-    if main_process():
+    if main_process(args):
         logger.info('Train result at epoch [{}/{}]: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.'.format(epoch+1, args.epochs, mIoU, mAcc, allAcc))
     return main_loss_meter.avg, mIoU, mAcc, allAcc
 
@@ -322,16 +235,14 @@ def main_test(beta):
     logger.info("=> creating model ...")
     logger.info("Classes: {}".format(args.classes))
 
-    value_scale = 255
     mean = [0.485, 0.456, 0.406]
-    mean = [item * value_scale for item in mean]
     std = [0.229, 0.224, 0.225]
-    std = [item * value_scale for item in std]
 
     gray_folder = os.path.join(args.save_folder, 'gray')
     color_folder = os.path.join(args.save_folder, 'color')
 
-    test_transform = transform.Compose([transform.ToTensor()])
+    test_transform = transform.Compose([transform.ToTensor(),
+                                        transform.Normalize(mean=mean, std=std)])
     test_data = dataset.SemData(split=args.split, data_root=args.data_root, data_list=args.test_list, transform=test_transform)
     index_start = args.index_start
     if args.index_step == 0:
@@ -344,22 +255,18 @@ def main_test(beta):
     names = [line.rstrip('\n') for line in open(args.names_path)]
 
     if not args.has_prediction:
-        if args.arch == 'psp':
-            from utils.semseg.model.pspnet import PSPNet
-            model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, pretrained=False)
-            modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
-            if beta != 1:
-                logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
-                replacement_mapping = ReplacementMapping(beta=beta)
-                modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
-                # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
-                with torch.no_grad():
-                    model.eval()
-                    dummy_input = torch.randn(1, 3, args.test_h, args.test_w)
-                    model(dummy_input)
+        model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, pretrained=False)
+        modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
+        if beta != 1:
+            logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
+            replacement_mapping = ReplacementMapping(beta=beta)
+            replace_module(nn.ModuleList(modules_ori), replacement_mapping)
+            # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
+            with torch.no_grad():
+                model.eval()
+                dummy_input = torch.randn(1, 3, args.test_h, args.test_w)
+                model(dummy_input)
 
-        elif args.arch == 'psa':
-            raise ValueError("PSANet not supported")
         model = torch.nn.DataParallel(model).cuda()
         cudnn.benchmark = True
         if os.path.isfile(args.model_path):

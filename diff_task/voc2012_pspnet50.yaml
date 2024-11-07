@@ -31,8 +31,6 @@ TRAIN:
   print_freq: 10
   save_freq: 1
   save_path:
-  weight:  # path to initial weight (default: none)
-  resume:  # path to latest checkpoint (default: none)
 Distributed:
   dist_url: tcp://127.0.0.1:6789
   dist_backend: 'nccl'
