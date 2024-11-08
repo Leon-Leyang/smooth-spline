@@ -136,6 +136,10 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
                 deletename = args.save_path + '/train_epoch_' + str(epoch_log - args.save_freq * 2) + '.pth'
                 os.remove(deletename)
 
+    # Destroy the process group
+    if args.distributed:
+        dist.destroy_process_group()
+
 
 def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
@@ -282,6 +286,7 @@ def main_test(beta):
         return mIoU, mAcc, allAcc
     else:
         return None, None, None
+
 
 def net_process(model, image, mean, std=None, flip=True):
     input = torch.from_numpy(image.transpose((2, 0, 1))).float()
