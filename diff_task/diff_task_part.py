@@ -1,6 +1,5 @@
 import os
 import time
-
 import cv2
 import random
 import numpy as np
@@ -12,7 +11,6 @@ import torch.nn.parallel
 import torch.utils.data
 import torch.multiprocessing as mp
 import torch.distributed as dist
-
 from utils.semseg.util import dataset, transform
 from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, \
     colorize, poly_learning_rate, find_free_port, get_logger, get_parser, main_process, check
@@ -69,7 +67,6 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
     modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
     modules_new = [model.ppm, model.cls, model.aux]
     if beta != 1:
-        logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
         replacement_mapping = ReplacementMapping(beta=beta)
         modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
         # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
@@ -78,6 +75,7 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
             dummy_input = torch.randn(1, 3, args.train_h, args.train_w)
             model(dummy_input)
             model.train()
+        logger.info(f"Replaced ReLU with BetaReLU, beta={beta: .2f}")
 
     # Freeze the feature extractor
     for module in modules_ori:
@@ -109,10 +107,10 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
 
     train_transform = transform.Compose([
         transform.RandScale([args.scale_min, args.scale_max]),
-        transform.RandRotate([args.rotate_min, args.rotate_max], padding=mean, ignore_label=args.ignore_label),
+        transform.RandRotate([args.rotate_min, args.rotate_max], padding=[x * 255 for x in mean], ignore_label=args.ignore_label),
         transform.RandomGaussianBlur(),
         transform.RandomHorizontalFlip(),
-        transform.Crop([args.train_h, args.train_w], crop_type='rand', padding=mean, ignore_label=args.ignore_label),
+        transform.Crop([args.train_h, args.train_w], crop_type='rand', padding=[x * 255 for x in mean], ignore_label=args.ignore_label),
         transform.ToTensor(),
         transform.Normalize(mean=mean, std=std)])
     train_data = dataset.SemData(split='train', data_root=args.data_root, data_list=args.train_list, transform=train_transform)
@@ -263,7 +261,6 @@ def main_test(beta):
         model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, pretrained=False)
         modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
         if beta != 1:
-            logger.info(f"Replacing ReLU with BetaReLU, beta={beta: .2f}")
             replacement_mapping = ReplacementMapping(beta=beta)
             replace_module(nn.ModuleList(modules_ori), replacement_mapping)
             # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
@@ -271,6 +268,7 @@ def main_test(beta):
                 model.eval()
                 dummy_input = torch.randn(1, 3, args.test_h, args.test_w)
                 model(dummy_input)
+            logger.info(f"Replaced ReLU with BetaReLU, beta={beta: .2f}")
 
         model = torch.nn.DataParallel(model).cuda()
         cudnn.benchmark = True
@@ -281,7 +279,7 @@ def main_test(beta):
             logger.info("=> loaded checkpoint '{}'".format(args.model_path))
         else:
             raise RuntimeError("=> no checkpoint found at '{}'".format(args.model_path))
-        test(test_loader, test_data.data_list, model, args.classes, mean, std, args.base_size, args.test_h, args.test_w, args.scales, gray_folder, color_folder, colors)
+        test(test_loader, test_data.data_list, model, args.classes, args.base_size, args.test_h, args.test_w, args.scales, gray_folder, color_folder, colors)
     if args.split != 'test':
         mIoU, mAcc, allAcc = cal_acc(test_data.data_list, gray_folder, args.classes, names)
         return mIoU, mAcc, allAcc
@@ -289,14 +287,8 @@ def main_test(beta):
         return None, None, None
 
 
-def net_process(model, image, mean, std=None, flip=True):
+def net_process(model, image, flip=True):
     input = torch.from_numpy(image.transpose((2, 0, 1))).float()
-    if std is None:
-        for t, m in zip(input, mean):
-            t.sub_(m)
-    else:
-        for t, m, s in zip(input, mean, std):
-            t.sub_(m).div_(s)
     input = input.unsqueeze(0).cuda()
     if flip:
         input = torch.cat([input, input.flip(3)], 0)
@@ -316,14 +308,14 @@ def net_process(model, image, mean, std=None, flip=True):
     return output
 
 
-def scale_process(model, image, classes, crop_h, crop_w, h, w, mean, std=None, stride_rate=2/3):
+def scale_process(model, image, classes, crop_h, crop_w, h, w, stride_rate=2/3):
     ori_h, ori_w, _ = image.shape
     pad_h = max(crop_h - ori_h, 0)
     pad_w = max(crop_w - ori_w, 0)
     pad_h_half = int(pad_h / 2)
     pad_w_half = int(pad_w / 2)
     if pad_h > 0 or pad_w > 0:
-        image = cv2.copyMakeBorder(image, pad_h_half, pad_h - pad_h_half, pad_w_half, pad_w - pad_w_half, cv2.BORDER_CONSTANT, value=mean)
+        image = cv2.copyMakeBorder(image, pad_h_half, pad_h - pad_h_half, pad_w_half, pad_w - pad_w_half, cv2.BORDER_CONSTANT, value=0)
     new_h, new_w, _ = image.shape
     stride_h = int(np.ceil(crop_h*stride_rate))
     stride_w = int(np.ceil(crop_w*stride_rate))
@@ -341,14 +333,14 @@ def scale_process(model, image, classes, crop_h, crop_w, h, w, mean, std=None, s
             s_w = e_w - crop_w
             image_crop = image[s_h:e_h, s_w:e_w].copy()
             count_crop[s_h:e_h, s_w:e_w] += 1
-            prediction_crop[s_h:e_h, s_w:e_w, :] += net_process(model, image_crop, mean, std)
+            prediction_crop[s_h:e_h, s_w:e_w, :] += net_process(model, image_crop)
     prediction_crop /= np.expand_dims(count_crop, 2)
     prediction_crop = prediction_crop[pad_h_half:pad_h_half+ori_h, pad_w_half:pad_w_half+ori_w]
     prediction = cv2.resize(prediction_crop, (w, h), interpolation=cv2.INTER_LINEAR)
     return prediction
 
 
-def test(test_loader, data_list, model, classes, mean, std, base_size, crop_h, crop_w, scales, gray_folder, color_folder, colors):
+def test(test_loader, data_list, model, classes, base_size, crop_h, crop_w, scales, gray_folder, color_folder, colors):
     logger.info('>>>>>>>>>>>>>>>> Start Evaluation >>>>>>>>>>>>>>>>')
     data_time = AverageMeter()
     batch_time = AverageMeter()
@@ -369,7 +361,7 @@ def test(test_loader, data_list, model, classes, mean, std, base_size, crop_h, c
             else:
                 new_h = round(long_size/float(w)*h)
             image_scale = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-            prediction += scale_process(model, image_scale, classes, crop_h, crop_w, h, w, mean, std)
+            prediction += scale_process(model, image_scale, classes, crop_h, crop_w, h, w)
         prediction /= len(scales)
         prediction = np.argmax(prediction, axis=2)
         batch_time.update(time.time() - end)
@@ -427,22 +419,15 @@ if __name__ == '__main__':
     check(args)
     logger = get_logger()
 
+    beta = args.beta
     logger.info('*' * 50)
-    logger.info('Testing with ReLU')
+    if beta == 1:
+        logger.info('Testing with ReLU')
+    else:
+        logger.info(f'Testing with beta={beta:.2f}')
     logger.info('*' * 50)
-    main_train(1)
-    mIoU, _, _ = main_test(1)
-    best_mIoU = mIoU
-    best_beta = 1
+    main_train(beta)
+    mIoU, _, _ = main_test(beta)
 
-    for beta in np.arange(0.95, 1 - 1e-6, 0.01):
-        logger.info('*' * 50)
-        logger.info(f"Testing with beta={beta:.2f}")
-        logger.info('*' * 50)
-        main_train(beta)
-        mIoU, _, _ = main_test(beta)
-        if mIoU > best_mIoU:
-            best_mIoU = mIoU
-            best_beta = beta
-
-    logger.info(f'Best mIoU: {best_mIoU:.4f} with beta={best_beta:.2f}, compared to ReLU mIoU: {mIoU:.4f}')
+    with open('exp/diff_task_part/results.txt', 'a') as f:
+        f.write(f'{beta}, {mIoU}\n')
