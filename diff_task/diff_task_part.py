@@ -232,6 +232,7 @@ def train(train_loader, model, optimizer, epoch):
 
 def main_test(beta):
     args.save_folder = f'exp/diff_task_part/results/{beta:.2f}'
+    args.save_path = f'exp/diff_task_part/models/{beta:.2f}'
     os.makedirs(args.save_folder, exist_ok=True)
     args.model_path = args.save_path + f'/train_epoch_{args.epochs}.pth'
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.test_gpu)
