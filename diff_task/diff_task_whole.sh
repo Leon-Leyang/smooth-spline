@@ -4,9 +4,9 @@
 #SBATCH -p gpu --gres=gpu:2
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=12
-#SBATCH -J diff_task_part
-#SBATCH -o diff_task_part.log
-#SBATCH -e diff_task_part.log
+#SBATCH -J diff_task_whole
+#SBATCH -o diff_task_whole.log
+#SBATCH -e diff_task_whole.log
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=leyang_hu@brown.edu
 
@@ -24,5 +24,5 @@ config=diff_task/voc2012_pspnet50.yaml
 
 for beta in $(seq 0.95 0.01 1.00)
 do
-    python -u diff_task/diff_task.py --config=${config} --beta ${beta}
+    python -u diff_task/diff_task.py --config=${config} --beta ${beta} --train_whole
 done

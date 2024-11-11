@@ -188,6 +188,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description='PyTorch Semantic Segmentation')
     parser.add_argument('--config', type=str, default='config/ade20k/ade20k_pspnet50.yaml', help='config file')
     parser.add_argument('--beta', type=float, default=1.0, help='Beta value for BetaReLU')
+    parser.add_argument('--train_whole', action='store_true', help='whether to train the whole network')
     parser.add_argument('opts', help='see config/ade20k/ade20k_pspnet50.yaml for all options', default=None, nargs=argparse.REMAINDER)
     args = parser.parse_args()
     assert args.config is not None

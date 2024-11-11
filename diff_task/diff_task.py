@@ -21,7 +21,10 @@ cv2.ocl.setUseOpenCL(False)
 
 
 def main_train(beta):
-    args.save_path = f'exp/diff_task_part/models/{beta:.2f}'
+    if args.train_whole:
+        args.save_path = f'exp/diff_task_whole/models/{beta:.2f}'
+    else:
+        args.save_path = f'exp/diff_task_part/models/{beta:.2f}'
     os.makedirs(args.save_path, exist_ok=True)
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.train_gpu)
     if args.manual_seed is not None:
@@ -77,12 +80,15 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
             model.train()
         logger.info(f"Replaced ReLU with BetaReLU, beta={beta: .2f}")
 
-    # Freeze the feature extractor
-    for module in modules_ori:
-        for param in module.parameters():
-            param.requires_grad = False
-
     params_list = []
+    if args.train_whole:
+        for module in modules_ori:
+            params_list.append(dict(params=module.parameters(), lr=args.base_lr))
+        args.index_split = 5
+    else:
+        for module in modules_ori:  # Freeze the feature extractor
+            for param in module.parameters():
+                param.requires_grad = False
     for module in modules_new:
         params_list.append(dict(params=module.parameters(), lr=args.base_lr * 10))
     optimizer = torch.optim.SGD(params_list, lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -193,8 +199,14 @@ def train(train_loader, model, optimizer, epoch):
 
         current_iter = epoch * len(train_loader) + i + 1
         current_lr = poly_learning_rate(args.base_lr, current_iter, max_iter, power=args.power)
-        for index in range(0, len(optimizer.param_groups)):
-            optimizer.param_groups[index]['lr'] = current_lr * 10
+        if args.train_whole:
+            for index in range(0, args.index_split):
+                optimizer.param_groups[index]['lr'] = current_lr
+            for index in range(args.index_split, len(optimizer.param_groups)):
+                optimizer.param_groups[index]['lr'] = current_lr * 10
+        else:
+            for index in range(0, len(optimizer.param_groups)):
+                optimizer.param_groups[index]['lr'] = current_lr * 10
         remain_iter = max_iter - current_iter
         remain_time = remain_iter * batch_time.avg
         t_m, t_s = divmod(remain_time, 60)
@@ -229,8 +241,12 @@ def train(train_loader, model, optimizer, epoch):
 
 
 def main_test(beta):
-    args.save_folder = f'exp/diff_task_part/results/{beta:.2f}'
-    args.save_path = f'exp/diff_task_part/models/{beta:.2f}'
+    if args.train_whole:
+        args.save_folder = f'exp/diff_task_whole/results/{beta:.2f}'
+        args.save_path = f'exp/diff_task_whole/models/{beta:.2f}'
+    else:
+        args.save_folder = f'exp/diff_task_part/results/{beta:.2f}'
+        args.save_path = f'exp/diff_task_part/models/{beta:.2f}'
     os.makedirs(args.save_folder, exist_ok=True)
     args.model_path = args.save_path + f'/train_epoch_{args.epochs}.pth'
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.test_gpu)
@@ -429,5 +445,9 @@ if __name__ == '__main__':
     main_train(beta)
     mIoU, _, _ = main_test(beta)
 
-    with open('exp/diff_task_part/results.txt', 'a') as f:
-        f.write(f'{beta}, {mIoU}\n')
+    if args.train_whole:
+        with open('exp/diff_task_whole/results.txt', 'a') as f:
+            f.write(f'{beta}, {mIoU}\n')
+    else:
+        with open('exp/diff_task_part/results.txt', 'a') as f:
+            f.write(f'{beta}, {mIoU}\n')
