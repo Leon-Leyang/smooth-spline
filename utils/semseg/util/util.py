@@ -197,6 +197,7 @@ def get_parser():
         cfg = config.merge_cfg_from_list(cfg, args.opts)
 
     cfg.beta = args.beta
+    cfg.train_whole = args.train_whole
     return cfg
 
 
