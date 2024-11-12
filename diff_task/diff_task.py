@@ -22,9 +22,9 @@ cv2.ocl.setUseOpenCL(False)
 
 def main_train(beta):
     if args.train_whole:
-        args.save_path = f'exp/diff_task_whole/models/{beta:.2f}'
+        args.save_path = f'exp/diff_task_whole/seed{args.manual_seed}/models/{beta:.2f}'
     else:
-        args.save_path = f'exp/diff_task_part/models/{beta:.2f}'
+        args.save_path = f'exp/diff_task_part/seed{args.manual_seed}/models/{beta:.2f}/seed{args.manual_seed}'
     os.makedirs(args.save_path, exist_ok=True)
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.train_gpu)
     if args.manual_seed is not None:
@@ -242,11 +242,11 @@ def train(train_loader, model, optimizer, epoch):
 
 def main_test(beta):
     if args.train_whole:
-        args.save_folder = f'exp/diff_task_whole/results/{beta:.2f}'
-        args.save_path = f'exp/diff_task_whole/models/{beta:.2f}'
+        args.save_folder = f'exp/diff_task_whole/seed{args.manual_seed}/results/{beta:.2f}'
+        args.save_path = f'exp/diff_task_whole/seed{args.manual_seed}/models/{beta:.2f}'
     else:
-        args.save_folder = f'exp/diff_task_part/results/{beta:.2f}'
-        args.save_path = f'exp/diff_task_part/models/{beta:.2f}'
+        args.save_folder = f'exp/diff_task_part/seed{args.manual_seed}/results/{beta:.2f}'
+        args.save_path = f'exp/diff_task_part/seed{args.manual_seed}/models/{beta:.2f}'
     os.makedirs(args.save_folder, exist_ok=True)
     args.model_path = args.save_path + f'/train_epoch_{args.epochs}.pth'
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.test_gpu)
@@ -446,8 +446,8 @@ if __name__ == '__main__':
     mIoU, _, _ = main_test(beta)
 
     if args.train_whole:
-        with open('exp/diff_task_whole/results.txt', 'a') as f:
+        with open(f'exp/diff_task_whole/seed{args.manual_seed}/results.txt', 'a') as f:
             f.write(f'{beta}, {mIoU}\n')
     else:
-        with open('exp/diff_task_part/results.txt', 'a') as f:
+        with open(f'exp/diff_task_part/seed{args.manual_seed}/results.txt', 'a') as f:
             f.write(f'{beta}, {mIoU}\n')
