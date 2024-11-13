@@ -24,7 +24,7 @@ def main_train(beta):
     if args.train_whole:
         args.save_path = f'exp/diff_task_whole/seed{args.manual_seed}/models/{beta:.2f}'
     else:
-        args.save_path = f'exp/diff_task_part/seed{args.manual_seed}/models/{beta:.2f}/seed{args.manual_seed}'
+        args.save_path = f'exp/diff_task_part/seed{args.manual_seed}/models/{beta:.2f}'
     os.makedirs(args.save_path, exist_ok=True)
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.train_gpu)
     if args.manual_seed is not None:
@@ -108,6 +108,33 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
     else:
         model = torch.nn.DataParallel(model.cuda())
 
+    # Check for existing checkpoints
+    latest_checkpoint = None
+    start_epoch = 0
+    checkpoint_files = [f for f in os.listdir(args.save_path) if f.startswith('train_epoch_') and f.endswith('.pth')]
+    if checkpoint_files:
+        epochs = [int(f.replace('train_epoch_', '').replace('.pth', '')) for f in checkpoint_files]
+        max_epoch = max(epochs)
+        latest_checkpoint = os.path.join(args.save_path, f'train_epoch_{max_epoch}.pth')
+        start_epoch = max_epoch
+        logger.info(f"Found checkpoint '{latest_checkpoint}'. Resuming training from epoch {start_epoch}.")
+
+    # Load checkpoint if available
+    if latest_checkpoint and os.path.isfile(latest_checkpoint):
+        if main_process(args):
+            logger.info(f"=> loading checkpoint '{latest_checkpoint}'")
+        checkpoint = torch.load(latest_checkpoint, map_location=lambda storage, loc: storage.cuda(gpu))
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        if 'epoch' in checkpoint:
+            start_epoch = checkpoint['epoch']
+        if main_process(args):
+            logger.info(f"=> loaded checkpoint '{latest_checkpoint}' (epoch {start_epoch})")
+    else:
+        if main_process(args):
+            logger.info("No checkpoint found. Starting training from scratch.")
+        start_epoch = 0
+
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
 
@@ -126,6 +153,7 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
         train_sampler = None
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=(train_sampler is None), num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True)
 
+    args.start_epoch = start_epoch
     for epoch in range(args.start_epoch, args.epochs):
         epoch_log = epoch + 1
         if args.distributed:
@@ -436,6 +464,16 @@ if __name__ == '__main__':
     logger = get_logger()
 
     beta = args.beta
+    results_file = f'exp/diff_task_whole/seed{args.manual_seed}/results.txt' if args.train_whole else f'exp/diff_task_part/seed{args.manual_seed}/results.txt'
+
+    # Check if the results file exists and if beta is already recorded
+    if os.path.exists(results_file):
+        with open(results_file, 'r') as f:
+            recorded_betas = [float(line.split(',')[0]) for line in f.readlines()]
+        if beta in recorded_betas:
+            logger.info(f'Beta {beta} already processed. Skipping training and testing.')
+            exit(0)
+
     logger.info('*' * 50)
     if beta == 1:
         logger.info('Testing with ReLU')
@@ -445,9 +483,6 @@ if __name__ == '__main__':
     main_train(beta)
     mIoU, _, _ = main_test(beta)
 
-    if args.train_whole:
-        with open(f'exp/diff_task_whole/seed{args.manual_seed}/results.txt', 'a') as f:
-            f.write(f'{beta}, {mIoU}\n')
-    else:
-        with open(f'exp/diff_task_part/seed{args.manual_seed}/results.txt', 'a') as f:
-            f.write(f'{beta}, {mIoU}\n')
+    # Write results to the file
+    with open(results_file, 'a') as f:
+        f.write(f'{beta}, {mIoU}\n')
