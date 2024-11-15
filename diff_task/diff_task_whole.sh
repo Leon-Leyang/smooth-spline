@@ -22,7 +22,7 @@ export PYTHONPATH=./
 
 config=diff_task/voc2012_pspnet50.yaml
 
-for beta in $(seq 0.95 0.01 1.00)
+for seed in 42 123 456
 do
-    python -u diff_task/diff_task.py --config=${config} --beta ${beta} --train_whole
+    python -u diff_task/diff_task.py --config=${config} manual_seed ${seed} --train_whole
 done

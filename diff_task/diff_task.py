@@ -22,6 +22,7 @@ cv2.ocl.setUseOpenCL(False)
 
 def main_train(beta):
     if args.train_whole:
+        assert beta == 1, 'BetaReLU is not supported for training the whole network'
         args.save_path = f'exp/diff_task_whole/seed{args.manual_seed}/models/{beta:.2f}'
     else:
         args.save_path = f'exp/diff_task_part/seed{args.manual_seed}/models/{beta:.2f}'
@@ -271,7 +272,7 @@ def train(train_loader, model, optimizer, epoch):
 def main_test(beta):
     if args.train_whole:
         args.save_folder = f'exp/diff_task_whole/seed{args.manual_seed}/results/{beta:.2f}'
-        args.save_path = f'exp/diff_task_whole/seed{args.manual_seed}/models/{beta:.2f}'
+        args.save_path = f'exp/diff_task_whole/seed{args.manual_seed}/models/1.00'
     else:
         args.save_folder = f'exp/diff_task_part/seed{args.manual_seed}/results/{beta:.2f}'
         args.save_path = f'exp/diff_task_part/seed{args.manual_seed}/models/{beta:.2f}'
@@ -474,15 +475,32 @@ if __name__ == '__main__':
             logger.info(f'Beta {beta} already processed. Skipping training and testing.')
             exit(0)
 
-    logger.info('*' * 50)
-    if beta == 1:
-        logger.info('Testing with ReLU')
-    else:
-        logger.info(f'Testing with beta={beta:.2f}')
-    logger.info('*' * 50)
-    main_train(beta)
-    mIoU, _, _ = main_test(beta)
+    if args.train_whole:
+        logger.info('*' * 50)
+        logger.info('Training the whole network')
+        logger.info('*' * 50)
+        main_train(1)
+        for beta in np.arange(0.95, 1 + 1e-6, 0.01):
+            logger.info('*' * 50)
+            if beta == 1:
+                logger.info('Testing with ReLU')
+            else:
+                logger.info(f'Testing with beta={beta:.2f}')
+            logger.info('*' * 50)
+            mIoU, _, _ = main_test(beta)
+            with open(results_file, 'a') as f:
+                f.write(f'{beta}, {mIoU}\n')
 
-    # Write results to the file
-    with open(results_file, 'a') as f:
-        f.write(f'{beta}, {mIoU}\n')
+    else:
+        logger.info('*' * 50)
+        if beta == 1:
+            logger.info('Testing with ReLU')
+        else:
+            logger.info(f'Testing with beta={beta:.2f}')
+        logger.info('*' * 50)
+        main_train(beta)
+        mIoU, _, _ = main_test(beta)
+
+        # Write results to the file
+        with open(results_file, 'a') as f:
+            f.write(f'{beta}, {mIoU}\n')
