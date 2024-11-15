@@ -24,5 +24,5 @@ config=diff_task/voc2012_pspnet50.yaml
 
 for seed in 42 123 456
 do
-    python -u diff_task/diff_task.py --config=${config} manual_seed ${seed} --train_whole
+    python -u diff_task/diff_task.py --config=${config} --train_whole manual_seed ${seed}
 done
