@@ -17,10 +17,6 @@ def plot_classification_case(
     N = 1024    # Number of training points
     r = 1
 
-    # Fix the random seed for reproducibility
-    torch.manual_seed(42)
-    np.random.seed(42)
-
     if not os.path.exists("./data/toy_data.pt"):
         # data generation
         print("Generating data...")

@@ -78,7 +78,7 @@ class LazyBetaReLU(nn.modules.lazy.LazyModuleMixin, BetaReLU):
 
 class MLP(nn.Module):
     """
-    A simple neural network for binary classification.
+    A simple MLP for binary classification.
     """
     def __init__(self, in_features: int, depth: int, width: int, nonlinearity: nn.Module):
         super().__init__()
