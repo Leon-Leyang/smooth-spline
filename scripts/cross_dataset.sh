@@ -11,7 +11,15 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=leyang_hu@brown.edu
 
+# Load the necessary module
+module load miniconda3/23.11.0s
+
+eval "$(conda shell.bash hook)"
+
+# Activate the conda environment
 conda activate spline
+
+export PYTHONPATH=./
 
 for seed in 42 123 456
 do
