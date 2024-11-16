@@ -1,12 +1,13 @@
 #!/bin/bash
 
 #SBATCH --time=24:00:00
+#SBATCH -N 1
 #SBATCH -p gpu --gres=gpu:2
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=12
-#SBATCH -J diff_task_part
-#SBATCH -o diff_task_part.log
-#SBATCH -e diff_task_part.log
+#SBATCH -J diff_task_whole
+#SBATCH -o diff_task_whole.log
+#SBATCH -e diff_task_whole.log
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=leyang_hu@brown.edu
 
@@ -24,8 +25,5 @@ config=diff_task/voc2012_pspnet50.yaml
 
 for seed in 42 123 456
 do
-    for beta in $(seq 0.95 0.01 1.00)
-    do
-        python -u diff_task/diff_task.py --config=${config} --beta ${beta} manual_seed ${seed}
-    done
+    python -u diff_task/diff_task.py --config=${config} --train_whole manual_seed ${seed}
 done

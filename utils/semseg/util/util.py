@@ -1,4 +1,3 @@
-import argparse
 import logging
 import os
 import numpy as np
@@ -7,8 +6,6 @@ from PIL import Image
 import torch
 from torch import nn
 import torch.nn.init as initer
-
-from utils.semseg.util import config
 
 
 class AverageMeter(object):
@@ -182,23 +179,6 @@ def get_logger():
     handler.setFormatter(logging.Formatter(fmt))
     logger.addHandler(handler)
     return logger
-
-
-def get_parser():
-    parser = argparse.ArgumentParser(description='PyTorch Semantic Segmentation')
-    parser.add_argument('--config', type=str, default='config/ade20k/ade20k_pspnet50.yaml', help='config file')
-    parser.add_argument('--beta', type=float, default=1.0, help='Beta value for BetaReLU')
-    parser.add_argument('--train_whole', action='store_true', help='whether to train the whole network')
-    parser.add_argument('opts', help='see config/ade20k/ade20k_pspnet50.yaml for all options', default=None, nargs=argparse.REMAINDER)
-    args = parser.parse_args()
-    assert args.config is not None
-    cfg = config.load_cfg_from_cfg_file(args.config)
-    if args.opts is not None:
-        cfg = config.merge_cfg_from_list(cfg, args.opts)
-
-    cfg.beta = args.beta
-    cfg.train_whole = args.train_whole
-    return cfg
 
 
 def main_process(args):

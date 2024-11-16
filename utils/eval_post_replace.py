@@ -74,6 +74,7 @@ def replace_and_test_acc(model, beta_vals, mode, dataset, calling_file):
     os.makedirs(output_folder, exist_ok=True)
     plt.savefig(os.path.join(output_folder, f"replace_and_test_acc_{model_name}_{dataset}_{mode}.png"))
     plt.show()
+    return best_beta, best_acc
 
 
 def replace_and_test_robustness(model, threat, beta_vals, mode, dataset, calling_file, batch_size=2000, n_examples=1000,

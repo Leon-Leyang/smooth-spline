@@ -72,7 +72,8 @@ def lp_then_replace_test_acc(mode, beta_vals, pretrained_ds, transfer_ds):
     """
     model = get_pretrained_model(pretrained_ds, mode)
     model = transfer_linear_probe(model, mode, pretrained_ds, transfer_ds)
-    replace_and_test_acc(model, beta_vals, mode, f'{pretrained_ds}_to_{transfer_ds}', __file__)
+    best_beta, best_acc = replace_and_test_acc(model, beta_vals, mode, f'{pretrained_ds}_to_{transfer_ds}', __file__)
+    return best_beta, best_acc
 
 
 def replace_and_test_linear_probe_robustness_on(mode, threat, beta_vals, pretrained_ds, transfer_ds):
@@ -156,36 +157,32 @@ def replace_then_lp_test_acc(mode, beta_vals, pretrained_ds, transfer_ds):
 
 
 def main(args):
-    # Transfer learning on CIFAR-10 using a linear probe and test the model with different beta values of BetaReLU
-    threat_models = ['Linf', 'L2']
+    result_file_dir = f'exp/cross_dataset/seed{args.manual_seed}'
+
     mode_2_beta_vals_acc = {
         'normal': np.arange(0.95, 1 - 1e-6, 0.001),
         'suboptimal': np.arange(0.95, 1 - 1e-6, 0.001),
         'overfit': np.arange(0.95, 1 - 1e-6, 0.001)
     }
-    mode_2_beta_vals_robustness = {
-        'normal': np.arange(0.95, 1 - 1e-6, 0.01),
-        'suboptimal': np.arange(0.95, 1 - 1e-6, 0.01),
-        'overfit': np.arange(0.95, 1 - 1e-6, 0.01)
-    }
 
-    pretrained_datasets = ['cifar100', 'imagenet', 'cifar10', 'mnist']
-    transfer_datasets = ['cifar100', 'cifar10', 'mnist']
+    pretrained_datasets = ['mnist', 'cifar10', 'cifar100', 'imagenet']
+    transfer_datasets = ['mnist', 'cifar10', 'cifar100']
     for pretrained_ds in pretrained_datasets:
         for transfer_ds in transfer_datasets:
             if pretrained_ds == transfer_ds:
                 continue
             mode = 'normal'
-            fix_seed(42)
+            fix_seed(args.seed)
             if args.order == 'lp_replace':
-                lp_then_replace_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+                best_beta, best_acc = lp_then_replace_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+                with open(f'{result_file_dir}/lp_replace_results.txt', 'a') as f:
+                    f.write(f'{pretrained_ds} to {transfer_ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
             elif args.order == 'replace_lp':
-                replace_then_lp_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+                best_beta, best_acc = replace_then_lp_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
+                with open(f'{result_file_dir}/replace_lp_results.txt', 'a') as f:
+                    f.write(f'{pretrained_ds} to {transfer_ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
             else:
                 raise ValueError(f'Invalid order: {args.order}')
-
-            # for threat in threat_models:
-            #     replace_and_test_linear_probe_robustness_on(mode, threat, mode_2_beta_vals_robustness[mode], pretrained_ds, transfer_ds)
 
 
 def get_args():
@@ -197,6 +194,7 @@ def get_args():
         default='lp_replace',
         help='Order of operations: lp_replace or replace_lp'
     )
+    parser.add_argument('--seed', type=int, default=42, help='Random seed')
     return parser.parse_args()
 
 

@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 import cv2
@@ -11,9 +12,9 @@ import torch.nn.parallel
 import torch.utils.data
 import torch.multiprocessing as mp
 import torch.distributed as dist
-from utils.semseg.util import dataset, transform
+from utils.semseg.util import dataset, transform, config
 from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, \
-    colorize, poly_learning_rate, find_free_port, get_logger, get_parser, main_process, check
+    colorize, poly_learning_rate, find_free_port, get_logger, main_process, check
 from utils.semseg.model.pspnet import PSPNet
 from utils.utils import ReplacementMapping, replace_module
 
@@ -457,6 +458,23 @@ def cal_acc(data_list, pred_folder, classes, names):
         logger.info('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, iou_class[i], accuracy_class[i], names[i]))
 
     return mIoU, mAcc, allAcc
+
+
+def get_parser():
+    parser = argparse.ArgumentParser(description='PyTorch Semantic Segmentation')
+    parser.add_argument('--config', type=str, default='config/ade20k/ade20k_pspnet50.yaml', help='config file')
+    parser.add_argument('--beta', type=float, default=1.0, help='Beta value for BetaReLU')
+    parser.add_argument('--train_whole', action='store_true', help='whether to train the whole network')
+    parser.add_argument('opts', help='see config/ade20k/ade20k_pspnet50.yaml for all options', default=None, nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+    assert args.config is not None
+    cfg = config.load_cfg_from_cfg_file(args.config)
+    if args.opts is not None:
+        cfg = config.merge_cfg_from_list(cfg, args.opts)
+
+    cfg.beta = args.beta
+    cfg.train_whole = args.train_whole
+    return cfg
 
 
 if __name__ == '__main__':
