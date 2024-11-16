@@ -1,10 +1,13 @@
 import os
+import copy
 import torch
 import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed
+from matplotlib.colors import ListedColormap
 
 
 def generate_spiral_data(n_points, noise=0.5, n_turns=3):
@@ -39,14 +42,13 @@ def generate_spiral_data(n_points, noise=0.5, n_turns=3):
 
 # Adapted function for plotting classification
 def plot_classification_case(
-    width: int, depth: int, training_steps=2000, beta_vals=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    width: int, depth: int, training_steps=2000, beta_vals=[0.9], train_ratio=0.7, noise=0.4, test_noise=0.3, n_turns=3
 ) -> None:
     N = 1024    # Number of training points
-    train_ratio = 0.95
 
     # data generation
     print("Generating data...")
-    X, y = generate_spiral_data(n_points=N, noise=0.6, n_turns=3)
+    X, y = generate_spiral_data(n_points=N, noise=noise, n_turns=n_turns)
     points = torch.from_numpy(X).float()
     target = torch.from_numpy(y).long()
 
@@ -62,6 +64,15 @@ def plot_classification_case(
     train_target = target[train_indices]
     test_points = points[test_indices]
     test_target = target[test_indices]
+
+    # Add noise specifically to one class in the test data
+    class_indices = test_target == 0
+    r = torch.norm(test_points[class_indices], dim=1)  # Calculate radius for each point
+
+    # Apply noise: n times noise for points within n turns
+    turn_multipliers = (r / np.pi).clamp(1.0, n_turns)  # Scale noise by the number of turns
+    test_points[class_indices] += torch.randn_like(test_points[class_indices]) * (
+                test_noise * turn_multipliers[:, None])
 
     # model and optimizer definition
     relu_model = MLP(2, depth, width, nn.ReLU()).cuda()
@@ -93,6 +104,8 @@ def plot_classification_case(
         grid = torch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().cuda()
         pred = relu_model(grid).cpu().numpy()
 
+    fig, ax = plt.subplots()
+
     # plot data
     plt.scatter(
         test_points.cpu().numpy()[:, 0],
@@ -110,6 +123,11 @@ def plot_classification_case(
         linewidth=0.8,
     )
 
+    # Create a colormap
+    cmap = cm.get_cmap("viridis", len(beta_vals))
+    num_boundaries = len(beta_vals)
+    color_grad = [cmap(i / num_boundaries) for i in range(num_boundaries)]
+
     # plot our decision boundary
     plt.contour(
         xx,
@@ -117,12 +135,37 @@ def plot_classification_case(
         pred[:, 0].reshape((mesh_dim, mesh_dim)),
         levels=[0],
         colors=["red"],
-        linewidths=[4],
+        linewidths=[2],
     )
+
+    for i, beta in enumerate(beta_vals):
+        print(f"Using BetaReLU with beta={beta: .1f}")
+        replacement_mapping = ReplacementMapping(beta=beta)
+        orig_model = copy.deepcopy(relu_model)
+        new_model = replace_module(orig_model, replacement_mapping)
+        with torch.no_grad():
+            pred = new_model(grid).cpu().numpy()
+        plt.contour(
+            xx,
+            yy,
+            pred[:, 0].reshape((mesh_dim, mesh_dim)),
+            levels=[0],
+            colors=[color_grad[i]],
+            linewidths=[2],
+        )
 
     # small beautifying process and figure saving
     plt.xticks([])
     plt.yticks([])
+
+    # Adding a custom color bar
+    custom_cmap = ListedColormap(color_grad)
+    norm = plt.Normalize(vmin=beta_vals[0], vmax=beta_vals[-1])
+    sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
+    sm.set_array([])  # Only needed for older versions of matplotlib
+    cbar = plt.colorbar(sm, ax=ax)
+    cbar.set_ticks(beta_vals)
+    cbar.set_label("Beta values")
 
     # Adjust layout and save the combined figure
     plt.tight_layout()
@@ -135,9 +178,13 @@ def plot_classification_case(
 if __name__ == "__main__":
     fix_seed(42)
 
-    beta_vals = np.arange(0, 1, 0.1)
-    width = 25
+    beta_vals = [0.7]
+    width = 32
     depth = 2
     training_steps = 2000
+    train_ratio = 0.9
+    noise = 0.4
+    test_noise = 0.6
+    n_turns = 3
 
-    plot_classification_case(width, depth, training_steps, beta_vals)
+    plot_classification_case(width, depth, training_steps, beta_vals, train_ratio, noise, test_noise, n_turns)
