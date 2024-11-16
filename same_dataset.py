@@ -1,3 +1,4 @@
+import os
 import argparse
 import torch
 import numpy as np
@@ -20,6 +21,7 @@ def replace_and_test_robustness_on(mode, threat, beta_vals, dataset):
 
 def main(args):
     result_file_dir = f'exp/cross_dataset/seed{args.seed}'
+    os.makedirs(result_file_dir, exist_ok=True)
 
     mode_2_beta_vals_acc = {
         'normal': np.arange(0.95, 1 - 1e-6, 0.001),

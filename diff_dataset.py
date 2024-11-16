@@ -154,10 +154,12 @@ def replace_then_lp_test_acc(mode, beta_vals, pretrained_ds, transfer_ds):
     os.makedirs(output_folder, exist_ok=True)
     plt.savefig(os.path.join(output_folder, f"replace_and_lp_test_acc_{model_name}_{dataset}_{mode}.png"))
     plt.show()
+    return best_beta, best_acc
 
 
 def main(args):
     result_file_dir = f'exp/cross_dataset/seed{args.seed}'
+    os.makedirs(result_file_dir, exist_ok=True)
 
     mode_2_beta_vals_acc = {
         'normal': np.arange(0.95, 1 - 1e-6, 0.001),
