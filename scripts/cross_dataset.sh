@@ -2,9 +2,9 @@
 
 #SBATCH --time=24:00:00
 #SBATCH -N 1
-#SBATCH -p gpu --gres=gpu:2
+#SBATCH -p gpu --gres=gpu:1
 #SBATCH --mem=16G
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=6
 #SBATCH -J cross_dataset
 #SBATCH -o cross_dataset.log
 #SBATCH -e cross_dataset.log
