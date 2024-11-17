@@ -3,7 +3,7 @@ import argparse
 import torch
 import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
-from utils.utils import get_pretrained_model, fix_seed
+from utils.utils import get_pretrained_model, fix_seed, result_exists
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -19,7 +19,15 @@ def replace_and_test_robustness_on(mode, threat, beta_vals, dataset):
     replace_and_test_robustness(model, threat, beta_vals, mode, dataset, __file__)
 
 
-def main(args):
+def get_args():
+    parser = argparse.ArgumentParser(description='Same dataset post-replace test')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    args = get_args()
+
     result_file_dir = f'exp/cross_dataset/seed{args.seed}'
     os.makedirs(result_file_dir, exist_ok=True)
 
@@ -31,21 +39,18 @@ def main(args):
 
     datasets = ['cifar100', 'imagenet', 'cifar10', 'mnist']
     mode = 'normal'
+
+    lp_replace_file = f'{result_file_dir}/lp_replace_results.txt'
+    replace_lp_file = f'{result_file_dir}/replace_lp_results.txt'
+
     for ds in datasets:
         fix_seed(args.seed)
-        best_beta, best_acc = replace_and_test_acc_on(mode, ds, mode_2_beta_vals_acc[mode])
-        with open(f'{result_file_dir}/lp_replace_results.txt', 'a') as f:
-            f.write(f'{ds} to {ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
-        with open(f'{result_file_dir}/replace_lp_results.txt', 'a') as f:
-            f.write(f'{ds} to {ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
-
-
-def get_args():
-    parser = argparse.ArgumentParser(description='Same dataset post-replace test')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    return parser.parse_args()
-
-
-if __name__ == '__main__':
-    args = get_args()
-    main(args)
+        if result_exists(lp_replace_file, ds, ds) and result_exists(replace_lp_file, ds, ds):
+            print(f'Skipping {ds} to {ds} as result already exists.')
+            continue
+        else:
+            best_beta, best_acc = replace_and_test_acc_on(mode, ds, mode_2_beta_vals_acc[mode])
+            with open(f'{result_file_dir}/lp_replace_results.txt', 'a') as f:
+                f.write(f'{ds} to {ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
+            with open(f'{result_file_dir}/replace_lp_results.txt', 'a') as f:
+                f.write(f'{ds} to {ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')

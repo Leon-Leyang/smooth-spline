@@ -225,3 +225,12 @@ def fix_seed(seed=42):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
 
+
+def result_exists(result_file, pretrained_ds, transfer_ds):
+    if not os.path.exists(result_file):
+        return False
+    with open(result_file, 'r') as f:
+        for line in f:
+            if f'{pretrained_ds} to {transfer_ds}' in line:
+                return True
+    return False

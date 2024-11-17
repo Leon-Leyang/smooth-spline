@@ -4,7 +4,8 @@ import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
-from utils.utils import get_pretrained_model, test_epoch, ReplacementMapping, replace_module, get_file_name, fix_seed
+from utils.utils import get_pretrained_model, test_epoch, ReplacementMapping, replace_module, get_file_name, fix_seed, \
+    result_exists
 import copy
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
@@ -157,36 +158,6 @@ def replace_then_lp_test_acc(mode, beta_vals, pretrained_ds, transfer_ds):
     return best_beta, best_acc
 
 
-def main(args):
-    result_file_dir = f'exp/cross_dataset/seed{args.seed}'
-    os.makedirs(result_file_dir, exist_ok=True)
-
-    mode_2_beta_vals_acc = {
-        'normal': np.arange(0.95, 1 - 1e-6, 0.001),
-        'suboptimal': np.arange(0.95, 1 - 1e-6, 0.001),
-        'overfit': np.arange(0.95, 1 - 1e-6, 0.001)
-    }
-
-    pretrained_datasets = ['mnist', 'cifar10', 'cifar100', 'imagenet']
-    transfer_datasets = ['mnist', 'cifar10', 'cifar100']
-    for pretrained_ds in pretrained_datasets:
-        for transfer_ds in transfer_datasets:
-            if pretrained_ds == transfer_ds:
-                continue
-            mode = 'normal'
-            fix_seed(args.seed)
-            if args.order == 'lp_replace':
-                best_beta, best_acc = lp_then_replace_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
-                with open(f'{result_file_dir}/lp_replace_results.txt', 'a') as f:
-                    f.write(f'{pretrained_ds} to {transfer_ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
-            elif args.order == 'replace_lp':
-                best_beta, best_acc = replace_then_lp_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds, transfer_ds)
-                with open(f'{result_file_dir}/replace_lp_results.txt', 'a') as f:
-                    f.write(f'{pretrained_ds} to {transfer_ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
-            else:
-                raise ValueError(f'Invalid order: {args.order}')
-
-
 def get_args():
     parser = argparse.ArgumentParser(description='Transfer learning with linear probe')
     parser.add_argument(
@@ -202,4 +173,48 @@ def get_args():
 
 if __name__ == '__main__':
     args = get_args()
-    main(args)
+
+    result_file_dir = f'exp/cross_dataset/seed{args.seed}'
+    os.makedirs(result_file_dir, exist_ok=True)
+
+    mode_2_beta_vals_acc = {
+        'normal': np.arange(0.95, 1 - 1e-6, 0.001),
+        'suboptimal': np.arange(0.95, 1 - 1e-6, 0.001),
+        'overfit': np.arange(0.95, 1 - 1e-6, 0.001)
+    }
+
+    pretrained_datasets = ['mnist', 'cifar10', 'cifar100', 'imagenet']
+    transfer_datasets = ['mnist', 'cifar10', 'cifar100']
+
+    # Result file paths
+    lp_replace_file = f'{result_file_dir}/lp_replace_results.txt'
+    replace_lp_file = f'{result_file_dir}/replace_lp_results.txt'
+
+    for pretrained_ds in pretrained_datasets:
+        for transfer_ds in transfer_datasets:
+            if pretrained_ds == transfer_ds:
+                continue
+            mode = 'normal'
+            fix_seed(args.seed)
+
+            if args.order == 'lp_replace':
+                result_file = lp_replace_file
+                if result_exists(result_file, pretrained_ds, transfer_ds):
+                    print(f'Skipping {pretrained_ds} to {transfer_ds} as result already exists.')
+                    continue
+                best_beta, best_acc = lp_then_replace_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds,
+                                                               transfer_ds)
+                with open(result_file, 'a') as f:
+                    f.write(f'{pretrained_ds} to {transfer_ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
+
+            elif args.order == 'replace_lp':
+                result_file = replace_lp_file
+                if result_exists(result_file, pretrained_ds, transfer_ds):
+                    print(f'Skipping {pretrained_ds} to {transfer_ds} as result already exists.')
+                    continue
+                best_beta, best_acc = replace_then_lp_test_acc(mode, mode_2_beta_vals_acc[mode], pretrained_ds,
+                                                               transfer_ds)
+                with open(result_file, 'a') as f:
+                    f.write(f'{pretrained_ds} to {transfer_ds}: {best_acc:.2f} with beta={best_beta:.3f}\n')
+            else:
+                raise ValueError(f'Invalid order: {args.order}')
