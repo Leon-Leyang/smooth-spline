@@ -21,11 +21,10 @@ conda activate spline
 
 export PYTHONPATH=./
 
-for seed in 42 123 456
+for seed in 42 53 64
 do
-    python -u diff_dataset.py --order lp_replace --seed ${seed}
-    python -u diff_dataset.py --order replace_lp --seed ${seed}
-    python -u same_dataset.py --seed ${seed}
+    python -u cross_dataset.py --order lp_replace --seed ${seed}
+    python -u cross_dataset.py --order replace_lp --seed ${seed}
 done
 
 

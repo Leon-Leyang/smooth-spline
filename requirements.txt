@@ -15,3 +15,4 @@ scikit-learn==1.5.2
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==2.4.1+cu118
 torchvision==0.19.1+cu118
+loguru==0.7.2

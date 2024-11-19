@@ -4,7 +4,8 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed
+from utils.utils import (MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, logger, get_logger,
+                         get_log_file_path)
 import matplotlib.cm as cm
 import copy
 from matplotlib.colors import ListedColormap
@@ -17,30 +18,20 @@ def plot_classification_case(
     N = 1024    # Number of training points
     r = 1
 
-    if not os.path.exists("./data/toy_data.pt"):
-        # data generation
-        print("Generating data...")
-        points = []
-        for theta in np.linspace(0, 2 * np.pi, N):
-            if theta < np.pi:
-                x = np.cos(theta) * r - r / 8
-                y = np.sin(theta) * r - r / 5
-            else:
-                x = np.cos(theta) * r + r / 8
-                y = np.sin(theta) * r + r / 5
-            points.append([x, y])
+    points = []
+    for theta in np.linspace(0, 2 * np.pi, N):
+        if theta < np.pi:
+            x = np.cos(theta) * r - r / 8
+            y = np.sin(theta) * r - r / 5
+        else:
+            x = np.cos(theta) * r + r / 8
+            y = np.sin(theta) * r + r / 5
+        points.append([x, y])
 
-        points = torch.from_numpy(np.stack(points)).float()
-        points += torch.randn_like(points) * 0.025
+    points = torch.from_numpy(np.stack(points)).float()
+    points += torch.randn_like(points) * 0.025
 
-        # save the data
-        os.makedirs("./data", exist_ok=True)
-        torch.save(points, f"./data/toy_data.pt")
-
-        points = points.cuda()
-    else:
-        print("Using cached data...")
-        points = torch.load("./data/toy_data.pt", weights_only=True).cuda()
+    points = points.cuda()
     target = torch.from_numpy(np.array([0] * (N // 2) + [1] * (N // 2))).long().cuda()
 
     # model and optimizer definition
@@ -101,7 +92,7 @@ def plot_classification_case(
     )
 
     for i, beta in enumerate(beta_vals):
-        print(f"Using BetaReLU with beta={beta: .1f}")
+        logger.debug(f"Using BetaReLU with beta={beta: .1f}")
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(relu_model)
         new_model = replace_module(orig_model, replacement_mapping)
@@ -131,18 +122,20 @@ def plot_classification_case(
 
     # Adjust layout and save the combined figure
     plt.tight_layout()
-    output_folder = os.path.join("./exp/toy_post_replace/seed42")
-    os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"width{width}_depth{depth}_steps{training_steps}.png"))
+    os.makedirs('./figures', exist_ok=True)
+    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}.png')
     plt.show()
 
 
 if __name__ == "__main__":
-    fix_seed(42)
-
     beta_vals = np.arange(0, 1, 0.1)
     width = 128
     depth = 2
     training_steps = 2000
+
+    f_name = get_file_name(__file__)
+    logger = get_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_seed42')
+
+    fix_seed(42)
 
     plot_classification_case(width, depth, training_steps, beta_vals)

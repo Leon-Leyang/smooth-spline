@@ -5,7 +5,8 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed
+from utils.utils import (MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, logger, get_logger,
+                         get_log_file_path)
 
 
 def generate_spiral_data(n_points, noise=0.5, n_turns=3):
@@ -48,7 +49,7 @@ def plot_classification_bond(
     N = 1024  # Number of training points
 
     # data generation
-    print("Generating data...")
+    logger.debug("Generating data...")
     X, y = generate_spiral_data(n_points=N, noise=noise, n_turns=n_turns)
     points = torch.from_numpy(X).float().cuda()
     target = torch.from_numpy(y).long().cuda()
@@ -110,7 +111,7 @@ def plot_classification_bond(
 
     # Plot for each BetaReLU
     for i, beta in enumerate(beta_vals):
-        print(f"Using BetaReLU with beta={beta: .1f}")
+        logger.debug(f"Using BetaReLU with beta={beta: .1f}")
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(relu_model)
         new_model = replace_module(orig_model, replacement_mapping)
@@ -137,9 +138,8 @@ def plot_classification_bond(
 
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
-    output_folder = os.path.join("./exp/toy_post_replace_spiral/seed42")
-    os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"boundary.png"))
+    os.makedirs('./figures', exist_ok=True)
+    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_boundary.png')
     plt.show()
 
 
@@ -152,7 +152,7 @@ def plot_classification_conf(
     N = 1024  # Number of training points
 
     # Data generation
-    print("Generating data...")
+    logger.debug("Generating data...")
     X, y = generate_spiral_data(n_points=N, noise=noise, n_turns=n_turns)
     points = torch.from_numpy(X).float().cuda()
     target = torch.from_numpy(y).long().cuda()
@@ -216,7 +216,7 @@ def plot_classification_conf(
 
     # Plot confidence for each BetaReLU
     for i, beta in enumerate(beta_vals):
-        print(f"Using BetaReLU with beta={beta: .1f}")
+        logger.debug(f"Using BetaReLU with beta={beta: .1f}")
         replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(relu_model)
         new_model = replace_module(orig_model, replacement_mapping)
@@ -256,14 +256,12 @@ def plot_classification_conf(
     cbar.set_label("Confidence")
 
     # Save and display the figure
-    output_folder = os.path.join("./exp/toy_post_replace_spiral/seed42")
-    os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"confidence.png"))
+    os.makedirs('./figures', exist_ok=True)
+    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_confidence.png')
     plt.show()
 
 
 if __name__ == "__main__":
-    fix_seed(42)
 
     beta_vals = [0.7, 0.5]  # Define beta values for BetaReLU
     width = 20
@@ -272,5 +270,7 @@ if __name__ == "__main__":
     noise = 0.3
     n_turns = 3
 
+    f_name = get_file_name(__file__)
+    logger = get_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_noise{noise}_turns{n_turns}_seed42')
+    fix_seed(42)
     plot_classification_bond(width, depth, training_steps, beta_vals, noise, n_turns)
-    # plot_classification_conf(width, depth, training_steps, beta_vals, noise, n_turns)

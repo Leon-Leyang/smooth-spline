@@ -1,12 +1,16 @@
 import os
+import sys
 import torch
 import torch.nn as nn
 import torchvision
 import wandb
+from matplotlib import pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
 from utils.resnet import resnet18
 import numpy as np
+from loguru import logger as _logger
 
 DEFAULT_TRANSFORM = transforms.Compose([
     transforms.ToTensor(),
@@ -151,7 +155,7 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
         if batch_idx % 100 == 0:
             train_loss = running_loss / (batch_idx + 1)
             train_accuracy = 100. * correct / total
-            print(f'Epoch {epoch}, Step {batch_idx}, Loss: {train_loss:.6f}, Accuracy: {train_accuracy:.2f}%')
+            logger.debug(f'Epoch {epoch}, Step {batch_idx}, Loss: {train_loss:.6f}, Accuracy: {train_accuracy:.2f}%')
 
         if epoch <= 1:
             if warmup_scheduler is not None:
@@ -184,27 +188,26 @@ def test_epoch(epoch, model, testloader, criterion, device):
     test_loss /= len(testloader)
     test_accuracy = 100. * correct / total
     if epoch != -1:
-        print(f'Test Epoch {epoch}, Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
+        logger.debug(f'Test Epoch {epoch}, Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
 
         # Log the test loss and accuracy to wandb
         wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
     else:
-        print(f'Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
+        logger.debug(f'Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
 
     return test_loss, test_accuracy
 
 
-def get_pretrained_model(pretrained_ds='cifar100', mode='normal', device='cuda'):
+def get_pretrained_model(pretrained_ds='cifar100', device='cuda'):
     """
     Get the pre-trained model.
     """
+    ckpt_folder = './ckpts'
     if 'cifar' in pretrained_ds:
-        ckpt_folder = os.path.join('./ckpts', mode)
         num_classes = 100 if 'cifar100' in pretrained_ds else 10
         model = resnet18(num_classes=num_classes).to(device)
         model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch200.pth'), weights_only=True))
     elif 'mnist' in pretrained_ds:
-        ckpt_folder = os.path.join('./ckpts', mode)
         num_classes = 10
         model = resnet18(num_classes=num_classes).to(device)
         model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch10.pth'), weights_only=True))
@@ -226,11 +229,76 @@ def fix_seed(seed=42):
     np.random.seed(seed)
 
 
-def result_exists(result_file, pretrained_ds, transfer_ds):
-    if not os.path.exists(result_file):
+def result_exists(ds):
+    log_file = get_log_file_path()
+    if not os.path.exists(log_file):
         return False
-    with open(result_file, 'r') as f:
+    with open(log_file, 'r') as f:
         for line in f:
-            if f'{pretrained_ds} to {transfer_ds}' in line:
+            if f'Best accuracy for {ds}:' in line:
                 return True
     return False
+
+
+def get_logger(print_level="INFO", logfile_level="DEBUG", name: str = None):
+    """
+    Get the logger.
+    The logger will be appended to a log file if it already exists.
+    """
+    os.makedirs("./logs", exist_ok=True)
+
+    _logger.remove()
+    _logger.add(sys.stderr, level=print_level)
+    if name is not None:
+        _logger.add(
+            f"./logs/{name}.log",
+            level=logfile_level,
+            mode="a"  # Append mode
+        )
+    return _logger
+
+
+def get_log_file_path():
+    """
+    Retrieve the path of the file the logger is writing to.
+    """
+    file_paths = []
+    for handler in _logger._core.handlers.values():
+        sink = handler._sink
+        # Check if the sink is a file and get its path
+        if hasattr(sink, "_path"):
+            file_paths.append(sink._path)
+    assert len(file_paths) == 1, "Only one file-based log handler is supported."
+    return file_paths[0]
+
+
+# Global logger
+# Must be defined in __main__ for normal use
+logger = None
+
+
+def plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_config=None):
+    # Plot the test accuracy vs beta values
+    plt.figure(figsize=(12, 8))
+    plt.plot(beta_list, acc_list)
+    plt.axhline(y=base_acc, color='r', linestyle='--', label='ReLU Test Accuracy')
+    plt.xlabel('Beta')
+    plt.ylabel('Test Accuracy')
+    plt.title('Test Accuracy vs Beta Values')
+
+    # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
+    ax = plt.gca()
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.xaxis.get_major_formatter().set_scientific(False)
+    ax.xaxis.get_major_formatter().set_useOffset(False)
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.yaxis.get_major_formatter().set_scientific(False)
+    ax.yaxis.get_major_formatter().set_useOffset(False)
+    plt.xticks(beta_list[::5], rotation=45)
+    plt.legend()
+    os.makedirs('./figures', exist_ok=True)
+    if robust_config:
+        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}_{robust_config}.png"
+    else:
+        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}.png"
+    plt.savefig(output_path)
