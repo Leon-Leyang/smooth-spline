@@ -137,7 +137,7 @@ def plot_classification_bond(
 
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
-    output_folder = os.path.join("./")
+    output_folder = os.path.join("./exp/toy_post_replace_spiral/seed42")
     os.makedirs(output_folder, exist_ok=True)
     plt.savefig(os.path.join(output_folder, f"boundary.png"))
     plt.show()
@@ -256,9 +256,9 @@ def plot_classification_conf(
     cbar.set_label("Confidence")
 
     # Save and display the figure
-    output_folder = os.path.join("./")
+    output_folder = os.path.join("./exp/toy_post_replace_spiral/seed42")
     os.makedirs(output_folder, exist_ok=True)
-    plt.savefig(os.path.join(output_folder, f"confidence_plot.png"))
+    plt.savefig(os.path.join(output_folder, f"confidence.png"))
     plt.show()
 
 
