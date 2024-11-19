@@ -5,7 +5,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import (MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, logger, get_logger,
+from utils.utils import (MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, logger, set_logger,
                          get_log_file_path)
 
 
@@ -262,8 +262,6 @@ def plot_classification_conf(
 
 
 if __name__ == "__main__":
-    global logger
-
     beta_vals = [0.7, 0.5]  # Define beta values for BetaReLU
     width = 20
     depth = 2
@@ -272,6 +270,6 @@ if __name__ == "__main__":
     n_turns = 3
 
     f_name = get_file_name(__file__)
-    logger = get_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_noise{noise}_turns{n_turns}_seed42')
+    set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_noise{noise}_turns{n_turns}_seed42')
     fix_seed(42)
     plot_classification_bond(width, depth, training_steps, beta_vals, noise, n_turns)

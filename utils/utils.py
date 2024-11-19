@@ -240,7 +240,12 @@ def result_exists(ds):
     return False
 
 
-def get_logger(print_level="INFO", logfile_level="DEBUG", name: str = None):
+# Global logger
+# Must be defined in __main__ for normal use
+logger = None
+
+
+def set_logger(print_level="INFO", logfile_level="DEBUG", name: str = None):
     """
     Get the logger.
     The logger will be appended to a log file if it already exists.
@@ -255,7 +260,9 @@ def get_logger(print_level="INFO", logfile_level="DEBUG", name: str = None):
             level=logfile_level,
             mode="a"  # Append mode
         )
-    return _logger
+    global logger
+    logger = _logger  # Set the global logger
+    return logger
 
 
 def get_log_file_path():
@@ -270,11 +277,6 @@ def get_log_file_path():
             file_paths.append(sink._path)
     assert len(file_paths) == 1, "Only one file-based log handler is supported."
     return file_paths[0]
-
-
-# Global logger
-# Must be defined in __main__ for normal use
-logger = None
 
 
 def plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_config=None):

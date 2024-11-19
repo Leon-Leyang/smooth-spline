@@ -3,7 +3,7 @@ import torch
 import wandb
 from torch import nn as nn, optim as optim
 from utils.resnet import resnet18
-from utils.utils import WarmUpLR, train_epoch, test_epoch, logger, get_logger, get_file_name
+from utils.utils import WarmUpLR, train_epoch, test_epoch, logger, set_logger, get_file_name
 from utils.data import get_data_loaders
 import argparse
 
@@ -82,10 +82,8 @@ def get_args():
 
 
 if __name__ == '__main__':
-    global logger
-
     args = get_args()
 
     f_name = get_file_name(__file__)
-    logger = get_logger(name=f'{f_name}_{args.dataset}')
+    set_logger(name=f'{f_name}_{args.dataset}')
     train(args.dataset)

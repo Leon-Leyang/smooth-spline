@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import (MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, logger, get_logger,
+from utils.utils import (MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, logger, set_logger,
                          get_log_file_path)
 
 
@@ -97,8 +97,6 @@ def plot_classification_case(
 
 
 if __name__ == "__main__":
-    global logger
-
     beta_vals = np.arange(0, 1 + 1e-6, 0.125)
     width = 128
     depth = 2
@@ -109,7 +107,7 @@ if __name__ == "__main__":
     axs = axs.flatten()
 
     f_name = get_file_name(__file__)
-    logger = get_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_seed42')
+    set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_seed42')
 
     fix_seed(42)
     for i, beta in enumerate(beta_vals):

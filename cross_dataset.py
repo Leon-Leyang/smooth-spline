@@ -5,7 +5,7 @@ from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robus
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
 from utils.utils import get_pretrained_model, test_epoch, ReplacementMapping, replace_module, get_file_name, fix_seed, \
-    result_exists, get_logger, logger, plot_acc_vs_beta
+    result_exists, set_logger, logger, plot_acc_vs_beta
 import copy
 import os
 import argparse
@@ -159,12 +159,10 @@ def get_args():
 
 
 if __name__ == '__main__':
-    global logger
-
     args = get_args()
 
     f_name = get_file_name(__file__)
-    logger = get_logger(name=f'{f_name}_{args.order}_seed{args.seed}')
+    set_logger(name=f'{f_name}_{args.order}_seed{args.seed}')
 
     result_file_dir = f'exp/cross_dataset/seed{args.seed}'
     os.makedirs(result_file_dir, exist_ok=True)
