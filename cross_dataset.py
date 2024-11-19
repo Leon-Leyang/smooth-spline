@@ -159,6 +159,8 @@ def get_args():
 
 
 if __name__ == '__main__':
+    global logger
+
     args = get_args()
 
     f_name = get_file_name(__file__)

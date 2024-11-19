@@ -97,6 +97,8 @@ def plot_classification_case(
 
 
 if __name__ == "__main__":
+    global logger
+
     beta_vals = np.arange(0, 1 + 1e-6, 0.125)
     width = 128
     depth = 2

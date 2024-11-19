@@ -262,6 +262,7 @@ def plot_classification_conf(
 
 
 if __name__ == "__main__":
+    global logger
 
     beta_vals = [0.7, 0.5]  # Define beta values for BetaReLU
     width = 20
