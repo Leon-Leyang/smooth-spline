@@ -10,7 +10,7 @@ from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
 from utils.resnet import resnet18
 import numpy as np
-from loguru import logger as _logger
+from loguru import logger
 
 DEFAULT_TRANSFORM = transforms.Compose([
     transforms.ToTensor(),
@@ -240,11 +240,6 @@ def result_exists(ds):
     return False
 
 
-# Global logger
-# Must be defined in __main__ for normal use
-logger = None
-
-
 def set_logger(print_level="INFO", logfile_level="DEBUG", name: str = None):
     """
     Get the logger.
@@ -252,17 +247,13 @@ def set_logger(print_level="INFO", logfile_level="DEBUG", name: str = None):
     """
     os.makedirs("./logs", exist_ok=True)
 
-    _logger.remove()
-    _logger.add(sys.stderr, level=print_level)
-    if name is not None:
-        _logger.add(
-            f"./logs/{name}.log",
-            level=logfile_level,
-            mode="a"  # Append mode
-        )
-    global logger
-    logger = _logger  # Set the global logger
-    return logger
+    logger.remove()
+    logger.add(sys.stderr, level=print_level)
+    logger.add(
+        f"./logs/{name}.log",
+        level=logfile_level,
+        mode="a"  # Append mode
+    )
 
 
 def get_log_file_path():
@@ -270,7 +261,7 @@ def get_log_file_path():
     Retrieve the path of the file the logger is writing to.
     """
     file_paths = []
-    for handler in _logger._core.handlers.values():
+    for handler in logger._core.handlers.values():
         sink = handler._sink
         # Check if the sink is a file and get its path
         if hasattr(sink, "_path"):

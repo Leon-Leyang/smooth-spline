@@ -4,8 +4,8 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import (MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, logger, set_logger,
-                         get_log_file_path)
+from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, set_logger, get_log_file_path
+from loguru import logger
 import matplotlib.cm as cm
 import copy
 from matplotlib.colors import ListedColormap

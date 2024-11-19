@@ -5,8 +5,8 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import (MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, logger, set_logger,
-                         get_log_file_path)
+from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, set_logger, get_log_file_path
+from loguru import logger
 
 
 def generate_spiral_data(n_points, noise=0.5, n_turns=3):

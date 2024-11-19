@@ -3,7 +3,8 @@ import torch
 import wandb
 from torch import nn as nn, optim as optim
 from utils.resnet import resnet18
-from utils.utils import WarmUpLR, train_epoch, test_epoch, logger, set_logger, get_file_name
+from utils.utils import WarmUpLR, train_epoch, test_epoch, set_logger, get_file_name
+from loguru import logger
 from utils.data import get_data_loaders
 import argparse
 

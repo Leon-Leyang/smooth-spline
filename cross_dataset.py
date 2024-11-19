@@ -5,7 +5,8 @@ from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robus
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
 from utils.utils import get_pretrained_model, test_epoch, ReplacementMapping, replace_module, get_file_name, fix_seed, \
-    result_exists, set_logger, logger, plot_acc_vs_beta
+    result_exists, set_logger, plot_acc_vs_beta
+from loguru import logger
 import copy
 import os
 import argparse

@@ -4,7 +4,8 @@ from pathlib import Path
 import torch
 from torch import nn as nn
 from utils.robustbench import benchmark
-from utils.utils import test_epoch, ReplacementMapping, replace_module, plot_acc_vs_beta, DEFAULT_TRANSFORM, logger
+from utils.utils import test_epoch, ReplacementMapping, replace_module, plot_acc_vs_beta, DEFAULT_TRANSFORM
+from loguru import logger
 from utils.data import get_data_loaders
 
 
