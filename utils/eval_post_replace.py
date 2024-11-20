@@ -14,7 +14,7 @@ def replace_and_test_acc(model, beta_vals, dataset):
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model_name = model.__class__.__name__
+    model_name = model.base_model.__class__.__name__ if hasattr(model, 'base_model') else model.__class__.__name__
 
     _, test_loader = get_data_loaders(dataset)
 
