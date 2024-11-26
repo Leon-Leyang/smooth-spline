@@ -162,7 +162,8 @@ if __name__ == '__main__':
     args = get_args()
 
     f_name = get_file_name(__file__)
-    set_logger(name=f'{f_name}_{args.order}_topk1_C{args.C}_seed{args.seed}')
+    log_file_path = set_logger(name=f'{f_name}_{args.order}_topk1_C{args.C}_seed{args.seed}')
+    logger.info(f'Log file: {log_file_path}')
 
     betas = np.arange(0.95, 1 - 1e-6, 0.01)
 

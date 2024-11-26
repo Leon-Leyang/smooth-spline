@@ -34,7 +34,6 @@ class BetaAgg(nn.Module):
 
 class LazyBetaAgg(nn.modules.lazy.LazyModuleMixin, BetaAgg):
     cls_to_become = BetaAgg
-    weight: nn.parameter.UninitializedParameter
 
     def __init__(self, axis=-1, beta=0.5, coeff=0.5, device=None, dtype=None):
         super().__init__()
@@ -255,11 +254,13 @@ def set_logger(print_level="INFO", logfile_level="DEBUG", name: str = None):
 
     logger.remove()
     logger.add(sys.stderr, level=print_level)
+    log_file_path = f"./logs/{name}.log"
     logger.add(
-        f"./logs/{name}.log",
+        log_file_path,
         level=logfile_level,
         mode="a"  # Append mode
     )
+    return log_file_path
 
 
 def get_log_file_path():
