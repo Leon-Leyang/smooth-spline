@@ -46,7 +46,7 @@ class BetaAgg(nn.Module):
 
     def forward(self, x):
         return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
-                (1 - self.coeff) * nn.functional.softplus(x, beta=self.beta))
+                (1 - self.coeff) * nn.functional.softplus(x, beta=self.beta.item()))
 
 
 class LazyBetaAgg(nn.modules.lazy.LazyModuleMixin, BetaAgg):
