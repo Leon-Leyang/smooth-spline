@@ -43,14 +43,13 @@ class ModifiedModel(nn.Module):
         for module in modules_to_hook:
             self.hooks.append(module.register_forward_hook(hook_fn))
 
-        # Attach hook to avg_pool layer
-        self.hooks.append(self.base_model.avg_pool.register_forward_hook(hook_fn))
-
     def forward(self, x):
         self.outputs = []
         _ = self.base_model(x)
         features = []
         for o in self.outputs:
+            # Apply global average pooling to reduce the spatial dimensions
+            o = nn.functional.adaptive_avg_pool2d(o, (1, 1))
             features.append(o.view(o.size(0), -1))
         features = torch.cat(features, dim=1)
         if self.fc is not None:
