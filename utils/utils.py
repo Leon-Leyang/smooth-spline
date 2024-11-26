@@ -31,8 +31,8 @@ class ReplacementMapping:
         return module
 
 
-def replace_module(model, beta, activation=LazyBetaSwish):
-    replacement_mapping = ReplacementMapping(beta=beta, activation=activation)
+def replace_module(model, beta, activation=LazyBetaSwish, **kwargs):
+    replacement_mapping = ReplacementMapping(beta=beta, activation=activation, **kwargs)
 
     if not isinstance(model, torch.nn.Module):
         raise ValueError("Torch.nn.Module expected as input")
