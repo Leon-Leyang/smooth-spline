@@ -233,7 +233,9 @@ def fix_seed(seed=42):
     np.random.seed(seed)
 
 
-def result_exists(ds):
+def result_exists(ds, replace_then_lp=False):
+    if replace_then_lp:
+        ds = f'{ds}_replace_lp'
     log_file = get_log_file_path()
     if not os.path.exists(log_file):
         return False
