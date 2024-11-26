@@ -48,7 +48,6 @@ class ModifiedModel(nn.Module):
             out = self.fc(features)
             return out
         else:
-            self.fc = nn.Linear(features.size(1), self.num_classes).to(device)
             return features
 
     def close(self):
@@ -76,6 +75,8 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, topk=1, C=1):
     logistic_regressor.fit(train_features, train_labels)
 
     # Set the fc layer of the modified model
+    input_features = train_features.shape[1]
+    modified_model.fc = nn.Linear(input_features, num_classes).to(device)
     modified_model.fc.weight.requires_grad = False
     modified_model.fc.bias.requires_grad = False
     modified_model.fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
