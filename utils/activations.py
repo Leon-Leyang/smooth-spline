@@ -47,3 +47,27 @@ class BetaAgg(nn.Module):
     def forward(self, x):
         return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
                 (1 - self.coeff) * nn.functional.softplus(x, beta=self.beta))
+
+
+class LazyBetaAgg(nn.modules.lazy.LazyModuleMixin, BetaAgg):
+    cls_to_become = BetaAgg
+    weight: nn.parameter.UninitializedParameter
+
+    def __init__(self, axis=-1, beta=0.5, coeff=0.5, device=None, dtype=None):
+        super().__init__()
+        if type(axis) not in [tuple, list]:
+            axis = [axis]
+        self.axis = axis
+        self.val_beta = beta
+        self.beta = nn.parameter.UninitializedParameter(device=device, dtype=dtype)
+        self.coeff = coeff
+
+    def initialize_parameters(self, input) -> None:
+        if self.has_uninitialized_params():
+            with torch.no_grad():
+                # Determine shape for the beta parameter
+                s = [1 for _ in range(input.ndim)]
+                self.beta.materialize(s)
+                self.beta.copy_(torch.Tensor([self.val_beta]))
+
+
