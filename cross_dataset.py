@@ -4,11 +4,11 @@ import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
-from utils.utils import get_pretrained_model, test_epoch, ReplacementMapping, replace_module, get_file_name, fix_seed, \
-    result_exists, set_logger, plot_acc_vs_beta
+from utils.utils import (get_pretrained_model, test_epoch, replace_module, get_file_name, fix_seed, result_exists,
+                         set_logger, plot_acc_vs_beta)
+from utils.activations import LazyBetaReLU
 from loguru import logger
 import copy
-import os
 import argparse
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -157,9 +157,8 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, topk_layer=1
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
-        replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
-        new_model = replace_module(orig_model, replacement_mapping)
+        new_model = replace_module(orig_model, beta, LazyBetaReLU)
         transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, topk_layer, C)
         _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
         if test_acc > best_acc:

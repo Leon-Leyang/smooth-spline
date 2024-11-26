@@ -16,7 +16,8 @@ from utils.semseg.util import dataset, transform, config
 from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, \
     colorize, poly_learning_rate, find_free_port, get_logger, main_process, check
 from utils.semseg.model.pspnet import PSPNet
-from utils.utils import ReplacementMapping, replace_module
+from utils.utils import replace_module
+from utils.activations import LazyBetaReLU
 
 cv2.ocl.setUseOpenCL(False)
 
@@ -72,8 +73,7 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
     modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
     modules_new = [model.ppm, model.cls, model.aux]
     if beta != 1:
-        replacement_mapping = ReplacementMapping(beta=beta)
-        modules_ori = replace_module(nn.ModuleList(modules_ori), replacement_mapping)
+        modules_ori = replace_module(nn.ModuleList(modules_ori), beta, LazyBetaReLU)
         # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
         with torch.no_grad():
             model.eval()
@@ -307,8 +307,8 @@ def main_test(beta):
         model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, pretrained=False)
         modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
         if beta != 1:
-            replacement_mapping = ReplacementMapping(beta=beta)
-            replace_module(nn.ModuleList(modules_ori), replacement_mapping)
+            replace_module(nn.ModuleList(modules_ori), beta, LazyBetaReLU)
+
             # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
             with torch.no_grad():
                 model.eval()

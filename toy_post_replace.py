@@ -4,11 +4,12 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, set_logger, get_log_file_path
+from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger, get_log_file_path
 from loguru import logger
 import matplotlib.cm as cm
 import copy
 from matplotlib.colors import ListedColormap
+from utils.activations import LazyBetaReLU
 
 
 # Adapted from https://github.com/RandallBalestriero/POLICE
@@ -93,9 +94,8 @@ def plot_classification_case(
 
     for i, beta in enumerate(beta_vals):
         logger.debug(f"Using BetaReLU with beta={beta: .1f}")
-        replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(relu_model)
-        new_model = replace_module(orig_model, replacement_mapping)
+        new_model = replace_module(orig_model, beta, LazyBetaReLU)
         with torch.no_grad():
             pred = new_model(grid).cpu().numpy()
         plt.contour(

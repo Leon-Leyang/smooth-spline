@@ -4,7 +4,8 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, set_logger, get_log_file_path
+from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger, get_log_file_path
+from utils.activations import LazyBetaReLU
 from loguru import logger
 
 
@@ -36,8 +37,7 @@ def plot_classification_case(
     model = MLP(2, depth, width, nn.ReLU()).cuda()
     if beta != 1:
         logger.debug(f"Using BetaReLU with beta={beta}")
-        replacement_mapping = ReplacementMapping(beta=beta)
-        model = replace_module(model, replacement_mapping)
+        model = replace_module(model, beta, LazyBetaReLU)
     else:
         logger.debug("Using ReLU")
     optim = torch.optim.AdamW(model.parameters(), 0.001, weight_decay=1e-5)

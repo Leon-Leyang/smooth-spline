@@ -5,8 +5,9 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.utils import MLP, replace_module, ReplacementMapping, get_file_name, fix_seed, set_logger, get_log_file_path
+from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger, get_log_file_path
 from loguru import logger
+from utils.activations import LazyBetaReLU
 
 
 def generate_spiral_data(n_points, noise=0.5, n_turns=3):
@@ -112,9 +113,8 @@ def plot_classification_bond(
     # Plot for each BetaReLU
     for i, beta in enumerate(beta_vals):
         logger.debug(f"Using BetaReLU with beta={beta: .1f}")
-        replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(relu_model)
-        new_model = replace_module(orig_model, replacement_mapping)
+        new_model = replace_module(orig_model, beta, LazyBetaReLU)
         with torch.no_grad():
             pred = new_model(grid).cpu().numpy()
         axs[i + 1].scatter(
@@ -217,9 +217,8 @@ def plot_classification_conf(
     # Plot confidence for each BetaReLU
     for i, beta in enumerate(beta_vals):
         logger.debug(f"Using BetaReLU with beta={beta: .1f}")
-        replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(relu_model)
-        new_model = replace_module(orig_model, replacement_mapping)
+        new_model = replace_module(orig_model, beta, LazyBetaReLU)
         with torch.no_grad():
             pred = torch.sigmoid(new_model(grid)[:, 0]).cpu().numpy()
         confidence_map = pred.reshape((mesh_dim, mesh_dim))

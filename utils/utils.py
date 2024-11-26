@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
+from utils.activations import LazyBetaReLU
 from utils.resnet import resnet18
 import numpy as np
 from loguru import logger
@@ -19,16 +20,19 @@ DEFAULT_TRANSFORM = transforms.Compose([
 
 
 class ReplacementMapping:
-    def __init__(self, beta=0.5):
+    def __init__(self, beta=0.5, activation=LazyBetaReLU):
         self.beta = beta
+        self.activation = activation
 
     def __call__(self, module):
         if isinstance(module, torch.nn.ReLU):
-            return LazyBetaReLU(beta=self.beta)
+            return self.activation(beta=self.beta)
         return module
 
 
-def replace_module(model, replacement_mapping):
+def replace_module(model, beta, activation=LazyBetaReLU):
+    replacement_mapping = ReplacementMapping(beta=beta, activation=activation)
+
     if not isinstance(model, torch.nn.Module):
         raise ValueError("Torch.nn.Module expected as input")
     device = next(model.parameters()).device
@@ -43,41 +47,6 @@ def replace_module(model, replacement_mapping):
             parent = getattr(parent, name)
         setattr(parent, module_names[-1], replacement)
     return model
-
-
-class BetaReLU(nn.Module):
-    def __init__(self, beta=0, in_features=1, trainable=False):
-        assert 0 <= beta < 1
-        super().__init__()
-        param = torch.nn.Parameter(torch.zeros(in_features)+beta)
-        param.requires_grad_(trainable)
-        self.register_parameter("beta", param)
-
-    def forward(self, x):
-        return torch.sigmoid(self.beta * x / (1 - self.beta)) * x
-
-
-class LazyBetaReLU(nn.modules.lazy.LazyModuleMixin, BetaReLU):
-
-    cls_to_become = BetaReLU
-    weight: nn.parameter.UninitializedParameter
-
-    def __init__(self, axis=-1, beta=0.5, device=None, dtype=None):
-        super().__init__()
-        if type(axis) not in [tuple, list]:
-            axis = [axis]
-        self.axis = axis
-        self.val_beta = beta
-        self.beta = nn.parameter.UninitializedParameter(device=device, dtype=dtype)
-
-    def initialize_parameters(self, input) -> None:
-        if self.has_uninitialized_params():
-            with torch.no_grad():
-                s = [1 for _ in range(input.ndim)]
-                # for i in self.axis:
-                #     s[i] = input.size(i)
-                self.beta.materialize(s)
-                self.beta.copy_(torch.Tensor([self.val_beta]))
 
 
 class MLP(nn.Module):

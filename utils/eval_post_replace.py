@@ -4,9 +4,10 @@ from pathlib import Path
 import torch
 from torch import nn as nn
 from utils.robustbench import benchmark
-from utils.utils import test_epoch, ReplacementMapping, replace_module, plot_acc_vs_beta, DEFAULT_TRANSFORM
+from utils.utils import test_epoch, replace_module, plot_acc_vs_beta, DEFAULT_TRANSFORM
 from loguru import logger
 from utils.data import get_data_loaders
+from utils.activations import LazyBetaReLU
 
 
 def replace_and_test_acc(model, beta_vals, dataset):
@@ -33,9 +34,8 @@ def replace_and_test_acc(model, beta_vals, dataset):
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
-        replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
-        new_model = replace_module(orig_model, replacement_mapping)
+        new_model = replace_module(orig_model, beta, LazyBetaReLU)
         _, test_acc = test_epoch(-1, new_model, test_loader, criterion, device)
         if test_acc > best_acc:
             best_acc = test_acc
@@ -94,9 +94,8 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, batch_size=20
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.2f}')
         state_path = Path(state_path_format_str.format(beta=beta))
-        replacement_mapping = ReplacementMapping(beta=beta)
         orig_model = copy.deepcopy(model)
-        new_model = replace_module(orig_model, replacement_mapping)
+        new_model = replace_module(orig_model, beta, LazyBetaReLU)
         _, test_acc = benchmark(
             new_model, dataset=dataset_to_use, threat_model=threat, eps=threat_to_eps[threat], device=device,
             batch_size=batch_size, preprocessing=transform_test, n_examples=n_examples, aa_state_path=state_path
