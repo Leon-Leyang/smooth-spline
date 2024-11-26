@@ -6,6 +6,7 @@ from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
 from utils.utils import (get_pretrained_model, test_epoch, replace_module, get_file_name, fix_seed, result_exists,
                          set_logger, plot_acc_vs_beta)
+from utils.resnet import BasicBlock
 from loguru import logger
 import copy
 import argparse
@@ -31,11 +32,19 @@ class ModifiedModel(nn.Module):
         def hook_fn(module, input, output):
             self.outputs.append(output)
 
-        # Get all layers except the last one (the last one is the classification layer)
-        layers = list(self.base_model.children())[:-1]
-        layers_to_hook = layers[-self.topk:]
-        for layer in layers_to_hook:
-            self.hooks.append(layer.register_forward_hook(hook_fn))
+        # Collect all BasicBlock modules
+        modules = []
+        for name, module in self.base_model.named_modules():
+            if isinstance(module, BasicBlock):
+                modules.append(module)
+
+        # Attach hooks to the last (topk - 1) BasicBlock modules
+        modules_to_hook = modules[-(self.topk - 1):]
+        for module in modules_to_hook:
+            self.hooks.append(module.register_forward_hook(hook_fn))
+
+        # Attach hook to avg_pool layer
+        self.hooks.append(self.base_model.avg_pool.register_forward_hook(hook_fn))
 
     def forward(self, x):
         self.outputs = []
