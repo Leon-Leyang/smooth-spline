@@ -9,7 +9,7 @@ from loguru import logger
 import matplotlib.cm as cm
 import copy
 from matplotlib.colors import ListedColormap
-from utils.activations import LazyBetaReLU
+from utils.activations import LazyBetaSwish
 
 
 # Adapted from https://github.com/RandallBalestriero/POLICE
@@ -95,7 +95,7 @@ def plot_classification_case(
     for i, beta in enumerate(beta_vals):
         logger.debug(f"Using BetaReLU with beta={beta: .1f}")
         orig_model = copy.deepcopy(relu_model)
-        new_model = replace_module(orig_model, beta, LazyBetaReLU)
+        new_model = replace_module(orig_model, beta, LazyBetaSwish)
         with torch.no_grad():
             pred = new_model(grid).cpu().numpy()
         plt.contour(

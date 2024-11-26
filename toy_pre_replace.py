@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.activations import LazyBetaReLU
+from utils.activations import LazyBetaSwish
 from loguru import logger
 
 
@@ -37,7 +37,7 @@ def plot_classification_case(
     model = MLP(2, depth, width, nn.ReLU()).cuda()
     if beta != 1:
         logger.debug(f"Using BetaReLU with beta={beta}")
-        model = replace_module(model, beta, LazyBetaReLU)
+        model = replace_module(model, beta, LazyBetaSwish)
     else:
         logger.debug("Using ReLU")
     optim = torch.optim.AdamW(model.parameters(), 0.001, weight_decay=1e-5)

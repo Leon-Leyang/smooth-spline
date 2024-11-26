@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
-from utils.activations import LazyBetaReLU
+from utils.activations import LazyBetaSwish
 from utils.resnet import resnet18
 import numpy as np
 from loguru import logger
@@ -20,17 +20,18 @@ DEFAULT_TRANSFORM = transforms.Compose([
 
 
 class ReplacementMapping:
-    def __init__(self, beta=0.5, activation=LazyBetaReLU):
+    def __init__(self, beta=0.5, activation=LazyBetaSwish, **kwargs):
         self.beta = beta
         self.activation = activation
+        self.kwargs = kwargs
 
     def __call__(self, module):
         if isinstance(module, torch.nn.ReLU):
-            return self.activation(beta=self.beta)
+            return self.activation(beta=self.beta, **self.kwargs)
         return module
 
 
-def replace_module(model, beta, activation=LazyBetaReLU):
+def replace_module(model, beta, activation=LazyBetaSwish):
     replacement_mapping = ReplacementMapping(beta=beta, activation=activation)
 
     if not isinstance(model, torch.nn.Module):
