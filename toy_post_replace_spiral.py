@@ -7,7 +7,6 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger, get_log_file_path
 from loguru import logger
-from utils.activations import LazyBetaSwish, LazyBetaAgg
 
 
 def generate_spiral_data(n_points, noise=0.5, n_turns=3):
@@ -75,10 +74,10 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim):
 
 # Use the helper function in the plotting loop
 def plot_classification_bond(
-    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, coeff=0.8
+    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, coeff=0.5
 ) -> None:
     """
-    Plot the decision boundary of the model for LazyBetaSwish, BetaSoftplus, and BetaAgg.
+    Plot the decision boundary of the model for BetaSwish, BetaSoftplus, and BetaAgg.
 
     Args:
     - width (int): Width of the MLP.
@@ -131,12 +130,12 @@ def plot_classification_bond(
 
     # Row configurations for each activation type
     activation_configs = [
-        ("BetaSwish", LazyBetaSwish, None),
-        ("BetaSoftplus", LazyBetaAgg, 0),
-        ("BetaAgg", LazyBetaAgg, coeff),
+        ("BetaSwish", 1),
+        ("BetaSoftplus", 0),
+        ("BetaAgg", 0.5),
     ]
 
-    for row, (name, activation, coeff) in enumerate(activation_configs):
+    for row, (name, coeff) in enumerate(activation_configs):
         # Plot ReLU baseline
         logger.debug("Plotting ReLU baseline")
         with torch.no_grad():
@@ -149,10 +148,7 @@ def plot_classification_bond(
         for col, beta in enumerate(beta_vals, start=1):  # Start from second column
             logger.debug(f"Using {name} with beta={beta:.1f}")
             orig_model = copy.deepcopy(relu_model)
-            if coeff is not None:
-                new_model = replace_module(orig_model, beta, activation, coeff=coeff)
-            else:
-                new_model = replace_module(orig_model, beta, activation)
+            new_model = replace_module(orig_model, beta, coeff=coeff)
             with torch.no_grad():
                 pred = new_model(grid).cpu().numpy()
             plot_decision_boundary(
@@ -180,7 +176,7 @@ if __name__ == "__main__":
     training_steps = 2000
     noise = 0.3
     n_turns = 3
-    coeff = 0.8
+    coeff = 0.5
 
     f_name = get_file_name(__file__)
     set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_noise{noise}_turns{n_turns}_coeff{coeff}_seed42')

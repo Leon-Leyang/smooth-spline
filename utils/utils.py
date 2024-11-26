@@ -1,14 +1,13 @@
 import os
 import sys
 import torch
-import torch.nn as nn
 import torchvision
 import wandb
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
+from torch import nn as nn
 from torchvision import transforms as transforms
 from torch.optim.lr_scheduler import _LRScheduler
-from utils.activations import LazyBetaSwish
 from utils.resnet import resnet18
 import numpy as np
 from loguru import logger
@@ -19,20 +18,55 @@ DEFAULT_TRANSFORM = transforms.Compose([
 ])
 
 
+class BetaAgg(nn.Module):
+    def __init__(self, beta=0, in_features=1, trainable=False, coeff=0.5):
+        assert 0 <= beta < 1
+        super().__init__()
+        param = torch.nn.Parameter(torch.zeros(in_features) + beta)
+        param.requires_grad_(trainable)
+        self.register_parameter("beta", param)
+        self.coeff = coeff
+
+    def forward(self, x):
+        return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
+                (1 - self.coeff) * torch.log(1 + torch.exp(x / (1 - self.beta))) * (1 - self.beta))
+
+
+class LazyBetaAgg(nn.modules.lazy.LazyModuleMixin, BetaAgg):
+    cls_to_become = BetaAgg
+    weight: nn.parameter.UninitializedParameter
+
+    def __init__(self, axis=-1, beta=0.5, coeff=0.5, device=None, dtype=None):
+        super().__init__()
+        if type(axis) not in [tuple, list]:
+            axis = [axis]
+        self.axis = axis
+        self.val_beta = beta
+        self.beta = nn.parameter.UninitializedParameter(device=device, dtype=dtype)
+        self.coeff = coeff
+
+    def initialize_parameters(self, input) -> None:
+        if self.has_uninitialized_params():
+            with torch.no_grad():
+                # Determine shape for the beta parameter
+                s = [1 for _ in range(input.ndim)]
+                self.beta.materialize(s)
+                self.beta.copy_(torch.Tensor([self.val_beta]))
+
+
 class ReplacementMapping:
-    def __init__(self, beta=0.5, activation=LazyBetaSwish, **kwargs):
+    def __init__(self, beta=0.5, coeff=0.5):
         self.beta = beta
-        self.activation = activation
-        self.kwargs = kwargs
+        self.coeff = coeff
 
     def __call__(self, module):
         if isinstance(module, torch.nn.ReLU):
-            return self.activation(beta=self.beta, **self.kwargs)
+            return LazyBetaAgg(beta=self.beta, coeff=self.coeff)
         return module
 
 
-def replace_module(model, beta, activation=LazyBetaSwish, **kwargs):
-    replacement_mapping = ReplacementMapping(beta=beta, activation=activation, **kwargs)
+def replace_module(model, beta, coeff=0.5):
+    replacement_mapping = ReplacementMapping(beta=beta, coeff=coeff)
 
     if not isinstance(model, torch.nn.Module):
         raise ValueError("Torch.nn.Module expected as input")
