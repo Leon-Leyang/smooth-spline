@@ -39,7 +39,7 @@ class ModifiedModel(nn.Module):
                 modules.append(module)
 
         # Attach hooks to the last (topk - 1) BasicBlock modules
-        modules_to_hook = modules[-(self.topk - 1):]
+        modules_to_hook = modules[-self.topk:]
         for module in modules_to_hook:
             self.hooks.append(module.register_forward_hook(hook_fn))
 
