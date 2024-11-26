@@ -2,9 +2,9 @@
 
 #SBATCH --time=24:00:00
 #SBATCH -N 1
-#SBATCH -p cs-all-gcondo --gres=gpu:1
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=8
+#SBATCH -p gpu --gres=gpu:1
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=12
 #SBATCH -J cross_dataset_ablate_C
 #SBATCH -o cross_dataset_ablate_C.log
 #SBATCH -e cross_dataset_ablate_C.log
@@ -21,7 +21,7 @@ conda activate spline
 
 export PYTHONPATH=./
 
-for C in 0.01 100
+for C in 0.1 10
 do
     python -u cross_dataset.py --order lp_replace --C ${C}
     python -u cross_dataset.py --order replace_lp --C ${C}
