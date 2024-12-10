@@ -10,7 +10,7 @@ from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger
 from loguru import logger
 
 
-def generate_spiral_data(n_points, noise=0.5, n_turns=3):
+def generate_spiral_data(n_points, noise=0.5, n_turns=3, label_flip=0.05):
     """
     Generate a spiral dataset with more turns, with reduced noise for smaller radii.
 
@@ -36,6 +36,11 @@ def generate_spiral_data(n_points, noise=0.5, n_turns=3):
     X_b = np.vstack((x_b, y_b)).T
     X = np.vstack((X_a, X_b))
     y = np.hstack((np.zeros(n), np.ones(n)))
+
+    # Flip a portion of the labels based on label_flip
+    n_flips = int(label_flip * n_points)
+    flip_indices = np.random.choice(n_points, size=n_flips, replace=False)
+    y[flip_indices] = 1 - y[flip_indices]
 
     return X, y
 
@@ -97,7 +102,7 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim):
 
 # Use the helper function in the plotting loop
 def plot_classification_bond(
-    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, c=0.5
+    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, label_flip=0.05, c=0.5
 ) -> None:
     """
     Plot the decision boundary of the model for BetaSwish, BetaSoftplus, and BetaAgg.
@@ -115,7 +120,7 @@ def plot_classification_bond(
 
     # Data generation
     logger.debug("Generating data...")
-    X, y = generate_spiral_data(n_points=N, noise=noise, n_turns=n_turns)
+    X, y = generate_spiral_data(n_points=N, noise=noise, n_turns=n_turns, label_flip=label_flip)
     points = torch.from_numpy(X).float().cuda()
     target = torch.from_numpy(y).long().cuda()
 
@@ -202,8 +207,9 @@ if __name__ == "__main__":
     noise = 0.3
     n_turns = 3
     coeff = 0.5
+    label_flip = 0.05
 
     f_name = get_file_name(__file__)
     set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_noise{noise}_turns{n_turns}_coeff{coeff}_seed42')
     fix_seed(42)
-    plot_classification_bond(width, depth, training_steps, beta_vals, noise, n_turns, coeff)
+    plot_classification_bond(width, depth, training_steps, beta_vals, noise, n_turns, label_flip, coeff)
