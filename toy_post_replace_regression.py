@@ -9,12 +9,12 @@ from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger
 from loguru import logger
 
 
-def generate_curve_data(n_points, noise=0):
+def generate_curve_data(n_points):
     """
     Generate a Gaussian-like bell curve dataset with noise.
     """
     X = np.linspace(-np.pi / 4, 3 * np.pi / 4, n_points)
-    y = np.sin(2 * X) + noise * np.random.randn(n_points)
+    y = np.sin(2 * X)
     return X, y
 
 
@@ -39,18 +39,18 @@ def plot_classification(
     logger.debug("Generating data...")
     X, y = generate_curve_data(N)
     points = torch.from_numpy(X).float().cuda().unsqueeze(-1)
-    target = torch.from_numpy(y).long().cuda()
+    target = torch.from_numpy(y).float().cuda().unsqueeze(-1)
 
     # Model and optimizer definition
-    relu_model = MLP(1, depth, width, nn.ReLU()).cuda()
-    optim = torch.optim.AdamW(relu_model.parameters(), 0.001, weight_decay=1e-5)
+    relu_model = MLP(1, 1, depth, width, nn.ReLU()).cuda()
+    optim = torch.optim.AdamW(relu_model.parameters(), 0.001)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.5)
 
     # Training
     with tqdm(total=training_steps // 100) as pbar:
         for i in range(training_steps):
-            output = relu_model(points)[:, 0]
-            loss = nn.MSELoss()(output, target.float())
+            output = relu_model(points)
+            loss = nn.MSELoss()(output, target)
             optim.zero_grad()
             loss.backward()
             optim.step()

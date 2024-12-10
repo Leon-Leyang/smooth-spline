@@ -33,7 +33,7 @@ def plot_classification_case(
     target = torch.from_numpy(np.array([0] * (N // 2) + [1] * (N // 2))).long().cuda()
 
     # model and optimizer definition
-    model = MLP(2, depth, width, nn.ReLU()).cuda()
+    model = MLP(2, 2, depth, width, nn.ReLU()).cuda()
     if beta != 1:
         logger.debug(f"Using BetaReLU with beta={beta}")
         model = replace_module(model, beta, coeff=0.5)

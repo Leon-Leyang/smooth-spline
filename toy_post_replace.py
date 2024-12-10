@@ -35,7 +35,7 @@ def plot_classification_case(
     target = torch.from_numpy(np.array([0] * (N // 2) + [1] * (N // 2))).long().cuda()
 
     # model and optimizer definition
-    relu_model = MLP(2, depth, width, nn.ReLU()).cuda()
+    relu_model = MLP(2, 2, depth, width, nn.ReLU()).cuda()
     optim = torch.optim.AdamW(relu_model.parameters(), 0.001, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.3)
 

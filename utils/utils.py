@@ -66,7 +66,7 @@ class MLP(nn.Module):
     """
     A simple MLP for binary classification.
     """
-    def __init__(self, in_features: int, depth: int, width: int, nonlinearity: nn.Module):
+    def __init__(self, in_features: int, out_features: int, depth: int, width: int, nonlinearity: nn.Module):
         super().__init__()
         self.register_buffer("depth", torch.as_tensor(depth))
         self.layer0 = torch.nn.Linear(in_features, width)
@@ -76,7 +76,7 @@ class MLP(nn.Module):
                 f"layer{i}",
                 nn.Linear(width, width),
             )
-        self.output_layer = nn.Linear(width, 1)
+        self.output_layer = nn.Linear(width, out_features)
         self.nonlinearity = nonlinearity
 
     def forward(self, x):
