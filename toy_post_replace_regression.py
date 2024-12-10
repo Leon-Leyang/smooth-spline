@@ -33,7 +33,7 @@ def plot_classification(
     - noise (float): Noise level for spiral data.
     - n_turns (int): Number of spiral turns.
     """
-    N = 25  # Number of training points
+    N = 30  # Number of training points
 
     # Data generation
     logger.debug("Generating data...")
@@ -44,7 +44,7 @@ def plot_classification(
     # Model and optimizer definition
     relu_model = MLP(1, 1, depth, width, nn.ReLU()).cuda()
     optim = torch.optim.AdamW(relu_model.parameters(), 0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.1)
 
     # Training
     with tqdm(total=training_steps // 100) as pbar:
@@ -99,11 +99,11 @@ def plot_classification(
 
 
 if __name__ == "__main__":
-    beta_vals = [0.9]
+    beta_vals = [0.8625]
     width = 30
     depth = 2
-    training_steps = 15000
-    noise = 0.1
+    training_steps = 100000
+    noise = 0.2
     coeff = 0.5
 
     f_name = get_file_name(__file__)

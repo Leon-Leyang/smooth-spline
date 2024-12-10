@@ -127,7 +127,7 @@ def plot_classification_bond(
     # Model and optimizer definition
     relu_model = MLP(2, 1, depth, width, nn.ReLU()).cuda()
     optim = torch.optim.AdamW(relu_model.parameters(), 0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.1)
 
     # Training
     with tqdm(total=training_steps // 100) as pbar:
@@ -204,10 +204,10 @@ if __name__ == "__main__":
     width = 20
     depth = 2
     training_steps = 2000
-    noise = 0.3
+    noise = 0.7
     n_turns = 3
     coeff = 0.5
-    label_flip = 0.05
+    label_flip = 0.16
 
     f_name = get_file_name(__file__)
     set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_noise{noise}_turns{n_turns}_coeff{coeff}_seed42')
