@@ -63,6 +63,9 @@ def plot_classification(
     x_range = np.linspace(X.min(), X.max(), 1000).reshape(-1, 1)
     x_range_torch = torch.from_numpy(x_range).float().cuda()
 
+    # True curve
+    true_curve = 1.2 * np.sin(2 * x_range)
+
     # Create subplots
     num_cols = len(beta_vals) + 1  # Include one column for the ReLU baseline
     fig, axs = plt.subplots(1, num_cols, figsize=(10 * num_cols, 5))
@@ -80,6 +83,7 @@ def plot_classification(
             predictions = model(x_range_torch).squeeze().cpu().numpy()
 
         axs[col].scatter(X, y, label="Training Data", color="blue")
+        axs[col].plot(x_range, true_curve, label="True Curve", color="black", linewidth=2.5)
         axs[col].plot(x_range, predictions, label="Prediction", color="red", linewidth=2.5)
         axs[col].set_title(title)
         axs[col].set_xlabel("X")
