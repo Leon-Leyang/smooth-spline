@@ -44,7 +44,7 @@ def plot_classification(
     # Model and optimizer definition
     relu_model = MLP(1, 1, depth, width, nn.ReLU()).cuda()
     optim = torch.optim.AdamW(relu_model.parameters(), 0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.3)
 
     # Training
     with tqdm(total=training_steps // 100) as pbar:
