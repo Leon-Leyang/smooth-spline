@@ -5,6 +5,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger, get_log_file_path
 from loguru import logger
 
@@ -52,13 +53,24 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim):
     - title: Title for the subplot.
     - mesh_dim: Dimension of the meshgrid.
     """
-    ax.scatter(
-        points.cpu().numpy()[:, 0],
-        points.cpu().numpy()[:, 1],
-        c=["purple" if l == 0 else "orange" for l in target.cpu().numpy()],
-        alpha=0.45,
-        edgecolors="none",
-    )
+    # Map target values to colors and labels
+    colors = ["purple" if t == 0 else "orange" for t in target.cpu().numpy()]
+    labels = ["Class 1" if t == 0 else "Class 2" for t in target.cpu().numpy()]
+
+    # Plot data points with unique labels for the legend
+    unique_labels = set(labels)
+    for label in unique_labels:
+        indices = [i for i, l in enumerate(labels) if l == label]
+        ax.scatter(
+            points.cpu().numpy()[indices, 0],
+            points.cpu().numpy()[indices, 1],
+            c=colors[indices[0]],  # Same color for the label
+            alpha=0.6,
+            label=label,
+            edgecolors="none",
+        )
+
+    # Plot decision boundary
     ax.contour(
         xx,
         yy,
@@ -67,6 +79,17 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim):
         colors=["red"],
         linewidths=[2.5],
     )
+
+    # Create a custom legend entry for the decision boundary
+    decision_boundary_line = mlines.Line2D([], [], color="red", linestyle="-", label="Decision Boundary")
+
+    # Get existing legend handles and labels
+    handles, labels = ax.get_legend_handles_labels()
+
+    # Add custom decision boundary handle to the existing legend
+    handles.append(decision_boundary_line)
+    ax.legend(handles=handles, loc="upper right")
+
     ax.set_title(title)
     ax.set_xticks([])
     ax.set_yticks([])
