@@ -9,18 +9,18 @@ from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger
 from loguru import logger
 
 
-def generate_curve_data(n_points):
+def generate_curve_data(n_points, noise=0.1):
     """
     Generate a Gaussian-like bell curve dataset with noise.
     """
-    X = np.linspace(-np.pi / 4, 3 * np.pi / 4, n_points)
-    y = np.sin(2 * X)
+    X = np.linspace(-np.pi / 2, 3 * np.pi / 2, n_points)
+    y = 1.2 * np.sin(2 * X) + noise * np.random.randn(n_points)
     return X, y
 
 
 # Use the helper function in the plotting loop
 def plot_classification(
-    width: int, depth: int, training_steps=2000, beta_vals=[0.9], c=0.5
+    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.1, c=0.5
 ) -> None:
     """
     Plot the decision boundary of the model for BetaSwish, BetaSoftplus, and BetaAgg.
@@ -33,11 +33,11 @@ def plot_classification(
     - noise (float): Noise level for spiral data.
     - n_turns (int): Number of spiral turns.
     """
-    N = 15  # Number of training points
+    N = 25  # Number of training points
 
     # Data generation
     logger.debug("Generating data...")
-    X, y = generate_curve_data(N)
+    X, y = generate_curve_data(n_points=N, noise=noise)
     points = torch.from_numpy(X).float().cuda().unsqueeze(-1)
     target = torch.from_numpy(y).float().cuda().unsqueeze(-1)
 
@@ -64,27 +64,23 @@ def plot_classification(
     x_range_torch = torch.from_numpy(x_range).float().cuda()
 
     # Create subplots
-    num_plots = len(beta_vals) + 1  # Include one column for the ReLU baseline
-    fig, axs = plt.subplots(1, num_plots, figsize=(5 * num_plots, 5))
-
-    if num_plots == 1:  # Ensure axs is iterable even for a single subplot
-        axs = [axs]
+    num_cols = len(beta_vals) + 1  # Include one column for the ReLU baseline
+    fig, axs = plt.subplots(1, num_cols, figsize=(10 * num_cols, 5))
 
     # Row configurations for each activation type
-    for col, beta in enumerate([None] + beta_vals):  # None for baseline
+    for col, beta in enumerate([None] + beta_vals):
         if col == 0:
             model = relu_model
             title = "Before Smooth Spline (ReLU)"
         else:
-            logger.debug(f"Using BetaAgg with beta={beta:.1f}")
             model = replace_module(copy.deepcopy(relu_model), beta, coeff=c)
             title = f"After Smooth Spline"
 
         with torch.no_grad():
             predictions = model(x_range_torch).squeeze().cpu().numpy()
 
-        axs[col].scatter(X, y, label="Data", color="blue", alpha=0.7)
-        axs[col].plot(x_range, predictions, label="Regression", color="red")
+        axs[col].scatter(X, y, label="Training Data", color="blue")
+        axs[col].plot(x_range, predictions, label="Prediction", color="red", linewidth=2.5)
         axs[col].set_title(title)
         axs[col].set_xlabel("X")
         axs[col].set_ylabel("y")
@@ -100,12 +96,13 @@ def plot_classification(
 
 if __name__ == "__main__":
     beta_vals = [0.9]
-    width = 64
-    depth = 4
-    training_steps = 10000
+    width = 30
+    depth = 2
+    training_steps = 15000
+    noise = 0.1
     coeff = 0.5
 
     f_name = get_file_name(__file__)
     set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_coeff{coeff}_seed42')
     fix_seed(42)
-    plot_classification(width, depth, training_steps, beta_vals, coeff)
+    plot_classification(width, depth, training_steps, beta_vals, noise, coeff)
