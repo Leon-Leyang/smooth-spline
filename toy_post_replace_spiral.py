@@ -121,7 +121,7 @@ def plot_classification_bond(
 
     # Model and optimizer definition
     relu_model = MLP(2, 1, depth, width, nn.ReLU()).cuda()
-    optim = torch.optim.AdamW(relu_model.parameters(), 0.001, weight_decay=1e-5)
+    optim = torch.optim.AdamW(relu_model.parameters(), 0.001)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.3)
 
     # Training
