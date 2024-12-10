@@ -136,7 +136,10 @@ def plot_classification_bond(
     num_cols = len(beta_vals) + 1  # Include one column for the ReLU baseline
     num_rows = len(activation_configs)
     fig, axs = plt.subplots(num_rows, num_cols, figsize=(10 * num_cols, 10 * num_rows))
-    axs = [axs] if num_rows == 1 else axs
+    if num_rows == 1:
+        axs = np.expand_dims(axs, axis=0)
+    if num_cols == 1:
+        axs = np.expand_dims(axs, axis=1)
 
     for row, (name, coeff) in enumerate(activation_configs):
         with torch.no_grad():
