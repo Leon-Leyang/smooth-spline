@@ -74,7 +74,7 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim):
 
 # Use the helper function in the plotting loop
 def plot_classification_bond(
-    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, coeff=0.5
+    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, c=0.5
 ) -> None:
     """
     Plot the decision boundary of the model for BetaSwish, BetaSoftplus, and BetaAgg.
@@ -132,7 +132,7 @@ def plot_classification_bond(
     activation_configs = [
         ("BetaSwish", 1),
         ("BetaSoftplus", 0),
-        ("BetaAgg", 0.5),
+        ("BetaAgg", c),
     ]
 
     for row, (name, coeff) in enumerate(activation_configs):
