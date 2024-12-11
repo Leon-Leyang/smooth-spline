@@ -99,14 +99,14 @@ def plot_classification(
 
 
 if __name__ == "__main__":
-    beta_vals = [0.8625]
-    width = 30
-    depth = 2
-    training_steps = 100000
-    noise = 0.2
+    beta_vals = [0.9]
+    width = 64
+    depth = 8
+    training_steps = 20000
+    noise = 0.3
     coeff = 0.5
 
     f_name = get_file_name(__file__)
-    set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_coeff{coeff}_seed42')
-    fix_seed(42)
+    set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_coeff{coeff}_seed43')
+    fix_seed(43)
     plot_classification(width, depth, training_steps, beta_vals, noise, coeff)
