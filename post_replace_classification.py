@@ -124,7 +124,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
     beta_list.append(1)
     logger.info(f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
 
-    plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
+    # plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
 
 
 def test_acc(dataset, beta_vals):
