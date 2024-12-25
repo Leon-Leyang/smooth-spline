@@ -4,8 +4,7 @@ import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
-from utils.utils import (get_pretrained_model, get_file_name, fix_seed, result_exists,
-                         set_logger, plot_acc_vs_beta)
+from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_acc_vs_beta
 from utils.smooth_spline import replace_module
 from utils.train import test_epoch
 from loguru import logger
@@ -105,8 +104,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
 
     # Test the original model
     logger.debug('Using ReLU...')
-    orig_model = copy.deepcopy(model)
-    transfer_model = transfer_linear_probe(orig_model, pretrained_ds, transfer_ds, C)
+    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, C)
     _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
     best_acc = base_acc
     best_beta = 1
@@ -114,8 +112,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
-        orig_model = copy.deepcopy(model)
-        new_model = replace_module(orig_model, beta, coeff=0.5)
+        new_model = replace_module(copy.deepcopy(model), beta)
         transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, C)
         _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
         if test_acc > best_acc:
@@ -127,7 +124,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
     beta_list.append(1)
     logger.info(f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
 
-    plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name)
+    plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
 
 
 def test_acc(dataset, beta_vals):

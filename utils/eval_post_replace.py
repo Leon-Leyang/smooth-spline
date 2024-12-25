@@ -41,8 +41,7 @@ def replace_and_test_acc(model, beta_vals, dataset):
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
-        orig_model = copy.deepcopy(model)
-        new_model = replace_module(orig_model, beta, coeff=0.5)
+        new_model = replace_module(copy.deepcopy(model), beta)
         _, test_acc = test_epoch(-1, new_model, test_loader, criterion, device)
         if test_acc > best_acc:
             best_acc = test_acc
