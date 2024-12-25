@@ -3,10 +3,18 @@ import os
 from pathlib import Path
 import torch
 from torch import nn as nn
+from torchvision import transforms as transforms
 from utils.robustbench import benchmark
-from utils.utils import test_epoch, replace_module, plot_acc_vs_beta, DEFAULT_TRANSFORM
+from utils.utils import plot_acc_vs_beta
+from utils.smooth_spline import replace_module
+from utils.train import test_epoch
 from loguru import logger
 from utils.data import get_data_loaders
+
+DEFAULT_TRANSFORM = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
+])
 
 
 def replace_and_test_acc(model, beta_vals, dataset):

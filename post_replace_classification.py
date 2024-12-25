@@ -4,8 +4,10 @@ import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
-from utils.utils import (get_pretrained_model, test_epoch, replace_module, get_file_name, fix_seed, result_exists,
+from utils.utils import (get_pretrained_model, get_file_name, fix_seed, result_exists,
                          set_logger, plot_acc_vs_beta)
+from utils.smooth_spline import replace_module
+from utils.train import test_epoch
 from loguru import logger
 import copy
 import argparse

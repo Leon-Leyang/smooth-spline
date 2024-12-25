@@ -6,7 +6,8 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
-from utils.utils import MLP, replace_module, get_file_name, fix_seed, set_logger, get_log_file_path
+from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
+from utils.smooth_spline import replace_module
 from loguru import logger
 
 

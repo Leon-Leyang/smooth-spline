@@ -16,7 +16,7 @@ from utils.semseg.util import dataset, transform, config
 from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, \
     colorize, poly_learning_rate, find_free_port, get_logger, main_process, check
 from utils.semseg.model.pspnet import PSPNet
-from utils.utils import replace_module
+from utils.smooth_spline import replace_module
 
 cv2.ocl.setUseOpenCL(False)
 
