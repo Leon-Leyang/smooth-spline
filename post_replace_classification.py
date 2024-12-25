@@ -164,7 +164,7 @@ if __name__ == '__main__':
     log_file_path = set_logger(name=f'{f_name}_{args.order}_topk1_C{args.C}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
-    betas = np.arange(0.95, 1 - 1e-6, 0.01)
+    betas = np.arange(0.95, 1 - 1e-6, 0.001)
 
     pretrained_datasets = ['mnist', 'cifar10', 'cifar100', 'imagenet']
     transfer_datasets = ['mnist', 'cifar10', 'cifar100', 'imagenet']
