@@ -17,7 +17,7 @@ DEFAULT_TRANSFORM = transforms.Compose([
 ])
 
 
-def replace_and_test_acc(model, beta_vals, dataset):
+def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
     """
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
@@ -41,7 +41,7 @@ def replace_and_test_acc(model, beta_vals, dataset):
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
-        new_model = replace_module(copy.deepcopy(model), beta)
+        new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
         _, test_acc = test_epoch(-1, new_model, test_loader, criterion, device)
         if test_acc > best_acc:
             best_acc = test_acc

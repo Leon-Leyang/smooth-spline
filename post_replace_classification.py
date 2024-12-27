@@ -14,7 +14,7 @@ import argparse
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def transfer_linear_probe(model, pretrained_ds, transfer_ds, C=1):
+def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1):
     """
     Transfer learning.
     """
@@ -29,7 +29,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, C=1):
     train_features, train_labels = extract_features(feature_extractor, train_loader)
 
     # Fit sklearn LogisticRegression as the linear probe
-    logistic_regressor = LogisticRegression(max_iter=10000, C=C)
+    logistic_regressor = LogisticRegression(max_iter=10000, C=reg)
     logistic_regressor.fit(train_features, train_labels)
 
     # Replace the last layer of the model with a linear layer
@@ -65,13 +65,13 @@ def extract_features(feature_extractor, dataloader):
     return features, labels
 
 
-def lp_then_replace_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
+def lp_then_replace_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5):
     """
     Do transfer learning using a linear probe and test the model's accuracy with different beta values of BetaReLU.
     """
     model = get_pretrained_model(pretrained_ds)
-    model = transfer_linear_probe(model, pretrained_ds, transfer_ds, C)
-    replace_and_test_acc(model, beta_vals, f'{pretrained_ds}_to_{transfer_ds}')
+    model = transfer_linear_probe(model, pretrained_ds, transfer_ds, reg)
+    replace_and_test_acc(model, beta_vals, f'{pretrained_ds}_to_{transfer_ds}', coeff)
 
 
 def lp_then_replace_test_robustness(threat, beta_vals, pretrained_ds, transfer_ds):
@@ -79,11 +79,11 @@ def lp_then_replace_test_robustness(threat, beta_vals, pretrained_ds, transfer_d
     Do transfer learning using a linear probe and test the model's robustness with different beta values of BetaReLU.
     """
     model = get_pretrained_model(pretrained_ds)
-    model = transfer_linear_probe(model, pretrained_ds, transfer_ds, C=1)
+    model = transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1)
     replace_and_test_robustness(model, threat, beta_vals, f'{pretrained_ds}_to_{transfer_ds}')
 
 
-def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
+def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5):
     """
     Replace ReLU with BetaReLU and then do transfer learning using a linear probe and test the model's accuracy.
     """
@@ -104,7 +104,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
 
     # Test the original model
     logger.debug('Using ReLU...')
-    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, C)
+    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg)
     _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
     best_acc = base_acc
     best_beta = 1
@@ -112,8 +112,8 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
-        new_model = replace_module(copy.deepcopy(model), beta)
-        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, C)
+        new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
+        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg)
         _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
         if test_acc > best_acc:
             best_acc = test_acc
@@ -127,12 +127,12 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, C=1):
     plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
 
 
-def test_acc(dataset, beta_vals):
+def test_acc(dataset, beta_vals, coeff):
     """
     Test the model's accuracy with different beta values of BetaReLU on the same dataset.
     """
     model = get_pretrained_model(dataset)
-    replace_and_test_acc(model, beta_vals, dataset)
+    replace_and_test_acc(model, beta_vals, dataset, coeff)
 
 
 def test_robustness(threat, dataset, beta_vals):
@@ -152,7 +152,8 @@ def get_args():
         default='lp_replace',
         help='Order of operations: lp_replace or replace_lp'
     )
-    parser.add_argument('--C', type=float, default=1, help='Regularization strength for Logistic Regression')
+    parser.add_argument('--coeff', type=float, default=0.5, help='Coefficient for BetaAgg')
+    parser.add_argument('--reg', type=float, default=1, help='Regularization strength for Logistic Regression')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     return parser.parse_args()
 
@@ -161,7 +162,7 @@ if __name__ == '__main__':
     args = get_args()
 
     f_name = get_file_name(__file__)
-    log_file_path = set_logger(name=f'{f_name}_{args.order}_topk1_C{args.C}_seed{args.seed}')
+    log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk1_reg{args.reg}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     betas = np.arange(0.6, 1 - 1e-6, 0.01)
@@ -178,7 +179,7 @@ if __name__ == '__main__':
                     logger.info(f'Skipping {pretrained_ds} to {transfer_ds} as result already exists.')
                     continue
                 else:
-                    test_acc(pretrained_ds, betas)
+                    test_acc(pretrained_ds, betas, args.coeff)
             elif transfer_ds == 'imagenet':     # Skip transfer learning on ImageNet
                 continue
             else:   # Test on different datasets
@@ -186,11 +187,11 @@ if __name__ == '__main__':
                     if result_exists(f'{pretrained_ds}_to_{transfer_ds}'):
                         logger.info(f'Skipping lp_replace {pretrained_ds} to {transfer_ds} as result already exists.')
                         continue
-                    lp_then_replace_test_acc(betas, pretrained_ds, transfer_ds, args.C)
+                    lp_then_replace_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff)
                 elif args.order == 'replace_lp':
                     if result_exists(f'{pretrained_ds}_to_{transfer_ds}', replace_then_lp=True):
                         logger.info(f'Skipping replace_lp {pretrained_ds} to {transfer_ds} as result already exists.')
                         continue
-                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.C)
+                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff)
                 else:
                     raise ValueError(f'Invalid order: {args.order}')
