@@ -119,7 +119,8 @@ def get_log_file_path():
     return file_paths[0]
 
 
-def plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_config=None):
+def plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_config=None,
+                     seed=42, order='lp_replace', coeff=0.5, reg=1):
     # Plot the test accuracy vs beta values
     plt.figure(figsize=(12, 8))
     plt.plot(beta_list, acc_list)
@@ -140,7 +141,7 @@ def plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_
     plt.legend()
     os.makedirs('./figures', exist_ok=True)
     if robust_config:
-        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}_{robust_config}.png"
+        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}_{robust_config}_seed{seed}_order{order}_coeff{coeff}_reg{reg}_topk1.png"
     else:
-        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}.png"
+        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}_seed{seed}_order{order}_coeff{coeff}_reg{reg}_topk1.png"
     plt.savefig(output_path)

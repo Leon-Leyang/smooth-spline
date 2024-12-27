@@ -83,7 +83,7 @@ def lp_then_replace_test_robustness(threat, beta_vals, pretrained_ds, transfer_d
     replace_and_test_robustness(model, threat, beta_vals, f'{pretrained_ds}_to_{transfer_ds}')
 
 
-def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5):
+def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, seed=42):
     """
     Replace ReLU with BetaReLU and then do transfer learning using a linear probe and test the model's accuracy.
     """
@@ -124,7 +124,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     beta_list.append(1)
     logger.info(f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
 
-    plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
+    plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name, seed=seed, order='replace_lp', coeff=coeff, reg=reg)
 
 
 def test_acc(dataset, beta_vals, coeff):
@@ -192,6 +192,6 @@ if __name__ == '__main__':
                     if result_exists(f'{pretrained_ds}_to_{transfer_ds}', replace_then_lp=True):
                         logger.info(f'Skipping replace_lp {pretrained_ds} to {transfer_ds} as result already exists.')
                         continue
-                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff)
+                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.seed)
                 else:
                     raise ValueError(f'Invalid order: {args.order}')

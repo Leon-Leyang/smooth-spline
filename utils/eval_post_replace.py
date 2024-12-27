@@ -17,7 +17,7 @@ DEFAULT_TRANSFORM = transforms.Compose([
 ])
 
 
-def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
+def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5, seed=42, reg=1):
     """
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
@@ -52,7 +52,7 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
     beta_list.append(1)
     logger.info(f'Best accuracy for {dataset}: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
 
-    plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name)
+    plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, seed=seed, order='lp_replace', coeff=coeff, reg=reg)
 
 
 def replace_and_test_robustness(model, threat, beta_vals, dataset, batch_size=2000, n_examples=1000,
