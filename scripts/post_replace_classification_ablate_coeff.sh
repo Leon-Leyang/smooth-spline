@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#SBATCH --time=24:00:00
+#SBATCH -N 1
+#SBATCH -p gpu --gres=gpu:1
+#SBATCH --mem=96G
+#SBATCH --cpus-per-task=16
+#SBATCH -J post_cls
+#SBATCH -o post_cls.log
+#SBATCH -e post_cls.log
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=leyang_hu@brown.edu
+
+# Load the necessary module
+module load miniconda3/23.11.0s
+
+eval "$(conda shell.bash hook)"
+
+# Activate the conda environment
+conda activate spline
+
+export PYTHONPATH=./
+
+for coeff in 0 1
+do
+    python -u post_replace_classification.py --order lp_replace --coeff ${coeff}
+    python -u post_replace_classification.py --order replace_lp --coeff ${coeff}
+done
+
+

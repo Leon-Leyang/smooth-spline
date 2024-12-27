@@ -3,11 +3,11 @@
 #SBATCH --time=24:00:00
 #SBATCH -N 1
 #SBATCH -p gpu --gres=gpu:1
-#SBATCH --mem=64G
-#SBATCH --cpus-per-task=12
-#SBATCH -J cross_dataset_ablate_C
-#SBATCH -o cross_dataset_ablate_C.log
-#SBATCH -e cross_dataset_ablate_C.log
+#SBATCH --mem=96G
+#SBATCH --cpus-per-task=16
+#SBATCH -J post_cls
+#SBATCH -o post_cls.log
+#SBATCH -e post_cls.log
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=leyang_hu@brown.edu
 
@@ -21,10 +21,10 @@ conda activate spline
 
 export PYTHONPATH=./
 
-for C in 0.1 10
+for seed in 42 43 44
 do
-    python -u cross_dataset.py --order lp_replace --C ${C}
-    python -u cross_dataset.py --order replace_lp --C ${C}
+    python -u post_replace_classification.py --order lp_replace --seed ${seed}
+    python -u post_replace_classification.py --order replace_lp --seed ${seed}
 done
 
 

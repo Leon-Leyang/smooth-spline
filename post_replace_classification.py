@@ -155,6 +155,7 @@ def get_args():
     parser.add_argument('--coeff', type=float, default=0.5, help='Coefficient for BetaAgg')
     parser.add_argument('--reg', type=float, default=1, help='Regularization strength for Logistic Regression')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    parser.add_argument('--topk', type=int, default=1, help='Number of top-k feature layers to use')
     return parser.parse_args()
 
 

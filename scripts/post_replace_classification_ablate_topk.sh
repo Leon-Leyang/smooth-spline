@@ -3,11 +3,11 @@
 #SBATCH --time=24:00:00
 #SBATCH -N 1
 #SBATCH -p gpu --gres=gpu:1
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=6
-#SBATCH -J cross_dataset_ablate_topk
-#SBATCH -o cross_dataset_ablate_topk.log
-#SBATCH -e cross_dataset_ablate_topk.log
+#SBATCH --mem=96G
+#SBATCH --cpus-per-task=16
+#SBATCH -J post_cls_ablate_topk
+#SBATCH -o post_cls_ablate_topk.log
+#SBATCH -e post_cls_ablate_topk.log
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=leyang_hu@brown.edu
 
@@ -23,8 +23,8 @@ export PYTHONPATH=./
 
 for topk in 2 3
 do
-    python -u cross_dataset.py --order lp_replace --topk ${topk}
-    python -u cross_dataset.py --order replace_lp --topk ${topk}
+    python -u post_replace_classification.py --order lp_replace --topk ${topk}
+    python -u post_replace_classification.py --order replace_lp --topk ${topk}
 done
 
 
