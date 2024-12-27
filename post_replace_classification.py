@@ -29,7 +29,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1):
     train_features, train_labels = extract_features(feature_extractor, train_loader)
 
     # Fit sklearn LogisticRegression as the linear probe
-    logistic_regressor = LogisticRegression(max_iter=10000, C=reg)
+    logistic_regressor = LogisticRegression(max_iter=10000, C=reg, n_jobs=-1)
     logistic_regressor.fit(train_features, train_labels)
 
     # Replace the last layer of the model with a linear layer
