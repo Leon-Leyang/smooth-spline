@@ -14,7 +14,71 @@ import argparse
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1):
+class FeatureExtractor(nn.Module):
+    """
+    Feature extractor for the model.
+    """
+    def __init__(self, model, topk=1):
+        super().__init__()
+        self.model = model
+        self.topk = topk
+        self._features = {}
+
+        chosen_layers = get_topk_layers(model, topk)
+
+        for name, module in self.model.named_children():
+            if module in chosen_layers:
+                module.register_forward_hook(self._make_hook(name))
+
+    def _make_hook(self, layer_name):
+        def hook(module, input, output):
+            self._features[layer_name] = output
+
+        return hook
+
+    def forward(self, x):
+        self.model(x)
+        feats_cat = []
+        for k, feat in self._features.items():
+            feats_cat.append(feat.flatten(1))
+        feats_cat = torch.cat(feats_cat, dim=1) if feats_cat else None
+
+        return feats_cat
+
+
+class WrappedModel(FeatureExtractor):
+    """
+    Wrapper for the model after replacing the last layer.
+    """
+    def forward(self, x):
+        self.model(x)
+        feats_cat = []
+        for k, feat in self._features.items():
+            feats_cat.append(feat.flatten(1))
+        feats_cat = torch.cat(feats_cat, dim=1) if feats_cat else None
+
+        out = self.model.fc(feats_cat)
+        return out
+
+
+def get_topk_layers(model, topk):
+    """
+    Get the top-k layers of the model excluding the classification head.
+    """
+    # Get the top-level children
+    children = list(model.children())
+
+    # Exclude the last one if it's the classification head:
+    if isinstance(children[-1], nn.Linear):
+        children = children[:-1]
+
+    # Now just take the last `topk` from that shortened list
+    if topk > len(children):
+        topk = len(children)
+    return children[-topk:]
+
+
+def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     """
     Transfer learning.
     """
@@ -25,20 +89,22 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1):
 
     # Remove the last layer of the model
     model = model.to(device)
-    feature_extractor = nn.Sequential(*list(model.children())[:-1])
+    feature_extractor = FeatureExtractor(model, topk)
     train_features, train_labels = extract_features(feature_extractor, train_loader)
 
     # Fit sklearn LogisticRegression as the linear probe
-    logistic_regressor = LogisticRegression(max_iter=10000, C=reg, n_jobs=-1)
+    logistic_regressor = LogisticRegression(max_iter=10000, C=reg)
     logistic_regressor.fit(train_features, train_labels)
 
     # Replace the last layer of the model with a linear layer
     num_classes = 100 if 'cifar100' in transfer_ds else 1000 if 'imagenet' in transfer_ds else 10
-    model.fc = nn.Linear(model.fc.in_features, num_classes).to(device)
+
+    model.fc = nn.Linear(logistic_regressor.n_features_in_, num_classes).to(device)
     model.fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
     model.fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
     model.fc.weight.requires_grad = False
     model.fc.bias.requires_grad = False
+    model = WrappedModel(model, topk)
 
     logger.debug('Finishing transferring learning...')
     return model
@@ -65,12 +131,12 @@ def extract_features(feature_extractor, dataloader):
     return features, labels
 
 
-def lp_then_replace_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5):
+def lp_then_replace_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1):
     """
     Do transfer learning using a linear probe and test the model's accuracy with different beta values of BetaReLU.
     """
     model = get_pretrained_model(pretrained_ds)
-    model = transfer_linear_probe(model, pretrained_ds, transfer_ds, reg)
+    model = transfer_linear_probe(model, pretrained_ds, transfer_ds, reg, topk)
     replace_and_test_acc(model, beta_vals, f'{pretrained_ds}_to_{transfer_ds}', coeff)
 
 
@@ -83,7 +149,7 @@ def lp_then_replace_test_robustness(threat, beta_vals, pretrained_ds, transfer_d
     replace_and_test_robustness(model, threat, beta_vals, f'{pretrained_ds}_to_{transfer_ds}')
 
 
-def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5):
+def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1):
     """
     Replace ReLU with BetaReLU and then do transfer learning using a linear probe and test the model's accuracy.
     """
@@ -104,7 +170,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
 
     # Test the original model
     logger.debug('Using ReLU...')
-    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg)
+    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk)
     _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
     best_acc = base_acc
     best_beta = 1
@@ -113,7 +179,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
         new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
-        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg)
+        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk)
         _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
         if test_acc > best_acc:
             best_acc = test_acc
@@ -188,11 +254,11 @@ if __name__ == '__main__':
                     if result_exists(f'{pretrained_ds}_to_{transfer_ds}'):
                         logger.info(f'Skipping lp_replace {pretrained_ds} to {transfer_ds} as result already exists.')
                         continue
-                    lp_then_replace_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff)
+                    lp_then_replace_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk)
                 elif args.order == 'replace_lp':
                     if result_exists(f'{pretrained_ds}_to_{transfer_ds}', replace_then_lp=True):
                         logger.info(f'Skipping replace_lp {pretrained_ds} to {transfer_ds} as result already exists.')
                         continue
-                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.seed)
+                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.seed, args.topk)
                 else:
                     raise ValueError(f'Invalid order: {args.order}')
