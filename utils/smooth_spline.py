@@ -3,17 +3,22 @@ from torch import nn as nn
 
 
 class BetaAgg(nn.Module):
-    def __init__(self, beta=0, coeff=0.5, trainable=False):
+    def __init__(self, beta=0, coeff=0.5, threshold=20,  trainable=False):
         assert 0 <= beta < 1
         super().__init__()
         self.beta = nn.Parameter(torch.tensor(beta))
         self.beta.requires_grad_(trainable)
         self.coeff = coeff
+        self.threshold = threshold
 
     def forward(self, x):
         beta = self.beta
-        return (self.coeff * torch.sigmoid(beta * x / (1 - beta)) * x +
-                (1 - self.coeff) * torch.log(1 + torch.exp(x / (1 - beta))) * (1 - beta))
+        single_ver = torch.sigmoid(beta * x / (1 - beta)) * x
+        agg_ver = (
+            self.coeff * torch.sigmoid(beta * x / (1 - beta)) * x +
+            (1 - self.coeff) * torch.log(1 + torch.exp(x / (1 - beta))) * (1 - beta)
+        )
+        return torch.where(x / (1 - beta) <= self.threshold, agg_ver, single_ver)
 
 
 class ReplacementMapping:
