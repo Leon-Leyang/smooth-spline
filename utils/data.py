@@ -84,7 +84,7 @@ def replicate_if_needed(x):
     return x  # Return unchanged if already has more than 1 channel
 
 
-def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None, num_workers=6):
+def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None, num_workers=16):
     """
     Get the data loaders for the dataset.
     """
