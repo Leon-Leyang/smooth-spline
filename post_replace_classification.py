@@ -50,14 +50,13 @@ class WrappedModel(FeatureExtractor):
     """
     Wrapper for the model after replacing the last layer.
     """
-    def forward(self, x):
-        self.model(x)
-        feats_cat = []
-        for k, feat in self._features.items():
-            feats_cat.append(feat.flatten(1))
-        feats_cat = torch.cat(feats_cat, dim=1) if feats_cat else None
+    def __init__(self, model, fc, topk=1):
+        super().__init__(model, topk)
+        self.fc = fc
 
-        out = self.model.fc(feats_cat)
+    def forward(self, x):
+        feats_cat = super().forward(x)
+        out = self.fc(feats_cat)
         return out
 
 
@@ -99,12 +98,12 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     # Replace the last layer of the model with a linear layer
     num_classes = 100 if 'cifar100' in transfer_ds else 1000 if 'imagenet' in transfer_ds else 10
 
-    model.fc = nn.Linear(logistic_regressor.n_features_in_, num_classes).to(device)
-    model.fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
-    model.fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
-    model.fc.weight.requires_grad = False
-    model.fc.bias.requires_grad = False
-    model = WrappedModel(model, topk)
+    fc = nn.Linear(logistic_regressor.n_features_in_, num_classes).to(device)
+    fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
+    fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
+    fc.weight.requires_grad = False
+    fc.bias.requires_grad = False
+    model = WrappedModel(model, fc, topk)
 
     logger.debug('Finishing transferring learning...')
     return model
