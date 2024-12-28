@@ -3,8 +3,8 @@
 #SBATCH --time=24:00:00
 #SBATCH -N 1
 #SBATCH -p gpu --gres=gpu:1
-#SBATCH --mem=96G
-#SBATCH --cpus-per-task=16
+#SBATCH --mem=48G
+#SBATCH --cpus-per-task=6
 #SBATCH -J post_cls
 #SBATCH -o post_cls.log
 #SBATCH -e post_cls.log
@@ -21,10 +21,11 @@ conda activate spline
 
 export PYTHONPATH=./
 
-for coeff in 0 1
+for seed in 42 43 44
 do
-    python -u post_replace_classification.py --order lp_replace --coeff ${coeff}
-    python -u post_replace_classification.py --order replace_lp --coeff ${coeff}
+  for coeff in 0 1
+  do
+      python -u post_replace_classification.py --order lp_replace --coeff ${coeff} --seed ${seed}
+      python -u post_replace_classification.py --order replace_lp --coeff ${coeff} --seed ${seed}
+  done
 done
-
-

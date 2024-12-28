@@ -50,7 +50,7 @@ class FastLoader:
         return self.length
 
 
-def dataset_to_h5(dataset, h5file, num_workers=16, chunk_size=1024):
+def dataset_to_h5(dataset, h5file, num_workers=6, chunk_size=1024):
 
     nfiles = len(dataset)
 

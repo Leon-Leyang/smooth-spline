@@ -3,8 +3,8 @@
 #SBATCH --time=24:00:00
 #SBATCH -N 1
 #SBATCH -p gpu --gres=gpu:1
-#SBATCH --mem=96G
-#SBATCH --cpus-per-task=16
+#SBATCH --mem=48G
+#SBATCH --cpus-per-task=6
 #SBATCH -J post_cls_ablate_topk
 #SBATCH -o post_cls_ablate_topk.log
 #SBATCH -e post_cls_ablate_topk.log
@@ -21,10 +21,11 @@ conda activate spline
 
 export PYTHONPATH=./
 
-for topk in 2 3
+for seed in 42 43 44
 do
-    python -u post_replace_classification.py --order lp_replace --topk ${topk}
-    python -u post_replace_classification.py --order replace_lp --topk ${topk}
+  for topk in 2 3
+  do
+      python -u post_replace_classification.py --order lp_replace --topk ${topk} --seed ${seed}
+      python -u post_replace_classification.py --order replace_lp --topk ${topk} --seed ${seed}
+  done
 done
-
-
