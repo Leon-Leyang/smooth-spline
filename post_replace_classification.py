@@ -103,7 +103,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
     fc.weight.requires_grad = False
     fc.bias.requires_grad = False
-    model = WrappedModel(model, fc, topk)
+    model = WrappedModel(nn.Sequential(*list(model.children())[:-1]), fc, topk)
 
     logger.debug('Finishing transferring learning...')
     return model
