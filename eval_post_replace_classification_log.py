@@ -61,15 +61,27 @@ def compute_statistics(log_files):
         for dataset, values in combined_betas.items()
     }
 
-    return stats_new_accuracies, stats_baseline_accuracies, stats_betas
+    # Compute normalized improvement for each dataset
+    normalized_improvements = {
+        dataset: ((stats_new_accuracies[dataset][0] - stats_baseline_accuracies[dataset][0]) /
+                  stats_baseline_accuracies[dataset][0]) * 100
+        if stats_baseline_accuracies[dataset][0] != 0 else 0
+        for dataset in stats_new_accuracies
+    }
+
+    # Compute overall normalized improvement across all datasets
+    total_normalized_improvement = sum(normalized_improvements.values()) / len(
+        normalized_improvements) if normalized_improvements else 0
+
+    return stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, total_normalized_improvement
 
 
 if __name__ == "__main__":
     # Input: List of log file paths
     log_files = [
-        "./logs/post_replace_classification_lp_replace_coeff0.0_topk1_reg1_seed42.log",
-        "./logs/post_replace_classification_lp_replace_coeff0.0_topk1_reg1_seed43.log",
-        "./logs/post_replace_classification_lp_replace_coeff0.0_topk1_reg1_seed44.log"
+        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed42.log",
+        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed43.log",
+        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed44.log"
     ]
 
     # Ensure files exist
@@ -79,13 +91,15 @@ if __name__ == "__main__":
             exit(1)
 
     # Compute statistics
-    stats_new_accuracies, stats_baseline_accuracies, stats_betas = compute_statistics(log_files)
+    stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, total_normalized_improvement = compute_statistics(log_files)
 
     # Output results
-    print("Accuracy and Beta Statistics:")
+    print("Accuracy, Beta Statistics, and Normalized Improvements:")
     for dataset in stats_new_accuracies:
         new_mean, new_std = stats_new_accuracies[dataset]
         baseline_mean, baseline_std = stats_baseline_accuracies.get(dataset, (0, 0))
         beta_mean, beta_std = stats_betas.get(dataset, (0, 0))
-        print(
-            f"Dataset: {dataset}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Beta: {beta_mean:.2f} ± {beta_std:.2f}")
+        normalized_improvement = normalized_improvements.get(dataset, 0)
+        print(f"Dataset: {dataset}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%")
+
+    print(f"Overall Normalized Improvement Across All Datasets: {total_normalized_improvement:.2f}%")
