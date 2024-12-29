@@ -3,8 +3,8 @@
 #SBATCH --time=24:00:00
 #SBATCH -N 1
 #SBATCH -p gpu --gres=gpu:1
-#SBATCH --mem=96G
-#SBATCH --cpus-per-task=16
+#SBATCH --mem=48G
+#SBATCH --cpus-per-task=6
 #SBATCH -J post_cls
 #SBATCH -o post_cls.log
 #SBATCH -e post_cls.log

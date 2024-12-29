@@ -258,6 +258,6 @@ if __name__ == '__main__':
                     if result_exists(f'{pretrained_ds}_to_{transfer_ds}', replace_then_lp=True):
                         logger.info(f'Skipping replace_lp {pretrained_ds} to {transfer_ds} as result already exists.')
                         continue
-                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.seed, args.topk)
+                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk)
                 else:
                     raise ValueError(f'Invalid order: {args.order}')
