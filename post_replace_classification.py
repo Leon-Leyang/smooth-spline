@@ -18,15 +18,18 @@ class FeatureExtractor(nn.Module):
     """
     Feature extractor for the model.
     """
+
     def __init__(self, model, topk=1):
         super().__init__()
-        self.model = model
+        self.base_model = model
         self.topk = topk
         self._features = {}
 
-        chosen_layers = get_topk_layers(model, topk)
+        self.register_hook(topk)
 
-        for name, module in self.model.named_children():
+    def register_hook(self, topk):
+        chosen_layers = get_topk_layers(self.base_model, topk)
+        for name, module in self.base_model.named_children():
             if module in chosen_layers:
                 module.register_forward_hook(self._make_hook(name))
 
@@ -37,7 +40,8 @@ class FeatureExtractor(nn.Module):
         return hook
 
     def forward(self, x):
-        self.model(x)
+        self._features = {}
+        self.base_model(x)
         feats_cat = []
         for k, feat in self._features.items():
             feats_cat.append(feat.flatten(1))
@@ -46,16 +50,14 @@ class FeatureExtractor(nn.Module):
         return feats_cat
 
 
-class WrappedModel(FeatureExtractor):
-    """
-    Wrapper for the model after replacing the last layer.
-    """
-    def __init__(self, model, fc, topk=1):
-        super().__init__(model, topk)
+class WrappedModel(nn.Module):
+    def __init__(self, feature_extractor, fc):
+        super().__init__()
+        self.feature_extractor = feature_extractor
         self.fc = fc
 
     def forward(self, x):
-        feats_cat = super().forward(x)
+        feats_cat = self.feature_extractor(x)
         out = self.fc(feats_cat)
         return out
 
@@ -103,7 +105,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
     fc.weight.requires_grad = False
     fc.bias.requires_grad = False
-    model = WrappedModel(nn.Sequential(*list(model.children())[:-1]), fc, topk)
+    model = WrappedModel(feature_extractor, fc)
 
     logger.debug('Finishing transferring learning...')
     return model
@@ -120,7 +122,6 @@ def extract_features(feature_extractor, dataloader):
         for inputs, targets in dataloader:
             inputs = inputs.to(device)
             feature = feature_extractor(inputs)
-            feature = torch.flatten(feature, 1)
             features.append(feature.cpu().numpy())
             labels.append(targets.numpy())
 
@@ -187,7 +188,8 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
         beta_list.append(beta)
     acc_list.append(base_acc)
     beta_list.append(1)
-    logger.info(f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
+    logger.info(
+        f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
 
     plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
 
@@ -228,7 +230,7 @@ if __name__ == '__main__':
     args = get_args()
 
     f_name = get_file_name(__file__)
-    log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk1_reg{args.reg}_seed{args.seed}')
+    log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     betas = np.arange(0.5, 1 - 1e-6, 0.01)
@@ -240,15 +242,15 @@ if __name__ == '__main__':
         for transfer_ds in transfer_datasets:
             fix_seed(args.seed)  # Fix the seed each time
 
-            if pretrained_ds == transfer_ds:    # Test on the same dataset
+            if pretrained_ds == transfer_ds:  # Test on the same dataset
                 if result_exists(f'{pretrained_ds}'):
                     logger.info(f'Skipping {pretrained_ds} to {transfer_ds} as result already exists.')
                     continue
                 else:
                     test_acc(pretrained_ds, betas, args.coeff)
-            elif transfer_ds == 'imagenet':     # Skip transfer learning on ImageNet
+            elif transfer_ds == 'imagenet':  # Skip transfer learning on ImageNet
                 continue
-            else:   # Test on different datasets
+            else:  # Test on different datasets
                 if args.order == 'lp_replace':
                     if result_exists(f'{pretrained_ds}_to_{transfer_ds}'):
                         logger.info(f'Skipping lp_replace {pretrained_ds} to {transfer_ds} as result already exists.')

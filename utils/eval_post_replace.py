@@ -22,7 +22,9 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model_name = model.base_model.__class__.__name__ if hasattr(model, 'base_model') else model.__class__.__name__
+    model_name = model.base_model.__class__.__name__ if hasattr(model, 'base_model') \
+        else model.feature_extractor.base_model.__class__.__name__ if hasattr(model, 'feature_extractor') \
+        else model.__class__.__name__
 
     _, test_loader = get_data_loaders(dataset)
 
@@ -42,6 +44,11 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
         new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
+
+        # Register the hook for the top-k layer as copy.deepcopy does not copy hooks
+        if hasattr(model, 'feature_extractor'):
+            new_model.feature_extractor.register_hook(new_model.feature_extractor.topk)
+
         _, test_acc = test_epoch(-1, new_model, test_loader, criterion, device)
         if test_acc > best_acc:
             best_acc = test_acc
