@@ -46,18 +46,22 @@ def compute_dataset_mean_std(dataset, image_key="image"):
     return mean, std
 
 
-# Example usage
-if __name__ == "__main__":
+def main(dataset):
     # Replace with the path to your dataset script and the split name
-    dataset_path = "./aidatasets/images/mnist.py"
+    dataset_path = f"./aidatasets/images/{dataset}.py"
     dataset_split = "train"
-    image_key = "image"  # Replace with the key for images in your dataset
-
+    image_key = "image"
     # Load the dataset
     dataset = datasets.load_dataset(dataset_path, split=dataset_split, trust_remote_code=True)
-
     # Compute mean and standard deviation
     mean, std = compute_dataset_mean_std(dataset, image_key=image_key)
-
+    print(f"Dataset: {dataset}")
     print(f"Mean: {mean}")
     print(f"Std: {std}")
+
+
+# Example usage
+if __name__ == "__main__":
+    datasets = ["arabic_characters", "fgvc_aircraft", "places365_small", "flowers102", "awa2"]
+    for dataset in datasets:
+        main(dataset)
