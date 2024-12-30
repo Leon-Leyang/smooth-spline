@@ -14,66 +14,6 @@ NORMALIZATION_VALUES = {
 }
 
 
-class NoisyCIFAR10(torchvision.datasets.CIFAR10):
-    def __init__(self, *args, noise_adder=None, **kwargs):
-        super(NoisyCIFAR10, self).__init__(*args, **kwargs)
-        self.noise_adder = noise_adder
-
-    def __getitem__(self, index):
-        img, target = super(NoisyCIFAR10, self).__getitem__(index)
-        if self.noise_adder is not None:
-            img = self.noise_adder(img, target)
-        return img, target
-
-
-class GMMNoiseAdder:
-    def __init__(self, gaussians, num_classes=10, alpha=0.001):
-        """
-        :param gaussians: a list of tuples where each tuple contains the mean and standard deviation of a Gaussian
-        :param num_classes: the number of classes in the dataset
-        :param alpha: the dominance factor for the selected Gaussian
-        """
-        self.gaussians = gaussians
-        self.num_classes = num_classes
-        self.alpha = alpha
-
-        # Precompute weights for each class
-        self.class_weights = self._generate_class_weights()
-
-    def _generate_class_weights(self):
-        """
-        Generates weights for each class where one Gaussian has a higher weight.
-        """
-        class_weights = {}
-        base_weight = 1 / self.num_classes
-        for class_idx in range(self.num_classes):
-            weights = [base_weight] * self.num_classes
-            for idx, weight in enumerate(weights):
-                if idx == class_idx:
-                    weights[idx] = base_weight + self.alpha
-                else:
-                    weights[idx] = base_weight - self.alpha / (self.num_classes - 1)
-            class_weights[class_idx] = weights
-        return class_weights
-
-    def __call__(self, img, target):
-        """
-        img: the image tensor
-        target: the class label (int)
-        """
-        # Get the weights for this class
-        weights = self.class_weights[target]
-
-        # Sample a Gaussian index based on the class-specific weights
-        gaussian_idx = np.random.choice(self.num_classes, p=weights)
-        mean, std = self.gaussians[gaussian_idx]
-
-        # Apply noise from the selected Gaussian
-        noise = mean + torch.randn_like(img) * std
-        noisy_img = img + noise
-        return noisy_img
-
-
 def replicate_if_needed(x):
     """
     Replicate a single-channel tensor to three channels if needed.
@@ -90,8 +30,6 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
     """
     if '_to_' in dataset:  # e.g., cifar10_to_cifar100
         transform_to_use = dataset.split('_to_')[0]
-    elif '_' in dataset:  # e.g., noisy_cifar10
-        transform_to_use = dataset.split('_')[-1]
     else:
         transform_to_use = dataset
 
@@ -100,10 +38,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
     else:
         dataset_to_use = dataset
 
-    if '_' in dataset:
-        normalization_to_use = dataset.split('_')[-1]
-    else:
-        normalization_to_use = dataset
+    normalization_to_use = dataset
 
     if 'cifar10' in transform_to_use:
         transform_train = transforms.Compose([
@@ -173,13 +108,6 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         trainset = torchvision.datasets.CIFAR100(
             root='./data', train=True, download=True, transform=transform_train)
         testset = torchvision.datasets.CIFAR100(
-            root='./data', train=False, download=True, transform=transform_test)
-    elif dataset_to_use == 'noisy_cifar10':
-        gaussians = [(i * 0.01, 0) for i in range(10)]
-        noise_adder = GMMNoiseAdder(gaussians, num_classes=10, alpha=0.8)
-        trainset = NoisyCIFAR10(
-            root='./data', train=True, download=True, transform=transform_train, noise_adder=noise_adder)
-        testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
     elif dataset_to_use == 'mnist':
         trainset = torchvision.datasets.MNIST(
