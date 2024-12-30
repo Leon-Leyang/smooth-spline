@@ -62,6 +62,6 @@ def main(dataset):
 
 # Example usage
 if __name__ == "__main__":
-    datasets = ["arabic_characters", "fgvc_aircraft", "places365_small", "flowers102", "awa2"]
-    for dataset in datasets:
+    ds = ["arabic_characters", "fgvc_aircraft", "places365_small", "flowers102", "awa2"]
+    for dataset in ds:
         main(dataset)
