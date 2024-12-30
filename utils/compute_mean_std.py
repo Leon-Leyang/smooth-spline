@@ -48,7 +48,7 @@ def compute_dataset_mean_std(dataset, image_key="image"):
 
 def main(dataset):
     # Replace with the path to your dataset script and the split name
-    dataset_path = f"./aidatasets/images/{dataset}.py"
+    dataset_path = f"/users/hleyang/data/hleyang/smooth-spline/utils/aidatasets/images/{dataset}.py"
     dataset_split = "train"
     image_key = "image"
     # Load the dataset
