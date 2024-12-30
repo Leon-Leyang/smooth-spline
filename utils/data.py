@@ -7,9 +7,9 @@ from torchvision import transforms as transforms
 
 # Predefined normalization values for different datasets
 NORMALIZATION_VALUES = {
-    'cifar10': ([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010]),
-    'cifar100': ([0.5071, 0.4867, 0.4408], [0.2675, 0.2565, 0.2761]),
-    'mnist': ([0.1307, 0.1307, 0.1307], [0.3081, 0.3081, 0.3081]),
+    'cifar10': ([0.491, 0.482, 0.447], [0.247, 0.244, 0.262]),
+    'cifar100': ([0.507, 0.487, 0.441], [0.267, 0.256, 0.276]),
+    'mnist': ([0.131, 0.131, 0.131], [0.308, 0.308, 0.308]),
     'imagenet': ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 }
 
@@ -30,17 +30,14 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
     """
     if '_to_' in dataset:  # e.g., cifar10_to_cifar100
         transform_to_use = dataset.split('_to_')[0]
+        dataset_to_use = dataset.split('_to_')[-1]
+        normalization_to_use = dataset.split('_to_')[-1]
     else:
         transform_to_use = dataset
-
-    if '_to_' in dataset:
-        dataset_to_use = dataset.split('_to_')[-1]
-    else:
         dataset_to_use = dataset
+        normalization_to_use = dataset
 
-    normalization_to_use = dataset
-
-    if 'cifar10' in transform_to_use:
+    if transform_to_use == 'cifar10':
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
@@ -55,7 +52,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
-    elif 'cifar100' in transform_to_use:
+    elif transform_to_use == 'cifar100':
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
@@ -70,7 +67,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
-    elif 'mnist' in transform_to_use:
+    elif transform_to_use == 'mnist':
         transform_train = transforms.Compose([
             transforms.Resize(28),
             transforms.ToTensor(),
@@ -83,7 +80,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
-    elif 'imagenet' in transform_to_use:
+    elif transform_to_use == 'imagenet':
         transform_train = transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
