@@ -46,16 +46,16 @@ def compute_dataset_mean_std(dataset, image_key="image"):
     return mean, std
 
 
-def main(dataset):
+def main(ds_name):
     # Replace with the path to your dataset script and the split name
-    dataset_path = f"/users/hleyang/data/hleyang/smooth-spline/utils/aidatasets/images/{dataset}.py"
+    dataset_path = f"/users/hleyang/data/hleyang/smooth-spline/utils/aidatasets/images/{ds_name}.py"
     dataset_split = "train"
     image_key = "image"
     # Load the dataset
     dataset = datasets.load_dataset(dataset_path, split=dataset_split, trust_remote_code=True)
     # Compute mean and standard deviation
     mean, std = compute_dataset_mean_std(dataset, image_key=image_key)
-    print(f"Dataset: {dataset}")
+    print(f"Dataset: {ds_name}")
     print(f"Mean: {mean}")
     print(f"Std: {std}")
 
