@@ -223,6 +223,10 @@ def get_args():
     parser.add_argument('--reg', type=float, default=1, help='Regularization strength for Logistic Regression')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--topk', type=int, default=1, help='Number of top-k feature layers to use')
+    parser.add_argument('--pretrained_ds', type=str, nargs='+',
+                        default=['mnist', 'cifar10', 'cifar100', 'imagenet'], help='List of pretrained datasets')
+    parser.add_argument('--transfer_ds', type=str, nargs='+',
+                        default=['mnist', 'cifar10', 'cifar100', 'imagenet'], help='List of transfer datasets')
     return parser.parse_args()
 
 
@@ -235,8 +239,8 @@ if __name__ == '__main__':
 
     betas = np.arange(0.5, 1 - 1e-6, 0.01)
 
-    pretrained_datasets = ['mnist', 'cifar10', 'cifar100', 'imagenet']
-    transfer_datasets = ['mnist', 'cifar10', 'cifar100', 'imagenet']
+    pretrained_datasets = args.pretrained_ds
+    transfer_datasets = args.transfer_ds
 
     for pretrained_ds in pretrained_datasets:
         for transfer_ds in transfer_datasets:
