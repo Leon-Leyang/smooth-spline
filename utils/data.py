@@ -3,6 +3,7 @@ import torch
 import torchvision
 from torch.utils.data import Subset
 from torchvision import transforms as transforms
+import datasets
 
 
 # Predefined normalization values for different datasets
@@ -16,6 +17,28 @@ NORMALIZATION_VALUES = {
     'places365_small': ([0.458, 0.441, 0.408], [0.269, 0.267, 0.285]),
     'flowers102': ([0.43, 0.38, 0.295], [0.295, 0.246, 0.273]),
 }
+
+
+class HuggingFaceDataset(torch.utils.data.Dataset):
+    """
+    Wrapper class for Hugging Face datasets.
+    """
+    def __init__(self, hf_dataset, transform=None):
+        self.dataset = hf_dataset
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        sample = self.dataset[idx]
+        image = sample['image']
+        label = sample['label']
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, label
 
 
 def replicate_if_needed(x):
@@ -41,22 +64,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         dataset_to_use = dataset
         normalization_to_use = dataset
 
-    if transform_to_use == 'cifar10':
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15),
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
-        ])
-        transform_test = transforms.Compose([
-            transforms.Resize(32),
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
-        ])
-    elif transform_to_use == 'cifar100':
+    if transform_to_use == 'cifar10' or transform_to_use == 'cifar100' or transform_to_use == 'arabic_characters':
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
@@ -84,7 +92,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
-    elif transform_to_use == 'imagenet':
+    elif transform_to_use == 'imagenet' or transform_to_use == 'fgvc_aircraft' or transform_to_use == 'places365_small' or transform_to_use == 'flowers102':
         transform_train = transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
@@ -119,6 +127,30 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         trainset = None
         testset = torchvision.datasets.ImageNet(
             root='./data/imagenet', split='val', transform=transform_test)
+    elif dataset_to_use == 'arabic_characters':
+        hf_trainset = datasets.load_dataset("./aidatasets/images/arabic_characters.py", split="train", trust_remote_code=True)
+        hf_testset = datasets.load_dataset("./aidatasets/images/arabic_characters.py", split="test", trust_remote_code=True)
+        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+    elif dataset_to_use == 'fgvc_aircraft':
+        hf_train_dataset = datasets.load_dataset("./aidatasets/images/fgvc_aircraft.py", split="train", trust_remote_code=True)
+        hf_val_dataset = datasets.load_dataset("./aidatasets/images/fgvc_aircraft.py", split="validation", trust_remote_code=True)
+        hf_testset = datasets.load_dataset("./aidatasets/images/fgvc_aircraft.py", split="test", trust_remote_code=True)
+        hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
+        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+    elif dataset_to_use == 'places365_small':
+        hf_trainset = datasets.load_dataset("./aidatasets/images/places365_small.py", split="train", trust_remote_code=True)
+        hf_testset = datasets.load_dataset("./aidatasets/images/places365_small.py", split="validation", trust_remote_code=True)
+        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+    elif dataset_to_use == 'flowers102':
+        hf_train_dataset = datasets.load_dataset("./aidatasets/images/flowers102.py", split="train", trust_remote_code=True)
+        hf_val_dataset = datasets.load_dataset("./aidatasets/images/flowers102.py", split="validation", trust_remote_code=True)
+        hf_testset = datasets.load_dataset("./aidatasets/images/flowers102.py", split="test", trust_remote_code=True)
+        hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
+        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
     else:
         raise NotImplementedError(f'The specified dataset {dataset_to_use} is not implemented.')
 
