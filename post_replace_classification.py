@@ -234,7 +234,10 @@ if __name__ == '__main__':
     args = get_args()
 
     f_name = get_file_name(__file__)
-    log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_seed{args.seed}')
+    if not any(ds in ['mnist', 'cifar10', 'cifar100', 'imagenet'] for ds in args.transfer_ds):
+        log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_more_ds_seed{args.seed}')
+    else:
+        log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     betas = np.arange(0.5, 1 - 1e-6, 0.01)
