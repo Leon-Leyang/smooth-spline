@@ -40,8 +40,8 @@ def compute_dataset_mean_std(dataset, image_key="image"):
     std = torch.sqrt((sum_squared_pixels / num_pixels) - (mean ** 2))
 
     # Round to 4 decimal places
-    mean = [round(x.item(), 4) for x in mean]
-    std = [round(x.item(), 4) for x in std]
+    mean = [round(x.item(), 3) for x in mean]
+    std = [round(x.item(), 3) for x in std]
 
     return mean, std
 
