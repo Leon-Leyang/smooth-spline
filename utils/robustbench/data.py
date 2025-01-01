@@ -230,7 +230,7 @@ def load_cifar10c(
         prepr: Callable = PREPROCESSINGS[None]
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     return load_corruptions_cifar(BenchmarkDataset.cifar_10, n_examples,
-                                  severity, data_dir, corruptions, shuffle)
+                                  severity, data_dir, corruptions, shuffle, prepr)
 
 
 def load_cifar100c(
@@ -242,7 +242,7 @@ def load_cifar100c(
         prepr: Callable = PREPROCESSINGS[None]
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     return load_corruptions_cifar(BenchmarkDataset.cifar_100, n_examples,
-                                  severity, data_dir, corruptions, shuffle)
+                                  severity, data_dir, corruptions, shuffle, prepr)
 
 
 def load_imagenetc(
@@ -325,7 +325,9 @@ def load_corruptions_cifar(
         severity: int,
         data_dir: str,
         corruptions: Sequence[str] = CORRUPTIONS,
-        shuffle: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+        shuffle: bool = False,
+        prepr: Callable = None
+) -> Tuple[torch.Tensor, torch.Tensor]:
     assert 1 <= severity <= 5
     n_total_cifar = 10000
 
@@ -368,9 +370,14 @@ def load_corruptions_cifar(
     # Make it in the PyTorch format
     x_test = np.transpose(x_test, (0, 3, 1, 2))
     # Make it compatible with our models
-    x_test = x_test.astype(np.float32) / 255
+    if prepr is not None:
+        x_test = torch.stack([prepr(img) for img in x_test])
+        x_test = x_test[:n_examples]
+    else:
+        x_test = x_test.astype(np.float32) / 255
+        x_test = torch.tensor(x_test)[:n_examples]
+
     # Make sure that we get exactly n_examples but not a few samples more
-    x_test = torch.tensor(x_test)[:n_examples]
     y_test = torch.tensor(y_test)[:n_examples]
 
     return x_test, y_test

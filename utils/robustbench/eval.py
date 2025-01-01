@@ -32,7 +32,9 @@ def benchmark(
     log_path: Optional[str] = None,
     preprocessing: Optional[Union[str,
                                   Callable]] = None,
-    aa_state_path: Optional[Path] = None) -> Tuple[float, float]:
+    aa_state_path: Optional[Path] = None,
+    seed: int = 42,
+) -> Tuple[float, float]:
     """Benchmarks the given model(s).
 
     It is possible to benchmark on 3 different threat models, and to save the results on disk. In
@@ -53,7 +55,7 @@ def benchmark(
     :param eps: The epsilon to use for L2 and Linf threat models. Must not be specified for
     corruptions threat model.
     :param preprocessing: The preprocessing that should be used for ImageNet benchmarking. Should be
-    specified if `dataset` is `imageget`.
+    specified if `dataset` is `imagenet`.
     :param aa_state_path: The path where the AA state will be saved and from where should be
     loaded if it already exists. If `None` no state will be used.
 
@@ -83,11 +85,11 @@ def benchmark(
     clean_x_test, clean_y_test = load_clean_dataset(dataset_, n_examples,
                                                     data_dir, prepr)
 
-    # accuracy = clean_accuracy(model,
-    #                           clean_x_test,
-    #                           clean_y_test,
-    #                           batch_size=batch_size,
-    #                           device=device)
+    accuracy = clean_accuracy(model,
+                              clean_x_test,
+                              clean_y_test,
+                              batch_size=batch_size,
+                              device=device)
 
     extra_metrics = {}  # dict to store corruptions_mce for corruptions threat models
     if threat_model_ in {ThreatModel.Linf, ThreatModel.L2}:
@@ -100,12 +102,13 @@ def benchmark(
                                eps=eps,
                                version='standard',
                                device=device,
-                               log_path=log_path)
+                               log_path=log_path,
+                               seed=seed)
         accuracy, adv_accuracy = adversary.run_standard_evaluation(clean_x_test,
-                                                                            clean_y_test,
-                                                                            bs=batch_size,
-                                                                            state_path=aa_state_path,
-                                                                            return_accs=True)
+                                                                   clean_y_test,
+                                                                   bs=batch_size,
+                                                                   state_path=aa_state_path,
+                                                                   return_accs=True)
         # if aa_state_path is None:
         #     adv_accuracy = clean_accuracy(model,
         #                                 x_adv,
@@ -121,8 +124,8 @@ def benchmark(
         corruptions = CORRUPTIONS_DICT[dataset_][threat_model_]
         print(f"Evaluating over {len(corruptions)} corruptions")
         # Exceptionally, for corruptions (2d and 3d) we use only resizing to 224x224
-        prepr = get_preprocessing(dataset_, threat_model_, model_name, 
-                                  'Res224')
+        # prepr = get_preprocessing(dataset_, threat_model_, model_name,
+        #                           'Res224')
         # Save into a dict to make a Pandas DF with nested index        
         corruptions_data_dir = corruptions_data_dir or data_dir
         adv_accuracy, adv_mce = corruptions_evaluation(
