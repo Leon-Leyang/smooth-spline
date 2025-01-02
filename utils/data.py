@@ -14,8 +14,9 @@ NORMALIZATION_VALUES = {
     'imagenet': ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     'arabic_characters': ([0.101, 0.101, 0.101], [0.301, 0.301, 0.301]),
     'fgvc_aircraft': ([0.485, 0.52, 0.548], [0.219, 0.21, 0.241]),
-    'places365_small': ([0.458, 0.441, 0.408], [0.269, 0.267, 0.285]),
     'flowers102': ([0.43, 0.38, 0.295], [0.295, 0.246, 0.273]),
+    'fashion_mnist': ([0.286, 0.286, 0.286], [0.353, 0.353, 0.353]),
+    'med_mnist/pathmnist': ([0.741, 0.533, 0.706], [0.124, 0.177, 0.124]),
 }
 
 
@@ -79,7 +80,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
             transforms.Lambda(replicate_if_needed),  # Apply conditional replication
             transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
         ])
-    elif transform_to_use == 'mnist':
+    elif transform_to_use == 'mnist' or transform_to_use == 'fashion_mnist' or transform_to_use == 'med_mnist/pathmnist':
         transform_train = transforms.Compose([
             transforms.Resize(28),
             transforms.ToTensor(),
@@ -139,15 +140,22 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
         trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
         testset = HuggingFaceDataset(hf_testset, transform=transform_test)
-    elif dataset_to_use == 'places365_small':
-        hf_trainset = datasets.load_dataset("./utils/aidatasets/images/places365_small.py", split="train", trust_remote_code=True)
-        hf_testset = datasets.load_dataset("./utils/aidatasets/images/places365_small.py", split="validation", trust_remote_code=True)
-        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
     elif dataset_to_use == 'flowers102':
         hf_train_dataset = datasets.load_dataset("./utils/aidatasets/images/flowers102.py", split="train", trust_remote_code=True)
         hf_val_dataset = datasets.load_dataset("./utils/aidatasets/images/flowers102.py", split="validation", trust_remote_code=True)
         hf_testset = datasets.load_dataset("./utils/aidatasets/images/flowers102.py", split="test", trust_remote_code=True)
+        hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
+        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+    elif dataset_to_use == 'fashion_mnist':
+        hf_trainset = datasets.load_dataset("./utils/aidatasets/images/fashion_mnist.py", split="train", trust_remote_code=True)
+        hf_testset = datasets.load_dataset("./utils/aidatasets/images/fashion_mnist.py", split="test", trust_remote_code=True)
+        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+    elif dataset_to_use == 'med_mnist/pathmnist':
+        hf_train_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name="pathmnist", split="train", trust_remote_code=True)
+        hf_val_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name="pathmnist", split="validation", trust_remote_code=True)
+        hf_testset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name="pathmnist", split="test", trust_remote_code=True)
         hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
         trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
         testset = HuggingFaceDataset(hf_testset, transform=transform_test)

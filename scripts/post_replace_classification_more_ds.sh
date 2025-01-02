@@ -23,8 +23,8 @@ export PYTHONPATH=./
 
 for seed in 42 43 44
 do
-    python -u post_replace_classification.py --order lp_replace --seed ${seed} --pretrained_ds imagenet --transfer_ds arabic_characters fgvc_aircraft places365_small flowers102
-    python -u post_replace_classification.py --order replace_lp --seed ${seed} --pretrained_ds imagenet --transfer_ds arabic_characters fgvc_aircraft places365_small flowers102
+    python -u post_replace_classification.py --order lp_replace --seed ${seed} --pretrained_ds imagenet --transfer_ds arabic_characters fgvc_aircraft flowers102 fashion_mnist med_mnist/pathmnist
+    python -u post_replace_classification.py --order replace_lp --seed ${seed} --pretrained_ds imagenet --transfer_ds arabic_characters fgvc_aircraft flowers102 fashion_mnist med_mnist/pathmnist
 done
 
 

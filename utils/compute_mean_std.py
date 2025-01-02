@@ -48,11 +48,18 @@ def compute_dataset_mean_std(dataset, image_key="image"):
 
 def main(ds_name):
     # Replace with the path to your dataset script and the split name
-    dataset_path = f"/users/hleyang/data/hleyang/smooth-spline/utils/aidatasets/images/{ds_name}.py"
+    name = ds_name if '/' not in ds_name else ds_name.split('/')[0]
+    dataset_path = f"/users/hleyang/data/hleyang/smooth-spline/utils/aidatasets/images/{name}.py"
     dataset_split = "train"
     image_key = "image"
+
     # Load the dataset
-    dataset = datasets.load_dataset(dataset_path, split=dataset_split, trust_remote_code=True)
+    if '/' in ds_name:
+        variant = ds_name.split('/')[-1]
+        dataset = datasets.load_dataset(dataset_path, split=dataset_split, name=variant, trust_remote_code=True)
+    else:
+        dataset = datasets.load_dataset(dataset_path, split=dataset_split, trust_remote_code=True)
+
     # Compute mean and standard deviation
     mean, std = compute_dataset_mean_std(dataset, image_key=image_key)
     print(f"Dataset: {ds_name}")
@@ -62,6 +69,6 @@ def main(ds_name):
 
 # Example usage
 if __name__ == "__main__":
-    ds = ["arabic_characters", "fgvc_aircraft", "places365_small", "flowers102"]
+    ds = ["arabic_characters", "fgvc_aircraft", "flowers102", "fashion_mnist", "med_mnist/pathmnist"]
     for dataset in ds:
         main(dataset)
