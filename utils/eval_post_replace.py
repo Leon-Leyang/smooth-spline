@@ -57,7 +57,7 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
     plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name)
 
 
-def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=2000, model_id=None):
+def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=1000, model_id=None):
     """
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
@@ -73,7 +73,7 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
         'corruptions': None,
     }
 
-    n_examples = 5000 if 'imagenet' in dataset else 10000
+    n_examples = 1000
 
     dataset_to_transform = {
         'cifar10': transforms.Compose([
@@ -103,7 +103,7 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
     beta_list = []
 
     os.makedirs('./cache', exist_ok=True)
-    state_path_format_str = f"./cache/{model_name}_{dataset}_{threat}_{n_examples}_{{beta:.2f}}.json"
+    state_path_format_str = f"./cache/{model_name}_{dataset}_{threat}_{n_examples}_{seed}_{{beta:.2f}}.json"
 
     data_dir = './data' if 'imagenet' not in dataset else './data/imagenet'
 
