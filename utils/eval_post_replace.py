@@ -37,7 +37,7 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
-        logger.debug(f'Using BetaReLU with beta={beta:.3f}')
+        logger.debug(f'Using BetaReLU with beta={beta:.2f}')
         new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
 
         # Register the hook for the top-k layer as copy.deepcopy does not copy hooks
