@@ -57,7 +57,7 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
     plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name)
 
 
-def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, batch_size=2000, n_examples=1000, model_id=None, seed=42):
+def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=2000, n_examples=10000, model_id=None):
     """
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
@@ -65,7 +65,6 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, ba
     model.eval()
     model_name = model_id if model_id is not None \
         else model.base_model.__class__.__name__ if hasattr(model, 'base_model') \
-        else model.feature_extractor.base_model.__class__.__name__ if hasattr(model, 'feature_extractor') \
         else model.__class__.__name__
 
     threat_to_eps = {
@@ -135,6 +134,7 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, ba
 
     acc_list.append(base_acc)
     beta_list.append(1)
-    logger.info(f'Best robust accuracy: {best_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_acc:.2f}')
+
+    logger.info(f'Best robust accuracy for {dataset} with {threat} attack: {best_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_acc:.2f}')
 
     plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, f'{threat}_{n_examples}')

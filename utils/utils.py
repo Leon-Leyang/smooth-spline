@@ -74,15 +74,16 @@ def get_file_name(calling_file):
     return os.path.splitext(file_name)[0]
 
 
-def result_exists(ds, replace_then_lp=False):
+def result_exists(ds, replace_then_lp=False, robustness_test=None):
     if replace_then_lp:
         ds = f'{ds}_replace_lp'
     log_file = get_log_file_path()
     if not os.path.exists(log_file):
         return False
+    to_check = f'Best accuracy for {ds}:' if not robustness_test else f'Best robust accuracy for {ds} with {robustness_test} attack:'
     with open(log_file, 'r') as f:
         for line in f:
-            if f'Best accuracy for {ds}:' in line:
+            if to_check in line:
                 return True
     return False
 

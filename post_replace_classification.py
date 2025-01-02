@@ -193,12 +193,12 @@ def test_acc(dataset, beta_vals, coeff):
     replace_and_test_acc(model, beta_vals, dataset, coeff)
 
 
-def test_robustness(threat, dataset, beta_vals):
+def test_robustness(dataset, threat, beta_vals, coeff, seed):
     """
     Test the model's robustness with different beta values of BetaReLU on the same dataset.
     """
     model = get_pretrained_model(dataset)
-    replace_and_test_robustness(model, threat, beta_vals, dataset)
+    replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed)
 
 
 def get_args():
@@ -233,6 +233,8 @@ if __name__ == '__main__':
 
     betas = np.arange(0.5, 1 - 1e-6, 0.01)
 
+    threats = ['Linf', 'L2', 'corruptions']
+
     pretrained_datasets = args.pretrained_ds
     transfer_datasets = args.transfer_ds
 
@@ -241,11 +243,20 @@ if __name__ == '__main__':
             fix_seed(args.seed)  # Fix the seed each time
 
             if pretrained_ds == transfer_ds:  # Test on the same dataset
+                # Test generalization
                 if result_exists(f'{pretrained_ds}'):
-                    logger.info(f'Skipping {pretrained_ds} to {transfer_ds} as result already exists.')
+                    logger.info(f'Skipping {pretrained_ds} as result already exists.')
                     continue
                 else:
                     test_acc(pretrained_ds, betas, args.coeff)
+                # Test robustness
+                for threat in threats:
+                    if result_exists(f'{pretrained_ds}', robustness_test=threat):
+                        logger.info(f'Skipping robustness test for {pretrained_ds} with {threat} as result already exists.')
+                        continue
+                    else:
+                        test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed)
+
             elif transfer_ds == 'imagenet':  # Skip transfer learning on ImageNet
                 continue
             else:  # Test on different datasets
