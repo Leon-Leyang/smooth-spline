@@ -8,6 +8,7 @@ from torch import nn as nn
 from utils.resnet import resnet18
 import numpy as np
 from loguru import logger
+import random
 
 
 class MLP(nn.Module):
@@ -64,6 +65,7 @@ def fix_seed(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
+    random.seed(seed)
 
 
 def get_file_name(calling_file):

@@ -3,6 +3,7 @@ import os
 import time
 import cv2
 import random
+import re
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -17,26 +18,17 @@ from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersect
     colorize, poly_learning_rate, find_free_port, get_logger, main_process, check
 from utils.semseg.model.pspnet import PSPNet
 from utils.smooth_spline import replace_module
+from utils.utils import get_file_name, set_logger, fix_seed
 
 cv2.ocl.setUseOpenCL(False)
 
 
 def main_train(beta):
-    if args.train_whole:
-        assert beta == 1, 'BetaReLU is not supported for training the whole network'
-        args.save_path = f'exp/diff_task_whole/seed{args.manual_seed}/models/{beta:.2f}'
-    else:
-        args.save_path = f'exp/diff_task_part/seed{args.manual_seed}/models/{beta:.2f}'
+    args.save_path = f'diff_task_results/seed{args.manual_seed}/models/{beta:.2f}'
     os.makedirs(args.save_path, exist_ok=True)
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.train_gpu)
     if args.manual_seed is not None:
-        random.seed(args.manual_seed)
-        np.random.seed(args.manual_seed)
-        torch.manual_seed(args.manual_seed)
-        torch.cuda.manual_seed(args.manual_seed)
-        torch.cuda.manual_seed_all(args.manual_seed)
-        cudnn.benchmark = False
-        cudnn.deterministic = True
+        fix_seed(args.manual_seed)
     if args.dist_url == "env://" and args.world_size == -1:
         args.world_size = int(os.environ["WORLD_SIZE"])
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
@@ -56,7 +48,6 @@ def main_train(beta):
 
 def train_worker(gpu, ngpus_per_node, argss, beta):
     global args, logger
-    logger = get_logger()
 
     args = argss
     if args.distributed:
@@ -73,23 +64,11 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
     modules_new = [model.ppm, model.cls, model.aux]
     if beta != 1:
         modules_ori = replace_module(nn.ModuleList(modules_ori), beta, coeff=0.5)
-        # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
-        with torch.no_grad():
-            model.eval()
-            dummy_input = torch.randn(1, 3, args.train_h, args.train_w)
-            model(dummy_input)
-            model.train()
-        logger.info(f"Replaced ReLU with BetaReLU, beta={beta: .2f}")
 
     params_list = []
-    if args.train_whole:
-        for module in modules_ori:
-            params_list.append(dict(params=module.parameters(), lr=args.base_lr))
-        args.index_split = 5
-    else:
-        for module in modules_ori:  # Freeze the feature extractor
-            for param in module.parameters():
-                param.requires_grad = False
+    for module in modules_ori:  # Freeze the feature extractor
+        for param in module.parameters():
+            param.requires_grad = False
     for module in modules_new:
         params_list.append(dict(params=module.parameters(), lr=args.base_lr * 10))
     optimizer = torch.optim.SGD(params_list, lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -97,9 +76,9 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
         model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     if main_process(args):
-        logger.info(args)
-        logger.info("=> creating model ...")
-        logger.info("Classes: {}".format(args.classes))
+        logger.debug(args)
+        logger.debug("=> creating model ...")
+        logger.debug("Classes: {}".format(args.classes))
     if args.distributed:
         torch.cuda.set_device(gpu)
         args.batch_size = int(args.batch_size / ngpus_per_node)
@@ -118,22 +97,22 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
         max_epoch = max(epochs)
         latest_checkpoint = os.path.join(args.save_path, f'train_epoch_{max_epoch}.pth')
         start_epoch = max_epoch
-        logger.info(f"Found checkpoint '{latest_checkpoint}'. Resuming training from epoch {start_epoch}.")
+        logger.debug(f"Found checkpoint '{latest_checkpoint}'. Resuming training from epoch {start_epoch}.")
 
     # Load checkpoint if available
     if latest_checkpoint and os.path.isfile(latest_checkpoint):
         if main_process(args):
-            logger.info(f"=> loading checkpoint '{latest_checkpoint}'")
+            logger.debug(f"=> loading checkpoint '{latest_checkpoint}'")
         checkpoint = torch.load(latest_checkpoint, map_location=lambda storage, loc: storage.cuda(gpu))
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         if 'epoch' in checkpoint:
             start_epoch = checkpoint['epoch']
         if main_process(args):
-            logger.info(f"=> loaded checkpoint '{latest_checkpoint}' (epoch {start_epoch})")
+            logger.debug(f"=> loaded checkpoint '{latest_checkpoint}' (epoch {start_epoch})")
     else:
         if main_process(args):
-            logger.info("No checkpoint found. Starting training from scratch.")
+            logger.debug("No checkpoint found. Starting training from scratch.")
         start_epoch = 0
 
     mean = [0.485, 0.456, 0.406]
@@ -163,7 +142,7 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
 
         if (epoch_log % args.save_freq == 0) and main_process(args):
             filename = args.save_path + '/train_epoch_' + str(epoch_log) + '.pth'
-            logger.info('Saving checkpoint to: ' + filename)
+            logger.debug('Saving checkpoint to: ' + filename)
             torch.save({'epoch': epoch_log, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}, filename)
             if epoch_log / args.save_freq > 2:
                 deletename = args.save_path + '/train_epoch_' + str(epoch_log - args.save_freq * 2) + '.pth'
@@ -243,21 +222,21 @@ def train(train_loader, model, optimizer, epoch):
         remain_time = '{:02d}:{:02d}:{:02d}'.format(int(t_h), int(t_m), int(t_s))
 
         if (i + 1) % args.print_freq == 0 and main_process(args):
-            logger.info('Epoch: [{}/{}][{}/{}] '
-                        'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
-                        'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}) '
-                        'Remain {remain_time} '
-                        'MainLoss {main_loss_meter.val:.4f} '
-                        'AuxLoss {aux_loss_meter.val:.4f} '
-                        'Loss {loss_meter.val:.4f} '
-                        'Accuracy {accuracy:.4f}.'.format(epoch+1, args.epochs, i + 1, len(train_loader),
-                                                          batch_time=batch_time,
-                                                          data_time=data_time,
-                                                          remain_time=remain_time,
-                                                          main_loss_meter=main_loss_meter,
-                                                          aux_loss_meter=aux_loss_meter,
-                                                          loss_meter=loss_meter,
-                                                          accuracy=accuracy))
+            logger.debug('Epoch: [{}/{}][{}/{}] '
+                         'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
+                         'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}) '
+                         'Remain {remain_time} '
+                         'MainLoss {main_loss_meter.val:.4f} '
+                         'AuxLoss {aux_loss_meter.val:.4f} '
+                         'Loss {loss_meter.val:.4f} '
+                         'Accuracy {accuracy:.4f}.'.format(epoch+1, args.epochs, i + 1, len(train_loader),
+                                                           batch_time=batch_time,
+                                                           data_time=data_time,
+                                                           remain_time=remain_time,
+                                                           main_loss_meter=main_loss_meter,
+                                                           aux_loss_meter=aux_loss_meter,
+                                                           loss_meter=loss_meter,
+                                                           accuracy=accuracy))
 
     iou_class = intersection_meter.sum / (union_meter.sum + 1e-10)
     accuracy_class = intersection_meter.sum / (target_meter.sum + 1e-10)
@@ -265,23 +244,19 @@ def train(train_loader, model, optimizer, epoch):
     mAcc = np.mean(accuracy_class)
     allAcc = sum(intersection_meter.sum) / (sum(target_meter.sum) + 1e-10)
     if main_process(args):
-        logger.info('Train result at epoch [{}/{}]: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.'.format(epoch+1, args.epochs, mIoU, mAcc, allAcc))
+        logger.debug('Train result at epoch [{}/{}]: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.'.format(epoch+1, args.epochs, mIoU, mAcc, allAcc))
     return main_loss_meter.avg, mIoU, mAcc, allAcc
 
 
 def main_test(beta):
-    if args.train_whole:
-        args.save_folder = f'exp/diff_task_whole/seed{args.manual_seed}/results/{beta:.2f}'
-        args.save_path = f'exp/diff_task_whole/seed{args.manual_seed}/models/1.00'
-    else:
-        args.save_folder = f'exp/diff_task_part/seed{args.manual_seed}/results/{beta:.2f}'
-        args.save_path = f'exp/diff_task_part/seed{args.manual_seed}/models/{beta:.2f}'
+    args.save_folder = f'diff_task_results/seed{args.manual_seed}/results/{beta:.2f}'
+    args.save_path = f'diff_task_results/seed{args.manual_seed}/models/{beta:.2f}'
     os.makedirs(args.save_folder, exist_ok=True)
     args.model_path = args.save_path + f'/train_epoch_{args.epochs}.pth'
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.test_gpu)
-    logger.info(args)
-    logger.info("=> creating model ...")
-    logger.info("Classes: {}".format(args.classes))
+    logger.debug(args)
+    logger.debug("=> creating model ...")
+    logger.debug("Classes: {}".format(args.classes))
 
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
@@ -303,25 +278,19 @@ def main_test(beta):
     names = [line.rstrip('\n') for line in open(args.names_path)]
 
     if not args.has_prediction:
-        model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor, pretrained=False)
+        model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor)
         modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
         if beta != 1:
             replace_module(nn.ModuleList(modules_ori), beta, coeff=0.5)
-
-            # For the initialization of the BetaReLU model, we need to run a forward pass to initialize it
-            with torch.no_grad():
-                model.eval()
-                dummy_input = torch.randn(1, 3, args.test_h, args.test_w)
-                model(dummy_input)
-            logger.info(f"Replaced ReLU with BetaReLU, beta={beta: .2f}")
+            logger.debug(f"Replaced ReLU with BetaReLU, beta={beta: .2f}")
 
         model = torch.nn.DataParallel(model).cuda()
         cudnn.benchmark = True
         if os.path.isfile(args.model_path):
-            logger.info("=> loading checkpoint '{}'".format(args.model_path))
+            logger.debug("=> loading checkpoint '{}'".format(args.model_path))
             checkpoint = torch.load(args.model_path, weights_only=True)
             model.load_state_dict(checkpoint['state_dict'], strict=False)
-            logger.info("=> loaded checkpoint '{}'".format(args.model_path))
+            logger.debug("=> loaded checkpoint '{}'".format(args.model_path))
         else:
             raise RuntimeError("=> no checkpoint found at '{}'".format(args.model_path))
         test(test_loader, test_data.data_list, model, args.classes, args.base_size, args.test_h, args.test_w, args.scales, gray_folder, color_folder, colors)
@@ -386,7 +355,7 @@ def scale_process(model, image, classes, crop_h, crop_w, h, w, stride_rate=2/3):
 
 
 def test(test_loader, data_list, model, classes, base_size, crop_h, crop_w, scales, gray_folder, color_folder, colors):
-    logger.info('>>>>>>>>>>>>>>>> Start Evaluation >>>>>>>>>>>>>>>>')
+    logger.debug('>>>>>>>>>>>>>>>> Start Evaluation >>>>>>>>>>>>>>>>')
     data_time = AverageMeter()
     batch_time = AverageMeter()
     model.eval()
@@ -412,11 +381,11 @@ def test(test_loader, data_list, model, classes, base_size, crop_h, crop_w, scal
         batch_time.update(time.time() - end)
         end = time.time()
         if ((i + 1) % 10 == 0) or (i + 1 == len(test_loader)):
-            logger.info('Test: [{}/{}] '
-                        'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
-                        'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}).'.format(i + 1, len(test_loader),
-                                                                                    data_time=data_time,
-                                                                                    batch_time=batch_time))
+            logger.debug('Test: [{}/{}] '
+                         'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
+                         'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}).'.format(i + 1, len(test_loader),
+                                                                                     data_time=data_time,
+                                                                                     batch_time=batch_time))
         check_makedirs(gray_folder)
         check_makedirs(color_folder)
         gray = np.uint8(prediction)
@@ -427,7 +396,7 @@ def test(test_loader, data_list, model, classes, base_size, crop_h, crop_w, scal
         color_path = os.path.join(color_folder, image_name + '.png')
         cv2.imwrite(gray_path, gray)
         color.save(color_path)
-    logger.info('<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<')
+    logger.debug('<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<')
 
 
 def cal_acc(data_list, pred_folder, classes, names):
@@ -444,7 +413,7 @@ def cal_acc(data_list, pred_folder, classes, names):
         union_meter.update(union)
         target_meter.update(target)
         accuracy = sum(intersection_meter.val) / (sum(target_meter.val) + 1e-10)
-        logger.info('Evaluating {0}/{1} on image {2}, accuracy {3:.4f}.'.format(i + 1, len(data_list), image_name+'.png', accuracy))
+        logger.debug('Evaluating {0}/{1} on image {2}, accuracy {3:.4f}.'.format(i + 1, len(data_list), image_name+'.png', accuracy))
 
     iou_class = intersection_meter.sum / (union_meter.sum + 1e-10)
     accuracy_class = intersection_meter.sum / (target_meter.sum + 1e-10)
@@ -452,19 +421,18 @@ def cal_acc(data_list, pred_folder, classes, names):
     mAcc = np.mean(accuracy_class)
     allAcc = sum(intersection_meter.sum) / (sum(target_meter.sum) + 1e-10)
 
-    logger.info('Eval result: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.'.format(mIoU, mAcc, allAcc))
+    logger.debug('Eval result: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.'.format(mIoU, mAcc, allAcc))
     for i in range(classes):
-        logger.info('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, iou_class[i], accuracy_class[i], names[i]))
+        logger.debug('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, iou_class[i], accuracy_class[i], names[i]))
 
     return mIoU, mAcc, allAcc
 
 
 def get_parser():
     parser = argparse.ArgumentParser(description='PyTorch Semantic Segmentation')
-    parser.add_argument('--config', type=str, default='config/ade20k/ade20k_pspnet50.yaml', help='config file')
+    parser.add_argument('--config', type=str, default='voc2012_pspnet50.yaml', help='config file')
     parser.add_argument('--beta', type=float, default=1.0, help='Beta value for BetaReLU')
-    parser.add_argument('--train_whole', action='store_true', help='whether to train the whole network')
-    parser.add_argument('opts', help='see config/ade20k/ade20k_pspnet50.yaml for all options', default=None, nargs=argparse.REMAINDER)
+    parser.add_argument('opts', help='see voc2012_pspnet50.yaml for all options', default=None, nargs=argparse.REMAINDER)
     args = parser.parse_args()
     assert args.config is not None
     cfg = config.load_cfg_from_cfg_file(args.config)
@@ -472,52 +440,63 @@ def get_parser():
         cfg = config.merge_cfg_from_list(cfg, args.opts)
 
     cfg.beta = args.beta
-    cfg.train_whole = args.train_whole
     return cfg
+
+
+def check_log_file(log_file_path, beta):
+    if not os.path.exists(log_file_path):
+        return False
+
+    beta_pattern = re.compile(rf'Beta={beta:.2f}, mIoU: (\d+\.\d+)')
+    with open(log_file_path, 'r') as log_file:
+        for line in log_file:
+            if beta_pattern.search(line):
+                return True
+    return False
+
+
+def find_best_miou(log_file_path):
+    if not os.path.exists(log_file_path):
+        return None, None
+
+    beta_miou_pattern = re.compile(r'Beta=(\d+\.\d+), mIoU: (\d+\.\d+)')
+    best_beta = None
+    best_miou = -float('inf')
+
+    with open(log_file_path, 'r') as log_file:
+        for line in log_file:
+            match = beta_miou_pattern.search(line)
+            if match:
+                beta = float(match.group(1))
+                miou = float(match.group(2))
+                if miou > best_miou:
+                    best_beta = beta
+                    best_miou = miou
+
+    return best_beta, best_miou
 
 
 if __name__ == '__main__':
     args = get_parser()
     check(args)
-    logger = get_logger()
+    f_name = get_file_name(__file__)
+    log_file_path = set_logger(name=f'{f_name}_seed{args.seed}')
+    logger.info(f'Log file: {log_file_path}')
 
     beta = args.beta
-    results_file = f'exp/diff_task_whole/seed{args.manual_seed}/results.txt' if args.train_whole else f'exp/diff_task_part/seed{args.manual_seed}/results.txt'
 
-    # Check if the results file exists and if beta is already recorded
-    if os.path.exists(results_file):
-        with open(results_file, 'r') as f:
-            recorded_betas = [float(line.split(',')[0]) for line in f.readlines()]
-        if beta in recorded_betas:
-            logger.info(f'Beta {beta} already processed. Skipping training and testing.')
-            exit(0)
+    if check_log_file(log_file_path, beta):
+        logger.info(f"Results for Beta={beta:.2f} already exist in the log file. Exiting.")
+        exit(0)
 
-    if args.train_whole:
-        logger.info('*' * 50)
-        logger.info('Training the whole network')
-        logger.info('*' * 50)
-        main_train(1)
-        for beta in np.arange(0.95, 1 + 1e-6, 0.01):
-            logger.info('*' * 50)
-            if beta == 1:
-                logger.info('Testing with ReLU')
-            else:
-                logger.info(f'Testing with beta={beta:.2f}')
-            logger.info('*' * 50)
-            mIoU, _, _ = main_test(beta)
-            with open(results_file, 'a') as f:
-                f.write(f'{beta}, {mIoU}\n')
+    main_train(beta)
+    mIoU, _, _ = main_test(beta)
+    logger.info(f'Beta={beta:.2f}, mIoU: {mIoU:.4f}')
 
-    else:
-        logger.info('*' * 50)
-        if beta == 1:
-            logger.info('Testing with ReLU')
+    # Find the best mIoU achieved
+    if beta == 1.0:
+        best_beta, best_miou = find_best_miou(log_file_path)
+        if best_beta is not None:
+            logger.info(f'Best mIoU: {best_miou:.4f} achieved at Beta={best_beta:.2f}')
         else:
-            logger.info(f'Testing with beta={beta:.2f}')
-        logger.info('*' * 50)
-        main_train(beta)
-        mIoU, _, _ = main_test(beta)
-
-        # Write results to the file
-        with open(results_file, 'a') as f:
-            f.write(f'{beta}, {mIoU}\n')
+            logger.info('No mIoU results found in the log file.')
