@@ -251,12 +251,13 @@ if __name__ == '__main__':
                     test_acc(pretrained_ds, betas, args.coeff)
                 # Test robustness
                 if args.order == 'lp_replace':  # Hack for avoiding redundant robustness tests
-                    for threat in threats:
-                        if result_exists(f'{pretrained_ds}', robustness_test=threat):
-                            logger.info(f'Skipping robustness test for {pretrained_ds} with {threat} as result already exists.')
-                            continue
-                        else:
-                            test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed)
+                    if pretrained_ds in ['cifar10', 'cifar100', 'imagenet']:
+                        for threat in threats:
+                            if result_exists(f'{pretrained_ds}', robustness_test=threat):
+                                logger.info(f'Skipping robustness test for {pretrained_ds} with {threat} as result already exists.')
+                                continue
+                            else:
+                                test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed)
 
             elif transfer_ds == 'imagenet':  # Skip transfer learning on ImageNet
                 continue
