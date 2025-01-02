@@ -480,7 +480,7 @@ if __name__ == '__main__':
     args = get_parser()
     check(args)
     f_name = get_file_name(__file__)
-    log_file_path = set_logger(name=f'{f_name}_seed{args.seed}')
+    log_file_path = set_logger(name=f'{f_name}_seed{args.manual_seed}')
     logger.info(f'Log file: {log_file_path}')
 
     beta = args.beta
