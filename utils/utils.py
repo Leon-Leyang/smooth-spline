@@ -120,6 +120,9 @@ def get_log_file_path():
 
 
 def plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_config=None):
+    if '/' in dataset:      # Hack to handle med_mnist/pathmnist
+        dataset = dataset.split('/')[0]
+
     # Plot the test accuracy vs beta values
     plt.figure(figsize=(12, 8))
     plt.plot(beta_list, acc_list)
