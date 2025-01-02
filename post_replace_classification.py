@@ -246,7 +246,6 @@ if __name__ == '__main__':
                 # Test generalization
                 if result_exists(f'{pretrained_ds}'):
                     logger.info(f'Skipping {pretrained_ds} as result already exists.')
-                    continue
                 else:
                     test_acc(pretrained_ds, betas, args.coeff)
                 # Test robustness
@@ -255,7 +254,6 @@ if __name__ == '__main__':
                         for threat in threats:
                             if result_exists(f'{pretrained_ds}', robustness_test=threat):
                                 logger.info(f'Skipping robustness test for {pretrained_ds} with {threat} as result already exists.')
-                                continue
                             else:
                                 test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed)
 
