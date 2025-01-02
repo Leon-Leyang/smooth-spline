@@ -140,15 +140,6 @@ def lp_then_replace_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     replace_and_test_acc(model, beta_vals, f'{pretrained_ds}_to_{transfer_ds}', coeff)
 
 
-def lp_then_replace_test_robustness(threat, beta_vals, pretrained_ds, transfer_ds):
-    """
-    Do transfer learning using a linear probe and test the model's robustness with different beta values of BetaReLU.
-    """
-    model = get_pretrained_model(pretrained_ds)
-    model = transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1)
-    replace_and_test_robustness(model, threat, beta_vals, f'{pretrained_ds}_to_{transfer_ds}')
-
-
 def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1):
     """
     Replace ReLU with BetaReLU and then do transfer learning using a linear probe and test the model's accuracy.
