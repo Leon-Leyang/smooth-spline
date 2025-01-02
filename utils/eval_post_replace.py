@@ -57,7 +57,7 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
     plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name)
 
 
-def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=2000, n_examples=10000, model_id=None):
+def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=2000, model_id=None):
     """
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
@@ -72,6 +72,8 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
         'L2': 0.5,
         'corruptions': None,
     }
+
+    n_examples = 5000 if 'imagenet' in dataset else 10000
 
     dataset_to_transform = {
         'cifar10': transforms.Compose([
@@ -103,15 +105,18 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
     os.makedirs('./cache', exist_ok=True)
     state_path_format_str = f"./cache/{model_name}_{dataset}_{threat}_{n_examples}_{{beta:.2f}}.json"
 
+    data_dir = './data' if 'imagenet' not in dataset else './data/imagenet'
+
     # Test the original model
     logger.debug('Using ReLU...')
     state_path = Path(state_path_format_str.format(beta=1))
     _, base_acc = benchmark(
         model, dataset=dataset, threat_model=threat, eps=threat_to_eps[threat], device=device,
         batch_size=batch_size, preprocessing=dataset_to_transform[dataset], n_examples=n_examples,
-        aa_state_path=state_path, seed=seed
+        aa_state_path=state_path, seed=seed, data_dir=data_dir
     )
     base_acc *= 100
+    logger.debug(f'Robust accuracy: {base_acc:.2f}%')
     best_acc = base_acc
     best_beta = 1
 
@@ -123,9 +128,10 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
         _, test_acc = benchmark(
             new_model, dataset=dataset, threat_model=threat, eps=threat_to_eps[threat], device=device,
             batch_size=batch_size, preprocessing=dataset_to_transform[dataset], n_examples=n_examples,
-            aa_state_path=state_path, seed=seed
+            aa_state_path=state_path, seed=seed, data_dir=data_dir
         )
         test_acc *= 100
+        logger.debug(f'Robust accuracy: {test_acc:.2f}%')
         if test_acc > best_acc:
             best_acc = test_acc
             best_beta = beta
