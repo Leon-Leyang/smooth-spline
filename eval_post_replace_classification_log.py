@@ -14,7 +14,6 @@ def extract_accuracies_from_file(file_path):
     baseline_pattern = r"ReLU accuracy: ([0-9]+\.[0-9]+)"
 
     with open(file_path, 'r') as file:
-        current_dataset = None
         for line in file:
             new_match = re.search(new_pattern, line)
             baseline_match = re.search(baseline_pattern, line)
@@ -26,9 +25,9 @@ def extract_accuracies_from_file(file_path):
                 new_accuracies[current_dataset].append(accuracy)
                 best_betas[current_dataset].append(beta)
 
-            if baseline_match and current_dataset:
-                baseline_accuracy = float(baseline_match.group(1))
-                baseline_accuracies[current_dataset].append(baseline_accuracy)
+                if baseline_match:
+                    baseline_accuracy = float(baseline_match.group(1))
+                    baseline_accuracies[current_dataset].append(baseline_accuracy)
 
     return new_accuracies, baseline_accuracies, best_betas
 
@@ -79,9 +78,9 @@ def compute_statistics(log_files):
 if __name__ == "__main__":
     # Input: List of log file paths
     log_files = [
-        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed42.log",
-        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed43.log",
-        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed44.log"
+        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed42.log",
+        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed43.log",
+        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed44.log"
     ]
 
     # Ensure files exist
