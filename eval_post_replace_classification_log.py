@@ -78,9 +78,9 @@ def compute_statistics(log_files):
 if __name__ == "__main__":
     # Input: List of log file paths
     log_files = [
-        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed42.log",
-        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed43.log",
-        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed44.log"
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed42.log",
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed43.log",
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed44.log"
     ]
 
     # Ensure files exist
@@ -99,6 +99,6 @@ if __name__ == "__main__":
         baseline_mean, baseline_std = stats_baseline_accuracies.get(dataset, (0, 0))
         beta_mean, beta_std = stats_betas.get(dataset, (0, 0))
         normalized_improvement = normalized_improvements.get(dataset, 0)
-        print(f"Dataset: {dataset}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%")
+        print(f"Dataset: {dataset}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%")
 
     print(f"Overall Normalized Improvement Across All Datasets: {total_normalized_improvement:.2f}%")
