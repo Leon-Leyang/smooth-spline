@@ -19,8 +19,8 @@ TRAIN:
   aux_weight: 0.4
   train_gpu: [0]
   workers: 8  # data loader workers
-  batch_size: 32  # batch size for training
-  batch_size_val: 32  # batch size for validation during training, memory and speed tradeoff
+  batch_size: 64  # batch size for training
+  batch_size_val: 64  # batch size for validation during training, memory and speed tradeoff
   base_lr: 0.01
   epochs: 50
   start_epoch: 0
