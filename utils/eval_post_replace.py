@@ -119,7 +119,7 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
     beta_list = []
 
     os.makedirs('./cache', exist_ok=True)
-    state_path_format_str = f"./cache/{model_name}_{dataset}_{threat}_{n_examples}_{seed}_{{beta:.2f}}.json"
+    state_path_format_str = f"./cache/{model_name}_{dataset}_{threat}_{n_examples}_{coeff}_{seed}_{{beta:.2f}}.json"
 
     data_dir = './data' if 'imagenet' not in dataset else './data/imagenet'
 
