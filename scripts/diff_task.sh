@@ -2,9 +2,9 @@
 
 #SBATCH --time=48:00:00
 #SBATCH -N 1
-#SBATCH -p gpu --gres=gpu:1
+#SBATCH -p cs-all-gcondo --gres=gpu:1
 #SBATCH --mem=48G
-#SBATCH --cpus-per-task=6
+#SBATCH --cpus-per-task=8
 #SBATCH -J diff_task
 #SBATCH -o diff_task.log
 #SBATCH -e diff_task.log

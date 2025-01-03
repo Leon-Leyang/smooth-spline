@@ -2,7 +2,6 @@ import argparse
 import os
 import time
 import cv2
-import random
 import re
 import numpy as np
 import torch
@@ -15,10 +14,11 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 from utils.semseg.util import dataset, transform, config
 from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, \
-    colorize, poly_learning_rate, find_free_port, get_logger, main_process, check
+    colorize, poly_learning_rate, find_free_port, main_process, check
 from utils.semseg.model.pspnet import PSPNet
 from utils.smooth_spline import replace_module
 from utils.utils import get_file_name, set_logger, fix_seed
+from loguru import logger
 
 cv2.ocl.setUseOpenCL(False)
 
@@ -47,8 +47,7 @@ def main_train(beta):
 
 
 def train_worker(gpu, ngpus_per_node, argss, beta):
-    global args, logger
-
+    global args
     args = argss
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
