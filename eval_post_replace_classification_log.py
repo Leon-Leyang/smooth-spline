@@ -10,7 +10,7 @@ def extract_accuracies_from_file(file_path):
     best_betas = defaultdict(list)
 
     # Regular expression to extract dataset, accuracy, and beta
-    new_pattern = r"Best accuracy for (\w+): ([0-9]+\.[0-9]+) with beta=([0-9\.]+)"
+    new_pattern = r"Best accuracy for ([\w\/\-\_]+): ([0-9]+\.[0-9]+) with beta=([0-9\.]+)"
     baseline_pattern = r"ReLU accuracy: ([0-9]+\.[0-9]+)"
 
     with open(file_path, 'r') as file:
@@ -78,9 +78,9 @@ def compute_statistics(log_files):
 if __name__ == "__main__":
     # Input: List of log file paths
     log_files = [
-        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed42.log",
-        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed43.log",
-        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed44.log"
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_more_ds_seed42.log",
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_more_ds_seed43.log",
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_more_ds_seed44.log"
     ]
 
     # Ensure files exist
