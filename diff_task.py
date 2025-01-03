@@ -206,14 +206,8 @@ def train(train_loader, model, optimizer, epoch):
 
         current_iter = epoch * len(train_loader) + i + 1
         current_lr = poly_learning_rate(args.base_lr, current_iter, max_iter, power=args.power)
-        if args.train_whole:
-            for index in range(0, args.index_split):
-                optimizer.param_groups[index]['lr'] = current_lr
-            for index in range(args.index_split, len(optimizer.param_groups)):
-                optimizer.param_groups[index]['lr'] = current_lr * 10
-        else:
-            for index in range(0, len(optimizer.param_groups)):
-                optimizer.param_groups[index]['lr'] = current_lr * 10
+        for index in range(0, len(optimizer.param_groups)):
+            optimizer.param_groups[index]['lr'] = current_lr * 10
         remain_iter = max_iter - current_iter
         remain_time = remain_iter * batch_time.avg
         t_m, t_s = divmod(remain_time, 60)
