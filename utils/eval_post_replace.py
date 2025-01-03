@@ -2,6 +2,7 @@ import copy
 import os
 from pathlib import Path
 import torch
+import numpy as np
 from torch import nn as nn
 from torchvision import transforms as transforms
 from utils.robustbench import benchmark
@@ -75,27 +76,42 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
 
     n_examples = 1000
 
-    dataset_to_transform = {
-        'cifar10': transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize([0.491, 0.482, 0.447], [0.247, 0.244, 0.262]),
-        ]),
-        'cifar100': transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize([0.507, 0.487, 0.441], [0.267, 0.256, 0.276]),
-        ]),
-        'imagenet': transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        ]),
-    }
-    if threat == 'corruptions':     # No need to resize and crop for ImageNet-C as it is already 224x224
-        dataset_to_transform['imagenet'] = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        ])
+    if threat != 'corruptions':
+        dataset_to_transform = {
+            'cifar10': transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([0.491, 0.482, 0.447], [0.247, 0.244, 0.262]),
+            ]),
+            'cifar100': transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([0.507, 0.487, 0.441], [0.267, 0.256, 0.276]),
+            ]),
+            'imagenet': transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]),
+        }
+    else:     # No need to resize and crop for ImageNet-C as it is already 224x224
+        dataset_to_transform = {
+            'cifar10': transforms.Compose([
+                transforms.Lambda(
+                    lambda x: torch.from_numpy(x.astype(np.float32)) / 255.0
+                ),   # Avoid wrong dimension order by ToTensor
+                transforms.Normalize([0.491, 0.482, 0.447], [0.247, 0.244, 0.262]),
+            ]),
+            'cifar100': transforms.Compose([
+                transforms.Lambda(
+                    lambda x: torch.from_numpy(x.astype(np.float32)) / 255.0
+                ),     # Avoid wrong dimension order by ToTensor
+                transforms.Normalize([0.507, 0.487, 0.441], [0.267, 0.256, 0.276]),
+            ]),
+            'imagenet': transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]),
+        }
 
     logger.info(f'Running post-replace robustness test for {model_name} on {dataset} with {threat} attack...')
 
