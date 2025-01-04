@@ -210,10 +210,10 @@ def corruptions_evaluation(batch_size: int, data_dir: str,
         full_results.to_csv(existing_results_path)
 
     adv_mce = 0
-    alexnet_accs_corruption = full_results.loc['AlexNet']
-    for corruption in corruptions:
-        mce_corruption = (1 - model_results[corruption]) / (1 - alexnet_accs_corruption[corruption]).mean()
-        adv_mce += mce_corruption.values.mean() / len(corruptions)
+    # alexnet_accs_corruption = full_results.loc['AlexNet']
+    # for corruption in corruptions:
+    #     mce_corruption = (1 - model_results[corruption]) / (1 - alexnet_accs_corruption[corruption]).mean()
+    #     adv_mce += mce_corruption.values.mean() / len(corruptions)
 
     return adv_accuracy, adv_mce
 
