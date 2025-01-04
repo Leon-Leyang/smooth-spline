@@ -78,9 +78,9 @@ def compute_statistics(log_files):
 if __name__ == "__main__":
     # Input: List of log file paths
     log_files = [
-        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_more_ds_seed42.log",
-        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_more_ds_seed43.log",
-        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_more_ds_seed44.log"
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed42_test.log",
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed43_test.log",
+        "./logs/post_replace_classification_replace_lp_coeff0.5_topk1_reg1_seed44_test.log"
     ]
 
     # Ensure files exist

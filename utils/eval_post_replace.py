@@ -11,6 +11,7 @@ from utils.smooth_spline import replace_module
 from train import test_epoch
 from loguru import logger
 from utils.data import get_data_loaders
+from PIL import Image
 
 
 def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
@@ -97,14 +98,16 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
         dataset_to_transform = {
             'cifar10': transforms.Compose([
                 transforms.Lambda(
-                    lambda x: torch.from_numpy(x.astype(np.float32)) / 255.0
-                ),   # Avoid wrong dimension order by ToTensor
+                    lambda x: transforms.ToTensor()(x) if isinstance(x, Image.Image) else torch.from_numpy(
+                        x.astype(np.float32)) / 255.0
+                ),   # Avoid wrong dimension order by ToTensor applied to numpy array
                 transforms.Normalize([0.491, 0.482, 0.447], [0.247, 0.244, 0.262]),
             ]),
             'cifar100': transforms.Compose([
                 transforms.Lambda(
-                    lambda x: torch.from_numpy(x.astype(np.float32)) / 255.0
-                ),     # Avoid wrong dimension order by ToTensor
+                    lambda x: transforms.ToTensor()(x) if isinstance(x, Image.Image) else torch.from_numpy(
+                        x.astype(np.float32)) / 255.0
+                ),  # Avoid wrong dimension order by ToTensor applied to numpy array
                 transforms.Normalize([0.507, 0.487, 0.441], [0.267, 0.256, 0.276]),
             ]),
             'imagenet': transforms.Compose([
