@@ -84,7 +84,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     """
     Transfer learning.
     """
-    logger.debug('Transferring learning with linear probe...')
+    logger.debug('Transfer learning with linear probe...')
 
     # Get the data loaders
     train_loader, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}')
@@ -133,7 +133,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
 
     model = WrappedModel(feature_extractor, fc)
 
-    logger.debug('Finishing transferring learning...')
+    logger.debug('Finishing transfer learning...')
     return model
 
 
