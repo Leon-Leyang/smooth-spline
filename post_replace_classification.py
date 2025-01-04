@@ -10,6 +10,7 @@ from train import test_epoch
 from loguru import logger
 import copy
 import argparse
+import wandb
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -93,18 +94,43 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     feature_extractor = FeatureExtractor(model, topk)
     train_features, train_labels = extract_features(feature_extractor, train_loader)
 
-    # Fit sklearn LogisticRegression as the linear probe
-    logistic_regressor = LogisticRegression(max_iter=10000, C=reg)
-    logistic_regressor.fit(train_features, train_labels)
-
-    # Replace the last layer of the model with a linear layer
     num_classes = 100 if 'cifar100' in transfer_ds else 1000 if 'imagenet' in transfer_ds else 10
 
-    fc = nn.Linear(logistic_regressor.n_features_in_, num_classes).to(device)
-    fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
-    fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
-    fc.weight.requires_grad = False
-    fc.bias.requires_grad = False
+    # Linear probe
+    if topk == 1:
+        logistic_regressor = LogisticRegression(max_iter=10000, C=reg)
+        logistic_regressor.fit(train_features, train_labels)
+
+        fc = nn.Linear(logistic_regressor.n_features_in_, num_classes).to(device)
+        fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
+        fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
+        fc.weight.requires_grad = False
+        fc.bias.requires_grad = False
+    else:
+        wandb.init(project='smooth-spline', entity='leyang_hu')
+        in_features = train_features.shape[1]
+        fc = nn.Linear(in_features, num_classes).to(device)
+        fc.train()
+        train_features = torch.tensor(train_features, dtype=torch.float).to(device)
+        train_labels = torch.tensor(train_labels, dtype=torch.long).to(device)
+        train_ds = torch.utils.data.TensorDataset(train_features, train_labels)
+        train_loader = torch.utils.data.DataLoader(train_ds, batch_size=1000, shuffle=True)
+        optimizer = torch.optim.Adam(fc.parameters(), lr=1e-3)
+        criterion = nn.CrossEntropyLoss()
+
+        for epoch in range(30):
+            for inputs, targets in train_loader:
+                optimizer.zero_grad()
+                outputs = fc(inputs)
+                loss = criterion(outputs, targets)
+                loss.backward()
+                optimizer.step()
+                wandb.log({'epoch': epoch, 'loss': loss.item()})
+
+        fc.weight.requires_grad = False
+        fc.bias.requires_grad = False
+        wandb.finish()
+
     model = WrappedModel(feature_extractor, fc)
 
     logger.debug('Finishing transferring learning...')
