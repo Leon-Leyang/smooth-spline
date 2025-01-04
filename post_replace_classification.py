@@ -218,6 +218,8 @@ def get_args():
                         default=['mnist', 'cifar10', 'cifar100', 'imagenet'], help='List of pretrained datasets')
     parser.add_argument('--transfer_ds', type=str, nargs='+',
                         default=['mnist', 'cifar10', 'cifar100', 'imagenet'], help='List of transfer datasets')
+    parser.add_argument('--skip_generalization', action='store_true', help='Skip generalization tests')
+    parser.add_argument('--skip_robustness', action='store_true', help='Skip robustness tests')
     return parser.parse_args()
 
 
@@ -243,32 +245,41 @@ if __name__ == '__main__':
             fix_seed(args.seed)  # Fix the seed each time
 
             if pretrained_ds == transfer_ds:  # Test on the same dataset
-                # Test generalization
-                if result_exists(f'{pretrained_ds}'):
-                    logger.info(f'Skipping {pretrained_ds} as result already exists.')
+                if args.skip_generalization:
+                    logger.info(f'Skipping generalization tests for {pretrained_ds} as requested.')
                 else:
-                    test_acc(pretrained_ds, betas, args.coeff)
+                    # Test generalization
+                    if result_exists(f'{pretrained_ds}'):
+                        logger.info(f'Skipping {pretrained_ds} as result already exists.')
+                    else:
+                        test_acc(pretrained_ds, betas, args.coeff)
                 # Test robustness
-                if args.order == 'lp_replace':  # Hack for avoiding redundant robustness tests
-                    if pretrained_ds in ['cifar10', 'cifar100', 'imagenet']:
-                        for threat in threats:
-                            if result_exists(f'{pretrained_ds}', robustness_test=threat):
-                                logger.info(f'Skipping robustness test for {pretrained_ds} with {threat} as result already exists.')
-                            else:
-                                test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed)
+                if args.skip_robustness:
+                    logger.info(f'Skipping robustness tests for {pretrained_ds} as requested.')
+                else:
+                    if args.order == 'lp_replace':  # Hack for avoiding redundant robustness tests
+                        if pretrained_ds in ['cifar10', 'cifar100', 'imagenet']:
+                            for threat in threats:
+                                if result_exists(f'{pretrained_ds}', robustness_test=threat):
+                                    logger.info(f'Skipping robustness test for {pretrained_ds} with {threat} as result already exists.')
+                                else:
+                                    test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed)
 
             elif transfer_ds == 'imagenet':  # Skip transfer learning on ImageNet
                 continue
             else:  # Test on different datasets
-                if args.order == 'lp_replace':
-                    if result_exists(f'{pretrained_ds}_to_{transfer_ds}'):
-                        logger.info(f'Skipping lp_replace {pretrained_ds} to {transfer_ds} as result already exists.')
-                        continue
-                    lp_then_replace_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk)
-                elif args.order == 'replace_lp':
-                    if result_exists(f'{pretrained_ds}_to_{transfer_ds}', replace_then_lp=True):
-                        logger.info(f'Skipping replace_lp {pretrained_ds} to {transfer_ds} as result already exists.')
-                        continue
-                    replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk)
+                if args.skip_generalization:
+                    logger.info(f'Skipping generalization tests for {pretrained_ds} to {transfer_ds} as requested.')
                 else:
-                    raise ValueError(f'Invalid order: {args.order}')
+                    if args.order == 'lp_replace':
+                        if result_exists(f'{pretrained_ds}_to_{transfer_ds}'):
+                            logger.info(f'Skipping lp_replace {pretrained_ds} to {transfer_ds} as result already exists.')
+                            continue
+                        lp_then_replace_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk)
+                    elif args.order == 'replace_lp':
+                        if result_exists(f'{pretrained_ds}_to_{transfer_ds}', replace_then_lp=True):
+                            logger.info(f'Skipping replace_lp {pretrained_ds} to {transfer_ds} as result already exists.')
+                            continue
+                        replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk)
+                    else:
+                        raise ValueError(f'Invalid order: {args.order}')
