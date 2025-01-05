@@ -19,6 +19,7 @@ from utils.semseg.model.pspnet import PSPNet
 from utils.smooth_spline import replace_module
 from utils.utils import get_file_name, set_logger, fix_seed
 from loguru import logger
+import wandb
 
 cv2.ocl.setUseOpenCL(False)
 
@@ -133,6 +134,8 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=(train_sampler is None), num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True)
 
     args.start_epoch = start_epoch
+    if main_process(args):
+        wandb.init(project='semseg', entity='leyang_hu')
     for epoch in range(args.start_epoch, args.epochs):
         epoch_log = epoch + 1
         if args.distributed:
@@ -146,6 +149,8 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
             if epoch_log / args.save_freq > 2:
                 deletename = args.save_path + '/train_epoch_' + str(epoch_log - args.save_freq * 2) + '.pth'
                 os.remove(deletename)
+    if main_process(args):
+        wandb.finish()
 
     # Destroy the process group
     if args.distributed:
@@ -230,6 +235,7 @@ def train(train_loader, model, optimizer, epoch):
                                                            aux_loss_meter=aux_loss_meter,
                                                            loss_meter=loss_meter,
                                                            accuracy=accuracy))
+            wandb.log({'epoch': epoch, 'main_loss': main_loss_meter.val, 'aux_loss': aux_loss_meter.val, 'loss': loss_meter.val, 'accuracy': accuracy})
 
     iou_class = intersection_meter.sum / (union_meter.sum + 1e-10)
     accuracy_class = intersection_meter.sum / (target_meter.sum + 1e-10)
