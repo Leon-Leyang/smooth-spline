@@ -103,7 +103,7 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
     if latest_checkpoint and os.path.isfile(latest_checkpoint):
         if main_process(args):
             logger.debug(f"=> loading checkpoint '{latest_checkpoint}'")
-        checkpoint = torch.load(latest_checkpoint, map_location=lambda storage, loc: storage.cuda(gpu))
+        checkpoint = torch.load(latest_checkpoint, map_location=lambda storage, loc: storage.cuda(gpu[0])) # gpu[0] is a hack to be able to run the single GPU case
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         if 'epoch' in checkpoint:
