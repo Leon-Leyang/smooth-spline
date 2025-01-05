@@ -25,7 +25,7 @@ config=voc2012_pspnet50.yaml
 
 for seed in 42 43 44
 do
-    for beta in $(seq 0.5 0.1 1)
+    for beta in $(seq 0.95 0.01 1)
     do
         python -u diff_task.py --config=${config} --beta ${beta} manual_seed ${seed}
     done
