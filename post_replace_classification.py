@@ -224,7 +224,11 @@ def test_robustness(dataset, threat, beta_vals, coeff, seed):
     Test the model's robustness with different beta values of BetaReLU on the same dataset.
     """
     model = get_pretrained_model(dataset)
-    replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed)
+    if dataset == 'imagenet':
+        batch_size = 250
+    else:
+        batch_size = 1000
+    replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed, batch_size=batch_size)
 
 
 def get_args():
