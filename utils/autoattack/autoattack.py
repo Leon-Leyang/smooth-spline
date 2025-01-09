@@ -86,20 +86,29 @@ class AutoAttack():
                                 state_path=None,
                                 return_accs=False):
         if state_path is not None and state_path.exists():
-            state = EvaluationState.from_disk(state_path)
-            if set(self.attacks_to_run) != state.attacks_to_run:
-                raise ValueError("The state was created with a different set of attacks "
-                                 "to run. You are probably using the wrong state file.")
-            if self.verbose:
-                self.logger.log("Restored state from {}".format(state_path))
-                self.logger.log("Since the state has been restored, **only** "
-                                "the adversarial examples from the current run "
-                                "are going to be returned.")
+            try:
+                state = EvaluationState.from_disk(state_path)
+                if set(self.attacks_to_run) != state.attacks_to_run:
+                    raise ValueError("The state was created with a different set of attacks "
+                                     "to run. You are probably using the wrong state file.")
+                if self.verbose:
+                    self.logger.log("Restored state from {}".format(state_path))
+                    self.logger.log("Since the state has been restored, **only** "
+                                    "the adversarial examples from the current run "
+                                    "are going to be returned.")
+            except Exception as e:
+                if self.verbose:
+                    self.logger.log(f"State file {state_path} is invalid: {e}. Deleting and starting fresh.")
+                state_path.unlink()  # Delete the invalid state file
+                state = EvaluationState(set(self.attacks_to_run), path=state_path)
+                state.to_disk()
+                if self.verbose and state_path is not None:
+                    self.logger.log("Created state in {}".format(state_path))
         else:
             state = EvaluationState(set(self.attacks_to_run), path=state_path)
             state.to_disk()
             if self.verbose and state_path is not None:
-                self.logger.log("Created state in {}".format(state_path))                                
+                self.logger.log("Created state in {}".format(state_path))
 
         attacks_to_run = list(filter(lambda attack: attack not in state.run_attacks, self.attacks_to_run))
         if self.verbose:
