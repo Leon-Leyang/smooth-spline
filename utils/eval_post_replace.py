@@ -111,6 +111,8 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
                 transforms.Normalize([0.507, 0.487, 0.441], [0.267, 0.256, 0.276]),
             ]),
             'imagenet': transforms.Compose([
+                transforms.Lambda(lambda img: transforms.Resize(256)(img) if img.size != (224, 224) else img),  # Avoid resizing if already 224x224
+                transforms.Lambda(lambda img: transforms.CenterCrop(224)(img) if img.size != (224, 224) else img),  # Avoid cropping if already 224x224
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]),
