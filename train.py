@@ -4,7 +4,7 @@ import wandb
 from torch import nn as nn, optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
 
-from utils.resnet import resnet18
+from utils.resnet import resnet18, resnet34, resnet50, resnet101, resnet152
 from utils.utils import set_logger, get_file_name
 from loguru import logger
 from utils.data import get_data_loaders
@@ -96,12 +96,20 @@ class WarmUpLR(_LRScheduler):
         return [base_lr * self.last_epoch / (self.total_iters + 1e-8) for base_lr in self.base_lrs]
 
 
-def train(dataset):
+def train(dataset, model_name):
     """
     Train the model on the specified dataset.
     :param dataset: dataset to train on, e.g. cifar10/cifar100
     """
-    logger.info(f'Training ResNet18 on {dataset}...')
+    name_to_model = {
+        'resnet18': resnet18,
+        'resnet34': resnet34,
+        'resnet50': resnet50,
+        'resnet101': resnet101,
+        'resnet152': resnet152
+    }
+
+    logger.info(f'Training {model_name} on {dataset}...')
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -116,7 +124,8 @@ def train(dataset):
 
     # Initialize the model
     num_classes = 100 if 'cifar100' in dataset else 10
-    model = resnet18(num_classes=num_classes)
+
+    model = name_to_model[model_name](num_classes=num_classes)
     model = model.to(device)
 
     # Create the checkpoint folder
@@ -150,13 +159,13 @@ def train(dataset):
 
         # save every 10 epochs
         if epoch % 10 == 0:
-            torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_{dataset}_epoch{epoch}.pth'))
+            torch.save(model.state_dict(), os.path.join(ckpt_folder, f'{model_name}_{dataset}_epoch{epoch}.pth'))
 
         # Save the model with the best test loss
         if test_loss < best_test_loss:
             logger.debug(f'Find new best model at Epoch {epoch}')
             best_test_loss = test_loss
-            torch.save(model.state_dict(), os.path.join(ckpt_folder, f'resnet18_{dataset}_best.pth'))
+            torch.save(model.state_dict(), os.path.join(ckpt_folder, f'{model_name}_{dataset}_best.pth'))
 
     wandb.finish()
     logger.info(f'Finished training!')
@@ -166,6 +175,7 @@ def train(dataset):
 def get_args():
     parser = argparse.ArgumentParser(description='Train a model on the specified dataset.')
     parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to train on, e.g. cifar10/cifar100')
+    parser.add_argument('--model', type=str, default='resnet18', help='Model to train, e.g. resnet18')
     return parser.parse_args()
 
 
@@ -173,5 +183,5 @@ if __name__ == '__main__':
     args = get_args()
 
     f_name = get_file_name(__file__)
-    set_logger(name=f'{f_name}_{args.dataset}')
-    train(args.dataset)
+    set_logger(name=f'{f_name}_{args.dataset}_{args.model}')
+    train(args.dataset, args.model)
