@@ -1,10 +1,8 @@
 import os
-import torch
 import wandb
-from torch import nn as nn, optim as optim
+from torch import optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
-
-from utils.resnet import resnet18, resnet34, resnet50, resnet101, resnet152
+from utils.resnet import *
 from utils.utils import set_logger, get_file_name
 from loguru import logger
 from utils.data import get_data_loaders

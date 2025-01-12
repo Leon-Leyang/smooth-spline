@@ -5,7 +5,7 @@ import torchvision
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from torch import nn as nn
-from utils.resnet import resnet18
+from utils.resnet import *
 import numpy as np
 from loguru import logger
 import random
@@ -36,21 +36,36 @@ class MLP(nn.Module):
         return x
 
 
-def get_pretrained_model(pretrained_ds='cifar100', device='cuda'):
+def get_pretrained_model(pretrained_ds='cifar100', device='cuda', model_name='resnet18'):
     """
     Get the pre-trained model.
     """
+    name_to_model = {
+        'resnet18': resnet18,
+        'resnet34': resnet34,
+        'resnet50': resnet50,
+        'resnet101': resnet101,
+        'resnet152': resnet152
+    }
+    name_to_model_imagenet = {
+        'resnet18': torchvision.models.resnet18,
+        'resnet34': torchvision.models.resnet34,
+        'resnet50': torchvision.models.resnet50,
+        'resnet101': torchvision.models.resnet101,
+        'resnet152': torchvision.models.resnet152
+    }
+
     ckpt_folder = './ckpts'
     if 'cifar' in pretrained_ds:
         num_classes = 100 if 'cifar100' in pretrained_ds else 10
-        model = resnet18(num_classes=num_classes).to(device)
-        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch200.pth'), weights_only=True))
+        model = name_to_model[model_name](num_classes=num_classes).to(device)
+        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'{model_name}_{pretrained_ds}_epoch200.pth'), weights_only=True))
     elif 'mnist' in pretrained_ds:
         num_classes = 10
-        model = resnet18(num_classes=num_classes).to(device)
-        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'resnet18_{pretrained_ds}_epoch10.pth'), weights_only=True))
+        model = name_to_model[model_name](num_classes=num_classes).to(device)
+        model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'{model_name}_{pretrained_ds}_epoch10.pth'), weights_only=True))
     elif pretrained_ds == 'imagenet':
-        model = torchvision.models.resnet18(weights='IMAGENET1K_V1').to(device)
+        model = name_to_model_imagenet[model_name](weights='IMAGENET1K_V1').to(device)
 
     return model
 

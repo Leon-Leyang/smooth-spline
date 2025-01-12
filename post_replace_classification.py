@@ -157,22 +157,22 @@ def extract_features(feature_extractor, dataloader):
     return features, labels
 
 
-def lp_then_replace_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1):
+def lp_then_replace_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1, model_name='resnet18'):
     """
     Do transfer learning using a linear probe and test the model's accuracy with different beta values of BetaReLU.
     """
-    model = get_pretrained_model(pretrained_ds)
+    model = get_pretrained_model(pretrained_ds, model_name)
     model = transfer_linear_probe(model, pretrained_ds, transfer_ds, reg, topk)
     replace_and_test_acc(model, beta_vals, f'{pretrained_ds}_to_{transfer_ds}', coeff)
 
 
-def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1):
+def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1, model_name='resnet18'):
     """
     Replace ReLU with BetaReLU and then do transfer learning using a linear probe and test the model's accuracy.
     """
     dataset = f'{pretrained_ds}_to_{transfer_ds}'
 
-    model = get_pretrained_model(pretrained_ds)
+    model = get_pretrained_model(pretrained_ds, model_name)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_name = model.__class__.__name__
@@ -211,19 +211,19 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
 
 
-def test_acc(dataset, beta_vals, coeff):
+def test_acc(dataset, beta_vals, coeff, model_name):
     """
     Test the model's accuracy with different beta values of BetaReLU on the same dataset.
     """
-    model = get_pretrained_model(dataset)
+    model = get_pretrained_model(dataset, model_name)
     replace_and_test_acc(model, beta_vals, dataset, coeff)
 
 
-def test_robustness(dataset, threat, beta_vals, coeff, seed):
+def test_robustness(dataset, threat, beta_vals, coeff, seed, model_name):
     """
     Test the model's robustness with different beta values of BetaReLU on the same dataset.
     """
-    model = get_pretrained_model(dataset)
+    model = get_pretrained_model(dataset, model_name)
     if dataset == 'imagenet':
         batch_size = 250
     else:
@@ -233,6 +233,12 @@ def test_robustness(dataset, threat, beta_vals, coeff, seed):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Transfer learning with linear probe')
+    parser.add_argument(
+        '--model',
+        type=str,
+        default='resnet18',
+        help='Model to test'
+    )
     parser.add_argument(
         '--order',
         type=str,
@@ -258,9 +264,9 @@ if __name__ == '__main__':
 
     f_name = get_file_name(__file__)
     if not any(ds in ['mnist', 'cifar10', 'cifar100', 'imagenet'] for ds in args.transfer_ds):
-        log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_more_ds_seed{args.seed}')
+        log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_{args.model}_more_ds_seed{args.seed}')
     else:
-        log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_seed{args.seed}')
+        log_file_path = set_logger(name=f'{f_name}_{args.order}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     betas = np.arange(0.5, 1 - 1e-6, 0.01)
@@ -282,7 +288,7 @@ if __name__ == '__main__':
                     if result_exists(f'{pretrained_ds}'):
                         logger.info(f'Skipping {pretrained_ds} as result already exists.')
                     else:
-                        test_acc(pretrained_ds, betas, args.coeff)
+                        test_acc(pretrained_ds, betas, args.coeff, args.model)
                 # Test robustness
                 if args.skip_robustness:
                     logger.info(f'Skipping robustness tests for {pretrained_ds} as requested.')
@@ -293,7 +299,7 @@ if __name__ == '__main__':
                                 if result_exists(f'{pretrained_ds}', robustness_test=threat):
                                     logger.info(f'Skipping robustness test for {pretrained_ds} with {threat} as result already exists.')
                                 else:
-                                    test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed)
+                                    test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed, args.model)
 
             elif transfer_ds == 'imagenet':  # Skip transfer learning on ImageNet
                 continue
@@ -305,11 +311,11 @@ if __name__ == '__main__':
                         if result_exists(f'{pretrained_ds}_to_{transfer_ds}'):
                             logger.info(f'Skipping lp_replace {pretrained_ds} to {transfer_ds} as result already exists.')
                             continue
-                        lp_then_replace_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk)
+                        lp_then_replace_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk, args.model)
                     elif args.order == 'replace_lp':
                         if result_exists(f'{pretrained_ds}_to_{transfer_ds}', replace_then_lp=True):
                             logger.info(f'Skipping replace_lp {pretrained_ds} to {transfer_ds} as result already exists.')
                             continue
-                        replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk)
+                        replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk, args.model)
                     else:
                         raise ValueError(f'Invalid order: {args.order}')
