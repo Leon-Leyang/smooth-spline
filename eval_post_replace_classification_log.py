@@ -80,17 +80,19 @@ def compute_statistics(log_files, robustness=False):
         for dataset, values in combined_betas.items()
     }
 
-    # Compute normalized improvement for each dataset
+    # Compute normalized improvement for each dataset, exclude if baseline accuracy is 0
     normalized_improvements = {
         dataset: ((stats_new_accuracies[dataset][0] - stats_baseline_accuracies[dataset][0]) /
                   stats_baseline_accuracies[dataset][0]) * 100
-        if stats_baseline_accuracies[dataset][0] != 0 else 0
         for dataset in stats_new_accuracies
+        if stats_baseline_accuracies[dataset][0] > 0
     }
 
-    # Compute overall normalized improvement across all datasets
-    total_normalized_improvement = sum(normalized_improvements.values()) / len(
-        normalized_improvements) if normalized_improvements else 0
+    # Compute overall normalized improvement across all valid datasets
+    total_normalized_improvement = (
+        sum(normalized_improvements.values()) / len(normalized_improvements)
+        if normalized_improvements else 0
+    )
 
     return stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, total_normalized_improvement
 
@@ -98,9 +100,9 @@ def compute_statistics(log_files, robustness=False):
 if __name__ == "__main__":
     # Input: List of log file paths
     log_files = [
-        "./logs/post_replace_classification_lp_replace_coeff0.0_topk1_reg1_seed42.log",
-        "./logs/post_replace_classification_lp_replace_coeff0.0_topk1_reg1_seed43.log",
-        "./logs/post_replace_classification_lp_replace_coeff0.0_topk1_reg1_seed44.log"
+        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed42.log",
+        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed43.log",
+        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed44.log"
     ]
 
     # Ensure files exist
