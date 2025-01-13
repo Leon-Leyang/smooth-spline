@@ -36,10 +36,12 @@ class MLP(nn.Module):
         return x
 
 
-def get_pretrained_model(pretrained_ds='cifar100', device='cuda', model_name='resnet18'):
+def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
     """
     Get the pre-trained model.
     """
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     name_to_model = {
         'resnet18': resnet18,
         'resnet34': resnet34,
