@@ -163,7 +163,7 @@ def lp_then_replace_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     """
     model = get_pretrained_model(pretrained_ds, model_name)
     model = transfer_linear_probe(model, pretrained_ds, transfer_ds, reg, topk)
-    replace_and_test_acc(model, beta_vals, f'{pretrained_ds}_to_{transfer_ds}', coeff)
+    replace_and_test_acc(model, beta_vals, f'{pretrained_ds}_to_{transfer_ds}', coeff, model_name)
 
 
 def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1, model_name='resnet18'):
@@ -216,7 +216,7 @@ def test_acc(dataset, beta_vals, coeff, model_name):
     Test the model's accuracy with different beta values of BetaReLU on the same dataset.
     """
     model = get_pretrained_model(dataset, model_name)
-    replace_and_test_acc(model, beta_vals, dataset, coeff)
+    replace_and_test_acc(model, beta_vals, dataset, coeff, model_name)
 
 
 def test_robustness(dataset, threat, beta_vals, coeff, seed, model_name):
@@ -228,7 +228,7 @@ def test_robustness(dataset, threat, beta_vals, coeff, seed, model_name):
         batch_size = 250
     else:
         batch_size = 1000
-    replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed, batch_size=batch_size)
+    replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed, batch_size=batch_size, model_name=model_name)
 
 
 def get_args():

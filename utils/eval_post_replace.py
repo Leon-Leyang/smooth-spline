@@ -14,14 +14,11 @@ from utils.data import get_data_loaders
 from PIL import Image
 
 
-def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
+def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5, model_name=""):
     """
     Replace ReLU with BetaReLU and test the model on the specified dataset.
     """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model_name = model.base_model.__class__.__name__ if hasattr(model, 'base_model') \
-        else model.feature_extractor.base_model.__class__.__name__ if hasattr(model, 'feature_extractor') \
-        else model.__class__.__name__
 
     _, test_loader = get_data_loaders(dataset)
 
@@ -59,15 +56,12 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5):
     plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name)
 
 
-def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=1000, model_id=None):
+def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=1000, model_name=""):
     """
     Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()
-    model_name = model_id if model_id is not None \
-        else model.base_model.__class__.__name__ if hasattr(model, 'base_model') \
-        else model.__class__.__name__
 
     threat_to_eps = {
         'Linf': 8 / 255,
