@@ -219,15 +219,15 @@ def test_acc(dataset, beta_vals, coeff, model_name):
     replace_and_test_acc(model, beta_vals, dataset, coeff, model_name)
 
 
-def test_robustness(dataset, threat, beta_vals, coeff, seed, model_name):
+def test_robustness(dataset, threat, beta_vals, coeff, seed, model_name, base_batch_size=1000):
     """
     Test the model's robustness with different beta values of BetaReLU on the same dataset.
     """
     model = get_pretrained_model(dataset, model_name)
     if dataset == 'imagenet':
-        batch_size = 250
+        batch_size = base_batch_size // 4
     else:
-        batch_size = 1000
+        batch_size = base_batch_size
     replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed, batch_size=batch_size, model_name=model_name)
 
 
@@ -256,6 +256,7 @@ def get_args():
                         default=['mnist', 'cifar10', 'cifar100', 'imagenet'], help='List of transfer datasets')
     parser.add_argument('--skip_generalization', action='store_true', help='Skip generalization tests')
     parser.add_argument('--skip_robustness', action='store_true', help='Skip robustness tests')
+    parser.add_argument('--base_batch_size', type=int, default=1000, help='Base batch size for robustness tests')
     return parser.parse_args()
 
 
@@ -299,7 +300,7 @@ if __name__ == '__main__':
                                 if result_exists(f'{pretrained_ds}', robustness_test=threat):
                                     logger.info(f'Skipping robustness test for {pretrained_ds} with {threat} as result already exists.')
                                 else:
-                                    test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed, args.model)
+                                    test_robustness(pretrained_ds, threat, betas, args.coeff, args.seed, args.model, args.base_batch_size)
 
             elif transfer_ds == 'imagenet':  # Skip transfer learning on ImageNet
                 continue
