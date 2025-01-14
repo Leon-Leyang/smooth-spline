@@ -1,11 +1,9 @@
 import os
 import sys
-import torch
 import torchvision
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
-from torch import nn as nn
-from utils.resnet import *
+from utils.model import *
 import numpy as np
 from loguru import logger
 import random
@@ -47,14 +45,16 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
         'resnet34': resnet34,
         'resnet50': resnet50,
         'resnet101': resnet101,
-        'resnet152': resnet152
+        'resnet152': resnet152,
+        'vgg19': vgg19
     }
     name_to_model_imagenet = {
         'resnet18': torchvision.models.resnet18,
         'resnet34': torchvision.models.resnet34,
         'resnet50': torchvision.models.resnet50,
         'resnet101': torchvision.models.resnet101,
-        'resnet152': torchvision.models.resnet152
+        'resnet152': torchvision.models.resnet152,
+        'vgg19': torchvision.models.vgg19
     }
 
     ckpt_folder = './ckpts'

@@ -10,6 +10,7 @@
 
 import torch
 import torch.nn as nn
+from torchvision.models import vgg19 as torchvision_vgg19
 
 class BasicBlock(nn.Module):
     """Basic Block for resnet 18 and resnet 34
@@ -159,5 +160,9 @@ def resnet152(num_classes=100):
     """
     return ResNet(BottleNeck, [3, 8, 36, 3], num_classes=num_classes)
 
-
-
+def vgg19(num_classes=100):
+    """ return a VGG 19 object
+    """
+    model = torchvision_vgg19()
+    model.classifier[-1] = nn.Linear(4096, num_classes)
+    return model

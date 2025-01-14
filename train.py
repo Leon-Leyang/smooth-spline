@@ -2,8 +2,7 @@ import os
 import wandb
 from torch import optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
-from torchvision.models import vgg19
-from utils.resnet import *
+from utils.model import *
 from utils.utils import set_logger, get_file_name
 from loguru import logger
 from utils.data import get_data_loaders
