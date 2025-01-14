@@ -2,6 +2,7 @@ import os
 import wandb
 from torch import optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
+from torchvision.models import vgg19
 from utils.resnet import *
 from utils.utils import set_logger, get_file_name
 from loguru import logger
@@ -79,32 +80,30 @@ def test_epoch(epoch, model, testloader, criterion, device):
 class WarmUpLR(_LRScheduler):
     """warmup_training learning rate scheduler
     Args:
-        optimizer: optimzier(e.g. SGD)
+        optimizer: optimizer (e.g., SGD)
         total_iters: total_iters of warmup phase
     """
     def __init__(self, optimizer, total_iters, last_epoch=-1):
-
         self.total_iters = total_iters
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
-        """we will use the first m batches, and set the learning
-        rate to base_lr * m / total_iters
-        """
+        """Set the learning rate to base_lr * epoch / total_iters"""
         return [base_lr * self.last_epoch / (self.total_iters + 1e-8) for base_lr in self.base_lrs]
 
 
 def train(dataset, model_name):
     """
     Train the model on the specified dataset.
-    :param dataset: dataset to train on, e.g. cifar10/cifar100
+    :param dataset: dataset to train on, e.g., cifar10/cifar100
     """
     name_to_model = {
         'resnet18': resnet18,
         'resnet34': resnet34,
         'resnet50': resnet50,
         'resnet101': resnet101,
-        'resnet152': resnet152
+        'resnet152': resnet152,
+        'vgg19': vgg19
     }
 
     logger.info(f'Training {model_name} on {dataset}...')
@@ -155,7 +154,7 @@ def train(dataset, model_name):
         train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler)
         test_loss, _ = test_epoch(epoch, model, test_loader, criterion, device)
 
-        # save every 10 epochs
+        # Save every 10 epochs
         if epoch % 10 == 0:
             torch.save(model.state_dict(), os.path.join(ckpt_folder, f'{model_name}_{dataset}_epoch{epoch}.pth'))
 
@@ -172,8 +171,8 @@ def train(dataset, model_name):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train a model on the specified dataset.')
-    parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to train on, e.g. cifar10/cifar100')
-    parser.add_argument('--model', type=str, default='resnet18', help='Model to train, e.g. resnet18')
+    parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to train on, e.g., cifar10/cifar100')
+    parser.add_argument('--model', type=str, default='resnet18', help='Model to train, e.g., resnet18/vgg16')
     return parser.parse_args()
 
 
