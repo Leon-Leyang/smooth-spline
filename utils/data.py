@@ -52,7 +52,7 @@ def replicate_if_needed(x):
     return x  # Return unchanged if already has more than 1 channel
 
 
-def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None, num_workers=6):
+def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None, num_workers=6, transform_train=None, transform_test=None):
     """
     Get the data loaders for the dataset.
     """
@@ -65,49 +65,50 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         dataset_to_use = dataset
         normalization_to_use = dataset
 
-    if transform_to_use == 'cifar10' or transform_to_use == 'cifar100' or transform_to_use == 'arabic_characters':
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15),
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
-        ])
-        transform_test = transforms.Compose([
-            transforms.Resize(32),
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
-        ])
-    elif transform_to_use == 'mnist' or transform_to_use == 'fashion_mnist' or transform_to_use == 'med_mnist/pathmnist':
-        transform_train = transforms.Compose([
-            transforms.Resize(28),
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
-        ])
-        transform_test = transforms.Compose([
-            transforms.Resize(28),
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
-        ])
-    elif transform_to_use == 'imagenet' or transform_to_use == 'fgvc_aircraft' or transform_to_use == 'places365_small' or transform_to_use == 'flowers102':
-        transform_train = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),
-            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
-        ])
-        transform_test = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
-        ])
+    if transform_train is None and transform_test is None:
+        if transform_to_use == 'cifar10' or transform_to_use == 'cifar100' or transform_to_use == 'arabic_characters':
+            transform_train = transforms.Compose([
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(15),
+                transforms.ToTensor(),
+                transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+                transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+            ])
+            transform_test = transforms.Compose([
+                transforms.Resize(32),
+                transforms.ToTensor(),
+                transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+                transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+            ])
+        elif transform_to_use == 'mnist' or transform_to_use == 'fashion_mnist' or transform_to_use == 'med_mnist/pathmnist':
+            transform_train = transforms.Compose([
+                transforms.Resize(28),
+                transforms.ToTensor(),
+                transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+                transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+            ])
+            transform_test = transforms.Compose([
+                transforms.Resize(28),
+                transforms.ToTensor(),
+                transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+                transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+            ])
+        elif transform_to_use == 'imagenet' or transform_to_use == 'fgvc_aircraft' or transform_to_use == 'places365_small' or transform_to_use == 'flowers102':
+            transform_train = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Lambda(replicate_if_needed),
+                transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+            ])
+            transform_test = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+                transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
+            ])
 
     if dataset_to_use == 'cifar10':
         trainset = torchvision.datasets.CIFAR10(

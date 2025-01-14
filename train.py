@@ -5,8 +5,9 @@ from torch.optim.lr_scheduler import _LRScheduler
 from utils.model import *
 from utils.utils import set_logger, get_file_name
 from loguru import logger
-from utils.data import get_data_loaders
+from utils.data import get_data_loaders, replicate_if_needed, NORMALIZATION_VALUES
 import argparse
+from torchvision import transforms as transforms
 
 
 def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_scheduler):
@@ -116,7 +117,22 @@ def train(dataset, model_name):
     num_epochs = 200 if dataset != 'mnist' else 10
 
     # Get the data loaders
-    train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size)
+    transform_train, transform_test = None, None
+    if model_name == 'vgg19' and dataset == 'mnist':
+        transform_train = transforms.Compose([
+            transforms.Resize(32),  # Hack for avoiding too small images for VGG
+            transforms.ToTensor(),
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+            transforms.Normalize(*NORMALIZATION_VALUES['mnist'])
+        ])
+        transform_test = transforms.Compose([
+            transforms.Resize(32),  # Hack for avoiding too small images for VGG
+            transforms.ToTensor(),
+            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
+            transforms.Normalize(*NORMALIZATION_VALUES['mnist'])
+        ])
+
+    train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, transform_train=transform_train, transform_test=transform_test)
 
     # Initialize the model
     num_classes = 100 if 'cifar100' in dataset else 10
