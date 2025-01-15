@@ -25,7 +25,6 @@ for seed in 42 43 44
 do
   for reg in 0.1 10
   do
-      python -u post_replace_classification.py --order lp_replace --reg ${reg} --seed ${seed}
       python -u post_replace_classification.py --order replace_lp --reg ${reg} --seed ${seed}
   done
 done

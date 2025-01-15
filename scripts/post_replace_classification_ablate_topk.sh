@@ -25,7 +25,6 @@ for seed in 42 43 44
 do
   for topk in 2 3
   do
-      python -u post_replace_classification.py --order lp_replace --topk ${topk} --seed ${seed}
       python -u post_replace_classification.py --order replace_lp --topk ${topk} --seed ${seed}
   done
 done

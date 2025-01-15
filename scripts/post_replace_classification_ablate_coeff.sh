@@ -25,7 +25,6 @@ for seed in 42 43 44
 do
   for coeff in 0 1
   do
-      python -u post_replace_classification.py --order lp_replace --coeff ${coeff} --seed ${seed}
       python -u post_replace_classification.py --order replace_lp --coeff ${coeff} --seed ${seed}
   done
 done
