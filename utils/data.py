@@ -13,10 +13,17 @@ NORMALIZATION_VALUES = {
     'mnist': ([0.131, 0.131, 0.131], [0.308, 0.308, 0.308]),
     'imagenet': ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     'arabic_characters': ([0.101, 0.101, 0.101], [0.301, 0.301, 0.301]),
+    'arabic_digits': ([0.165, 0.165, 0.165], [0.371, 0.371, 0.371]),
+    'bean': ([0.485, 0.518, 0.313], [0.211, 0.223, 0.2]),
+    'cub200': ([0.486, 0.5, 0.433], [0.232, 0.228, 0.267]),
+    'dtd': ([0.531, 0.475, 0.427], [0.271, 0.263, 0.271]),
+    'food101': ([0.549, 0.445, 0.344], [0.273, 0.276, 0.28]),
     'fgvc_aircraft': ([0.485, 0.52, 0.548], [0.219, 0.21, 0.241]),
     'flowers102': ([0.43, 0.38, 0.295], [0.295, 0.246, 0.273]),
     'fashion_mnist': ([0.286, 0.286, 0.286], [0.353, 0.353, 0.353]),
     'med_mnist/pathmnist': ([0.741, 0.533, 0.706], [0.124, 0.177, 0.124]),
+    'med_mnist/chestmnist': ([0.494, 0.494, 0.494], [0.238, 0.238, 0.238]),
+    'med_mnist/dermamnist': ([0.763, 0.538, 0.561], [0.137, 0.154, 0.169]),
 }
 
 
@@ -66,7 +73,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         normalization_to_use = dataset
 
     if transform_train is None and transform_test is None:
-        if transform_to_use == 'cifar10' or transform_to_use == 'cifar100' or transform_to_use == 'arabic_characters':
+        if transform_to_use in ['cifar10', 'cifar100', 'arabic_characters', 'arabic_digits']:
             transform_train = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
@@ -81,7 +88,8 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
                 transforms.Lambda(replicate_if_needed),  # Apply conditional replication
                 transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
             ])
-        elif transform_to_use == 'mnist' or transform_to_use == 'fashion_mnist' or transform_to_use == 'med_mnist/pathmnist':
+        elif transform_to_use in ['mnist', 'fashion_mnist', 'med_mnist/pathmnist', 'med_mnist/chestmnist',
+                                  'med_mnist/dermamnist']:
             transform_train = transforms.Compose([
                 transforms.Resize(28),
                 transforms.ToTensor(),
@@ -94,7 +102,8 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
                 transforms.Lambda(replicate_if_needed),  # Apply conditional replication
                 transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
             ])
-        elif transform_to_use == 'imagenet' or transform_to_use == 'fgvc_aircraft' or transform_to_use == 'places365_small' or transform_to_use == 'flowers102':
+        elif transform_to_use in ['imagenet', 'fgvc_aircraft', 'places365_small', 'flowers102', 'beans', 'cub200',
+                                  'dtd', 'food101']:
             transform_train = transforms.Compose([
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
@@ -129,34 +138,23 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         trainset = None
         testset = torchvision.datasets.ImageNet(
             root='./data/imagenet', split='val', transform=transform_test)
-    elif dataset_to_use == 'arabic_characters':
-        hf_trainset = datasets.load_dataset("./utils/aidatasets/images/arabic_characters.py", split="train", trust_remote_code=True)
-        hf_testset = datasets.load_dataset("./utils/aidatasets/images/arabic_characters.py", split="test", trust_remote_code=True)
+    elif dataset_to_use in ['arabic_characters', 'fashion_mnist', 'arabic_digits', 'cub200', 'food101']:
+        hf_trainset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="train", trust_remote_code=True)
+        hf_testset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="test", trust_remote_code=True)
         trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
         testset = HuggingFaceDataset(hf_testset, transform=transform_test)
-    elif dataset_to_use == 'fgvc_aircraft':
-        hf_train_dataset = datasets.load_dataset("./utils/aidatasets/images/fgvc_aircraft.py", split="train", trust_remote_code=True)
-        hf_val_dataset = datasets.load_dataset("./utils/aidatasets/images/fgvc_aircraft.py", split="validation", trust_remote_code=True)
-        hf_testset = datasets.load_dataset("./utils/aidatasets/images/fgvc_aircraft.py", split="test", trust_remote_code=True)
+    elif dataset_to_use in ['fgvc_aircraft', 'flowers102', 'beans', 'dtd']:
+        hf_train_dataset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="train", trust_remote_code=True)
+        hf_val_dataset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="validation", trust_remote_code=True)
+        hf_testset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="test", trust_remote_code=True)
         hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
         trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
         testset = HuggingFaceDataset(hf_testset, transform=transform_test)
-    elif dataset_to_use == 'flowers102':
-        hf_train_dataset = datasets.load_dataset("./utils/aidatasets/images/flowers102.py", split="train", trust_remote_code=True)
-        hf_val_dataset = datasets.load_dataset("./utils/aidatasets/images/flowers102.py", split="validation", trust_remote_code=True)
-        hf_testset = datasets.load_dataset("./utils/aidatasets/images/flowers102.py", split="test", trust_remote_code=True)
-        hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
-        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
-    elif dataset_to_use == 'fashion_mnist':
-        hf_trainset = datasets.load_dataset("./utils/aidatasets/images/fashion_mnist.py", split="train", trust_remote_code=True)
-        hf_testset = datasets.load_dataset("./utils/aidatasets/images/fashion_mnist.py", split="test", trust_remote_code=True)
-        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
-    elif dataset_to_use == 'med_mnist/pathmnist':
-        hf_train_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name="pathmnist", split="train", trust_remote_code=True)
-        hf_val_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name="pathmnist", split="validation", trust_remote_code=True)
-        hf_testset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name="pathmnist", split="test", trust_remote_code=True)
+    elif dataset_to_use in ['med_mnist/pathmnist', 'med_mnist/chestmnist', 'med_mnist/dermamnist']:
+        name = dataset_to_use.split('/')[-1]
+        hf_train_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name=name, split="train", trust_remote_code=True)
+        hf_val_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name=name, split="validation", trust_remote_code=True)
+        hf_testset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name=name, split="test", trust_remote_code=True)
         hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
         trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
         testset = HuggingFaceDataset(hf_testset, transform=transform_test)
