@@ -22,7 +22,7 @@ NORMALIZATION_VALUES = {
     'flowers102': ([0.43, 0.38, 0.295], [0.295, 0.246, 0.273]),
     'fashion_mnist': ([0.286, 0.286, 0.286], [0.353, 0.353, 0.353]),
     'med_mnist/pathmnist': ([0.741, 0.533, 0.706], [0.124, 0.177, 0.124]),
-    'med_mnist/chestmnist': ([0.494, 0.494, 0.494], [0.238, 0.238, 0.238]),
+    'med_mnist/octmnist': ([0.189, 0.189, 0.189], [0.196, 0.196, 0.196]),
     'med_mnist/dermamnist': ([0.763, 0.538, 0.561], [0.137, 0.154, 0.169]),
 }
 
@@ -88,7 +88,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
                 transforms.Lambda(replicate_if_needed),  # Apply conditional replication
                 transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
             ])
-        elif transform_to_use in ['mnist', 'fashion_mnist', 'med_mnist/pathmnist', 'med_mnist/chestmnist',
+        elif transform_to_use in ['mnist', 'fashion_mnist', 'med_mnist/pathmnist', 'med_mnist/octmnist',
                                   'med_mnist/dermamnist']:
             transform_train = transforms.Compose([
                 transforms.Resize(28),
@@ -150,7 +150,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
         trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
         testset = HuggingFaceDataset(hf_testset, transform=transform_test)
-    elif dataset_to_use in ['med_mnist/pathmnist', 'med_mnist/chestmnist', 'med_mnist/dermamnist']:
+    elif dataset_to_use in ['med_mnist/pathmnist', 'med_mnist/octmnist', 'med_mnist/dermamnist']:
         name = dataset_to_use.split('/')[-1]
         hf_train_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name=name, split="train", trust_remote_code=True)
         hf_val_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name=name, split="validation", trust_remote_code=True)
