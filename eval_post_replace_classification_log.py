@@ -106,9 +106,9 @@ def compute_statistics(log_files, robustness=False):
 if __name__ == "__main__":
     # Input: List of log file paths
     log_files = [
-        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed42.log",
-        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed43.log",
-        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed44.log"
+        "./logs/post_replace_classification_replace_lp_coeff1.0_topk1_reg1_more_ds_seed42.log",
+        "./logs/post_replace_classification_replace_lp_coeff1.0_topk1_reg1_more_ds_seed43.log",
+        "./logs/post_replace_classification_replace_lp_coeff1.0_topk1_reg1_more_ds_seed44.log"
     ]
 
     # Ensure files exist
@@ -137,15 +137,15 @@ if __name__ == "__main__":
     stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, absolute_improvements, overall_normalized_improvement, overall_absolute_improvement = compute_statistics(
         log_files, robustness=True)
 
-    print("\n")
-    print("Robust Accuracy, Beta Statistics, Normalized and Absolute Improvements:")
-    for dataset in stats_new_accuracies:
-        new_mean, new_std = stats_new_accuracies[dataset]
-        baseline_mean, baseline_std = stats_baseline_accuracies.get(dataset, (0, 0))
-        beta_mean, beta_std = stats_betas.get(dataset, (0, 0))
-        normalized_improvement = normalized_improvements.get(dataset, 0)
-        absolute_improvement = absolute_improvements.get(dataset, 0)
-        print(f"Dataset: {dataset}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%, Absolute Improvement: {absolute_improvement:.2f}")
-
-    print(f"Overall Normalized Improvement Across All Datasets: {overall_normalized_improvement:.2f}%")
-    print(f"Overall Average Absolute Improvement Across All Datasets: {overall_absolute_improvement:.2f}%")
+    # print("\n")
+    # print("Robust Accuracy, Beta Statistics, Normalized and Absolute Improvements:")
+    # for dataset in stats_new_accuracies:
+    #     new_mean, new_std = stats_new_accuracies[dataset]
+    #     baseline_mean, baseline_std = stats_baseline_accuracies.get(dataset, (0, 0))
+    #     beta_mean, beta_std = stats_betas.get(dataset, (0, 0))
+    #     normalized_improvement = normalized_improvements.get(dataset, 0)
+    #     absolute_improvement = absolute_improvements.get(dataset, 0)
+    #     print(f"Dataset: {dataset}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%, Absolute Improvement: {absolute_improvement:.2f}")
+    #
+    # print(f"Overall Normalized Improvement Across All Datasets: {overall_normalized_improvement:.2f}%")
+    # print(f"Overall Average Absolute Improvement Across All Datasets: {overall_absolute_improvement:.2f}%")
