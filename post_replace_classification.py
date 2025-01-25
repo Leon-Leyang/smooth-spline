@@ -4,6 +4,7 @@ import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
+from sklearn.multioutput import MultiOutputClassifier
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_acc_vs_beta
 from utils.curvature_tuning import replace_module
 from train import test_epoch
@@ -94,18 +95,36 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     feature_extractor = FeatureExtractor(model, topk)
     train_features, train_labels = extract_features(feature_extractor, train_loader)
 
-    num_classes = 100 if 'cifar100' in transfer_ds else 1000 if 'imagenet' in transfer_ds else 10
+    num_classes = 100 if transfer_ds == 'cifar100' else 1000 if transfer_ds == 'imagenet' else 40 if transfer_ds == 'celeb_a' else 10
 
     # Linear probe
     if topk == 1:
-        logistic_regressor = LogisticRegression(max_iter=10000, C=reg)
-        logistic_regressor.fit(train_features, train_labels)
+        if transfer_ds == 'celeb_a':
+            logistic_regressor = MultiOutputClassifier(LogisticRegression(max_iter=10000, C=reg), n_jobs=-1)
+            logistic_regressor.fit(train_features, train_labels)
 
-        fc = nn.Linear(logistic_regressor.n_features_in_, num_classes).to(device)
-        fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
-        fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
-        fc.weight.requires_grad = False
-        fc.bias.requires_grad = False
+            # Concatenate each attribute's logistic regression params into a single Linear layer
+            W_list, b_list = [], []
+            for est in logistic_regressor.estimators_:
+                W_list.append(est.coef_)  # shape [1, D]
+                b_list.append(est.intercept_)  # shape [1]
+
+            W = np.concatenate(W_list, axis=0)  # shape [40, D]
+            b = np.concatenate(b_list, axis=0)  # shape [40]
+            fc = nn.Linear(W.shape[1], 40).to(device)
+            fc.weight.data = torch.from_numpy(W).float().to(device)
+            fc.bias.data = torch.from_numpy(b).float().to(device)
+            fc.weight.requires_grad = False
+            fc.bias.requires_grad = False
+        else:
+            logistic_regressor = LogisticRegression(max_iter=10000, C=reg)
+            logistic_regressor.fit(train_features, train_labels)
+
+            fc = nn.Linear(logistic_regressor.n_features_in_, num_classes).to(device)
+            fc.weight.data = torch.tensor(logistic_regressor.coef_, dtype=torch.float).to(device)
+            fc.bias.data = torch.tensor(logistic_regressor.intercept_, dtype=torch.float).to(device)
+            fc.weight.requires_grad = False
+            fc.bias.requires_grad = False
     else:
         wandb.init(project='smooth-spline', entity='leyang_hu')
         in_features = train_features.shape[1]
@@ -188,7 +207,10 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     # Test the original model
     logger.debug('Using ReLU...')
     transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk)
-    _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
+    if transfer_ds == 'celeb_a':
+        base_acc = test_ma(transfer_model, test_loader, device)
+    else:
+        _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
     best_acc = base_acc
     best_beta = 1
 
@@ -197,7 +219,10 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
         new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
         transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk)
-        _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
+        if transfer_ds == 'celeb_a':
+            test_acc = test_ma(transfer_model, test_loader, device)
+        else:
+            _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
         if test_acc > best_acc:
             best_acc = test_acc
             best_beta = beta
@@ -229,6 +254,42 @@ def test_robustness(dataset, threat, beta_vals, coeff, seed, model_name, base_ba
     else:
         batch_size = base_batch_size
     replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed, batch_size=batch_size, model_name=model_name)
+
+
+def test_ma(model, testloader, device='cuda'):
+    """
+    Computes mean accuracy (mA) for multi-label classification.
+    """
+    model.eval()
+    all_preds = []
+    all_targets = []
+
+    with torch.no_grad():
+        for inputs, targets in testloader:
+            inputs = inputs.to(device)
+            logits = model(inputs)
+            probs = torch.sigmoid(logits).cpu()
+
+            # Convert ground-truth from -1/+1 to 0/1:
+            targets_01 = (targets + 1) // 2
+
+            all_preds.append(probs)
+            all_targets.append(targets_01)
+
+    # Concatenate all batches
+    all_preds = torch.cat(all_preds, dim=0)  # shape: (N, 40)
+    all_targets = torch.cat(all_targets, dim=0)  # shape: (N, 40)
+
+    # Threshold at 0.5 to get binary predictions in {0,1}
+    pred_labels = (all_preds >= 0.5).float()
+
+    # Per-attribute accuracy => mean across attributes
+    correct_by_attr = (pred_labels == all_targets).float().sum(dim=0)  # shape: (40,)
+    total_samples = all_targets.size(0)
+    acc_by_attr = correct_by_attr / total_samples  # shape: (40,)
+
+    mA = acc_by_attr.mean().item()  # mean accuracy across attributes
+    return mA * 100.0
 
 
 def get_args():
