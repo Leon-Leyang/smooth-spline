@@ -7,7 +7,7 @@ from torch import nn as nn
 from torchvision import transforms as transforms
 from utils.robustbench import benchmark
 from utils.utils import plot_acc_vs_beta
-from utils.smooth_spline import replace_module
+from utils.curvature_tuning import replace_module
 from train import test_epoch
 from loguru import logger
 from utils.data import get_data_loaders

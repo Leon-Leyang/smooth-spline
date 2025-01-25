@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-from utils.smooth_spline import BetaAgg
+from utils.curvature_tuning import BetaAgg
 
 # Initialize variables for the plot
 x = torch.linspace(-5, 5, 500)  # Input range
