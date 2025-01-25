@@ -80,29 +80,35 @@ def compute_statistics(log_files, robustness=False):
         for dataset, values in combined_betas.items()
     }
 
-    # Compute normalized improvement for each dataset, exclude if baseline accuracy is 0
-    normalized_improvements = {
-        dataset: ((stats_new_accuracies[dataset][0] - stats_baseline_accuracies[dataset][0]) /
-                  stats_baseline_accuracies[dataset][0]) * 100
-        for dataset in stats_new_accuracies
-        if stats_baseline_accuracies[dataset][0] > 0
-    }
+    # Compute normalized improvement and absolute improvement
+    normalized_improvements = {}
+    absolute_improvements = {}
+    for dataset in stats_new_accuracies:
+        if stats_baseline_accuracies[dataset][0] > 0:
+            new_mean = stats_new_accuracies[dataset][0]
+            baseline_mean = stats_baseline_accuracies[dataset][0]
+            normalized_improvements[dataset] = ((new_mean - baseline_mean) / baseline_mean) * 100
+            absolute_improvements[dataset] = new_mean - baseline_mean
 
-    # Compute overall normalized improvement across all valid datasets
-    total_normalized_improvement = (
+    # Compute overall improvements
+    overall_normalized_improvement = (
         sum(normalized_improvements.values()) / len(normalized_improvements)
         if normalized_improvements else 0
     )
+    overall_absolute_improvement = (
+        sum(absolute_improvements.values()) / len(absolute_improvements)
+        if absolute_improvements else 0
+    )
 
-    return stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, total_normalized_improvement
+    return stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, absolute_improvements, overall_normalized_improvement, overall_absolute_improvement
 
 
 if __name__ == "__main__":
     # Input: List of log file paths
     log_files = [
-        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed42.log",
-        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed43.log",
-        "./logs/post_replace_classification_lp_replace_coeff1.0_topk1_reg1_seed44.log"
+        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed42.log",
+        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed43.log",
+        "./logs/post_replace_classification_lp_replace_coeff0.5_topk1_reg1_seed44.log"
     ]
 
     # Ensure files exist
@@ -112,30 +118,34 @@ if __name__ == "__main__":
             exit(1)
 
     # Compute statistics for standard accuracy
-    stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, total_normalized_improvement = compute_statistics(
+    stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, absolute_improvements, overall_normalized_improvement, overall_absolute_improvement = compute_statistics(
         log_files, robustness=False)
 
-    print("Standard Accuracy, Beta Statistics, and Normalized Improvements:")
+    print("Standard Accuracy, Beta Statistics, Normalized and Absolute Improvements:")
     for dataset in stats_new_accuracies:
         new_mean, new_std = stats_new_accuracies[dataset]
         baseline_mean, baseline_std = stats_baseline_accuracies.get(dataset, (0, 0))
         beta_mean, beta_std = stats_betas.get(dataset, (0, 0))
         normalized_improvement = normalized_improvements.get(dataset, 0)
-        print(f"Dataset: {dataset}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%")
+        absolute_improvement = absolute_improvements.get(dataset, 0)
+        print(f"Dataset: {dataset}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%, Absolute Improvement: {absolute_improvement:.2f}")
 
-    print(f"Overall Normalized Improvement Across All Datasets: {total_normalized_improvement:.2f}%")
+    print(f"Overall Normalized Improvement Across All Datasets: {overall_normalized_improvement:.2f}%")
+    print(f"Overall Average Absolute Improvement Across All Datasets: {overall_absolute_improvement:.2f}%")
 
     # Compute statistics for robust accuracy
-    stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, total_normalized_improvement = compute_statistics(
+    stats_new_accuracies, stats_baseline_accuracies, stats_betas, normalized_improvements, absolute_improvements, overall_normalized_improvement, overall_absolute_improvement = compute_statistics(
         log_files, robustness=True)
 
     print("\n")
-    print("Robust Accuracy, Beta Statistics, and Normalized Improvements:")
+    print("Robust Accuracy, Beta Statistics, Normalized and Absolute Improvements:")
     for dataset in stats_new_accuracies:
         new_mean, new_std = stats_new_accuracies[dataset]
         baseline_mean, baseline_std = stats_baseline_accuracies.get(dataset, (0, 0))
         beta_mean, beta_std = stats_betas.get(dataset, (0, 0))
         normalized_improvement = normalized_improvements.get(dataset, 0)
-        print(f"Dataset: {dataset}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%")
+        absolute_improvement = absolute_improvements.get(dataset, 0)
+        print(f"Dataset: {dataset}, Beta: {beta_mean:.2f} ± {beta_std:.2f}, New Accuracy: {new_mean:.2f} ± {new_std:.2f}, Baseline Accuracy: {baseline_mean:.2f} ± {baseline_std:.2f}, Normalized Improvement: {normalized_improvement:.2f}%, Absolute Improvement: {absolute_improvement:.2f}")
 
-    print(f"Overall Normalized Improvement Across All Datasets: {total_normalized_improvement:.2f}%")
+    print(f"Overall Normalized Improvement Across All Datasets: {overall_normalized_improvement:.2f}%")
+    print(f"Overall Average Absolute Improvement Across All Datasets: {overall_absolute_improvement:.2f}%")
