@@ -165,6 +165,11 @@ def extract_features(feature_extractor, dataloader):
     labels = []
     with torch.no_grad():
         for inputs, targets in dataloader:
+            if isinstance(targets, list) and isinstance(targets[0], torch.Tensor):  # Hack for handling celeb_a
+                targets = torch.stack(targets, dim=0)  # shape: (40, batch_size)
+                targets = targets.T
+                targets = targets.float()  # ensure float if needed
+
             inputs = inputs.to(device)
             feature = feature_extractor(inputs)
             features.append(feature.cpu().numpy())
@@ -209,6 +214,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk)
     if transfer_ds == 'celeb_a':
         base_acc = test_ma(transfer_model, test_loader, device)
+        logger.debug(f'Mean Accuracy: {base_acc:.2f}%')
     else:
         _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
     best_acc = base_acc
@@ -221,6 +227,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
         transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk)
         if transfer_ds == 'celeb_a':
             test_acc = test_ma(transfer_model, test_loader, device)
+            logger.debug(f'Mean Accuracy: {test_acc:.2f}%')
         else:
             _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
         if test_acc > best_acc:
@@ -266,6 +273,11 @@ def test_ma(model, testloader, device='cuda'):
 
     with torch.no_grad():
         for inputs, targets in testloader:
+            if isinstance(targets, list) and isinstance(targets[0], torch.Tensor):  # Hack for handling celeb_a
+                targets = torch.stack(targets, dim=0)  # shape: (40, batch_size)
+                targets = targets.T
+                targets = targets.float()  # ensure float if needed
+
             inputs = inputs.to(device)
             logits = model(inputs)
             probs = torch.sigmoid(logits).cpu()
