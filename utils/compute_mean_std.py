@@ -49,7 +49,7 @@ def compute_dataset_mean_std(dataset, image_key="image"):
 def main(ds_name):
     # Replace with the path to your dataset script and the split name
     name = ds_name if '/' not in ds_name else ds_name.split('/')[0]
-    dataset_path = f"/users/hleyang/data/hleyang/smooth-spline/utils/aidatasets/images/{name}.py"
+    dataset_path = f"/Users/leonl/Desktop/smooth-spline/utils/aidatasets/images/{name}.py"
     dataset_split = "train"
     image_key = "image"
 
@@ -69,6 +69,6 @@ def main(ds_name):
 
 # Example usage
 if __name__ == "__main__":
-    ds = ["arabic_characters", "fgvc_aircraft", "flowers102", "fashion_mnist", "med_mnist/pathmnist"]
+    ds = ["dsprites"]
     for dataset in ds:
         main(dataset)

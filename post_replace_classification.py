@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.multioutput import MultiOutputClassifier
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_acc_vs_beta
 from utils.curvature_tuning import replace_module
@@ -95,7 +95,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     feature_extractor = FeatureExtractor(model, topk)
     train_features, train_labels = extract_features(feature_extractor, train_loader)
 
-    num_classes = 100 if transfer_ds == 'cifar100' else 1000 if transfer_ds == 'imagenet' else 40 if transfer_ds == 'celeb_a' else 10
+    num_classes = 100 if transfer_ds == 'cifar100' else 1000 if transfer_ds == 'imagenet' else 40 if transfer_ds == 'celeb_a' else 1 if transfer_ds == 'dsprites' else 10
 
     # Linear probe
     if topk == 1:
@@ -114,6 +114,15 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
             fc = nn.Linear(W.shape[1], 40).to(device)
             fc.weight.data = torch.from_numpy(W).float().to(device)
             fc.bias.data = torch.from_numpy(b).float().to(device)
+            fc.weight.requires_grad = False
+            fc.bias.requires_grad = False
+        elif transfer_ds == 'dsprites':
+            linear_regressor = LinearRegression()
+            linear_regressor.fit(train_features, train_labels)
+
+            fc = nn.Linear(linear_regressor.coef_.shape[1], num_classes).to(device)
+            fc.weight.data = torch.tensor(linear_regressor.coef_, dtype=torch.float).view(1, -1).to(device)
+            fc.bias.data = torch.tensor(linear_regressor.intercept_, dtype=torch.float).view(1).to(device)
             fc.weight.requires_grad = False
             fc.bias.requires_grad = False
         else:
@@ -215,6 +224,9 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     if transfer_ds == 'celeb_a':
         base_acc = test_ma(transfer_model, test_loader, device)
         logger.debug(f'Mean Accuracy: {base_acc:.2f}%')
+    elif transfer_ds == 'dsprites':
+        base_acc = test_mse(transfer_model, test_loader, device)
+        logger.debug(f'Mean Squared Error: {base_acc:.4f}')
     else:
         _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
     best_acc = base_acc
@@ -228,17 +240,29 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
         if transfer_ds == 'celeb_a':
             test_acc = test_ma(transfer_model, test_loader, device)
             logger.debug(f'Mean Accuracy: {test_acc:.2f}%')
+        elif transfer_ds == 'dsprites':
+            test_acc = test_mse(transfer_model, test_loader, device)
+            logger.debug(f'Mean Squared Error: {test_acc:.4f}')
         else:
             _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
-        if test_acc > best_acc:
-            best_acc = test_acc
-            best_beta = beta
+        if transfer_ds == 'dsprites':
+            if test_acc < best_acc:     # Actually MSE here
+                best_acc = test_acc
+                best_beta = beta
+        else:
+            if test_acc > best_acc:
+                best_acc = test_acc
+                best_beta = beta
         acc_list.append(test_acc)
         beta_list.append(beta)
     acc_list.append(base_acc)
     beta_list.append(1)
-    logger.info(
-        f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
+    if transfer_ds == 'dsprites':
+        logger.info(
+            f'Best MSE for {dataset}_replace_lp: {best_acc:.4f} with beta={best_beta:.2f}, compared to ReLU MSE: {base_acc:.4f}')
+    else:
+        logger.info(
+            f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_acc:.2f}')
 
     plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
 
@@ -302,6 +326,32 @@ def test_ma(model, testloader, device='cuda'):
 
     mA = acc_by_attr.mean().item()  # mean accuracy across attributes
     return mA * 100.0
+
+
+def test_mse(model, testloader, device='cuda'):
+    """
+    Computes Mean Squared Error (MSE) for regression tasks.
+    """
+    model.eval()
+    all_preds = []
+    all_targets = []
+
+    with torch.no_grad():
+        for inputs, targets in testloader:
+            inputs = inputs.to(device)
+            targets = targets.to(device).float()  # Ensure targets are floats
+            preds = model(inputs).cpu()  # Get model predictions
+
+            all_preds.append(preds)
+            all_targets.append(targets.cpu())
+
+    # Concatenate all batches
+    all_preds = torch.cat(all_preds, dim=0)  # shape: (N,)
+    all_targets = torch.cat(all_targets, dim=0)  # shape: (N,)
+
+    # Compute Mean Squared Error (MSE)
+    mse = torch.mean((all_preds - all_targets) ** 2).item()
+    return mse
 
 
 def get_args():
