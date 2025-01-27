@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet18, resnet152
+from torchvision.models import resnet18, resnet50, resnet152
 
 
 # -----------------------
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     # -------------
 
     # Load pretrained ResNet152
-    model = resnet152()
+    model = resnet50()
 
     # LoRA rank and alpha
     lora_rank = 4
