@@ -46,7 +46,7 @@ def generate_spiral_data(n_points, noise=0.5, n_turns=3, label_flip=0.05):
     return X, y
 
 
-def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim):
+def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim, color='red'):
     """
     Plot decision boundary and data points on a single axis.
 
@@ -60,7 +60,9 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim):
     - mesh_dim: Dimension of the meshgrid.
     """
     # Map target values to colors and labels
-    colors = ["purple" if t == 0 else "orange" for t in target.cpu().numpy()]
+    fontsize = 10
+
+    colors = ["olive" if t == 0 else "palevioletred" for t in target.cpu().numpy()]
     labels = ["Class 1" if t == 0 else "Class 2" for t in target.cpu().numpy()]
 
     # Plot data points with unique labels for the legend
@@ -82,28 +84,18 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim):
         yy,
         pred[:, 0].reshape((mesh_dim, mesh_dim)),
         levels=[0],
-        colors=["red"],
-        linewidths=[2.5],
+        colors=[color],
+        linewidths=[5],
     )
 
-    # Create a custom legend entry for the decision boundary
-    decision_boundary_line = mlines.Line2D([], [], color="red", linestyle="-", label="Decision Boundary")
-
-    # Get existing legend handles and labels
-    handles, labels = ax.get_legend_handles_labels()
-
-    # Add custom decision boundary handle to the existing legend
-    handles.append(decision_boundary_line)
-    ax.legend(handles=handles, loc="upper right")
-
-    ax.set_title(title)
+    ax.set_title(title, fontsize=20)
     ax.set_xticks([])
     ax.set_yticks([])
 
 
 # Use the helper function in the plotting loop
 def plot_classification_bond(
-    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, label_flip=0.05, c=0.5
+    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, label_flip=0.05, c=0.5, colors=None
 ) -> None:
     """
     Plot the decision boundary of the model for BetaSwish, BetaSoftplus, and BetaAgg.
@@ -164,7 +156,7 @@ def plot_classification_bond(
     # Create subplots
     num_cols = len(beta_vals) + 1  # Include one column for the ReLU baseline
     num_rows = len(activation_configs)
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(10 * num_cols, 10 * num_rows))
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(5 * num_cols, 5 * num_rows))
     if num_rows == 1:
         axs = np.expand_dims(axs, axis=0)
     if num_cols == 1:
@@ -174,7 +166,7 @@ def plot_classification_bond(
         with torch.no_grad():
             pred = relu_model(grid).cpu().numpy()
         plot_decision_boundary(
-            axs[row, 0], points, target, xx, yy, pred, "Before Smooth Spline (ReLU)", mesh_dim
+            axs[row, 0], points, target, xx, yy, pred, None, mesh_dim, colors[0]
         )
 
         # Plot for each beta
@@ -189,19 +181,22 @@ def plot_classification_bond(
                 xx,
                 yy,
                 pred,
-                f"After Smooth Spline",
+                None,
                 mesh_dim,
+                colors[col],
             )
 
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
     os.makedirs('./figures', exist_ok=True)
-    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_classification.png')
+    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_classification.svg')
     plt.show()
 
 
 if __name__ == "__main__":
-    beta_vals = [0.5]  # Define beta values for BetaReLU
+    beta_vals = [0.9, 0.5]
+    cmap = plt.colormaps["Dark2"]
+    colors = [cmap(2), cmap(1), cmap(0)]
     width = 20
     depth = 2
     training_steps = 2000
@@ -213,4 +208,4 @@ if __name__ == "__main__":
     f_name = get_file_name(__file__)
     set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_noise{noise}_turns{n_turns}_coeff{coeff}_seed42')
     fix_seed(42)
-    plot_classification_bond(width, depth, training_steps, beta_vals, noise, n_turns, label_flip, coeff)
+    plot_classification_bond(width, depth, training_steps, beta_vals, noise, n_turns, label_flip, coeff, colors=colors)
