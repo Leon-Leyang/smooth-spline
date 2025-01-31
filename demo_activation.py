@@ -4,7 +4,7 @@ from utils.curvature_tuning import BetaAgg
 
 
 # Create a set of x-values over which to evaluate the activation
-x_vals = torch.linspace(-5, 5, steps=200)
+x_vals = torch.linspace(-0.6, 0.6, steps=200)
 
 # Plot for several beta values
 plt.figure(figsize=(7, 5))
@@ -21,25 +21,18 @@ for idx, b in enumerate(betas):
     with torch.no_grad():  # no need for gradients when just plotting
         y_vals = activation(x_vals)
 
-    if b == 0.9:
-        # Plot the bold curve (no label)
-        plt.plot(x_vals.numpy(), y_vals.numpy(), color=colors[idx], linewidth=5)
-
-        # Plot a duplicate, thinner curve only for the legend
-        plt.plot(x_vals.numpy(), y_vals.numpy(), color=colors[idx], linewidth=3, label=r"$\beta$" + f"={b:.1f}")
-    else:
-        plt.plot(x_vals.numpy(), y_vals.numpy(), color=colors[idx], label=r"$\beta$" + f"={b:.1f}", linewidth=3)
+    plt.plot(x_vals.numpy(), y_vals.numpy(), color=colors[idx], label=r"$\beta$" + f"={b:.1f}", linewidth=5, alpha=0.6)
 
 # Also plot ReLU for comparison
 relu = torch.nn.ReLU()
 with torch.no_grad():
     y_relu = relu(x_vals)
-plt.plot(x_vals.numpy(), y_relu.numpy(), color=colors[len(betas)], label=r"$\beta$" + f"=1.00 (ReLU)", linewidth=3)
+plt.plot(x_vals.numpy(), y_relu.numpy(), color=colors[len(betas)], label=r"$\beta$" + f"=1.0 (ReLU)", linewidth=5, alpha=0.6)
 
 fontsize = 20
 plt.legend(fontsize=fontsize)
-plt.xticks(fontsize=fontsize)
-plt.yticks(fontsize=fontsize)
+plt.xticks([-0.6, -0.3, 0, 0.3, 0.6], fontsize=fontsize)
+plt.yticks([0, 0.15, 0.3, 0.45, 0.6], fontsize=fontsize)
 plt.grid(True)
 plt.savefig("./figures/demo_act.svg", bbox_inches="tight")
 plt.show()
