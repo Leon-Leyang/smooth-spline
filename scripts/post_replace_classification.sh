@@ -9,7 +9,6 @@
 #SBATCH -o post_cls.log
 #SBATCH -e post_cls.log
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=leyang_hu@brown.edu
 
 # Load the necessary module
 module load miniconda3/23.11.0s

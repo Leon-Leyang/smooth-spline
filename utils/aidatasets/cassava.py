@@ -9,8 +9,6 @@ import urllib
 import numpy as np
 
 
-__author__ = "Randall Balestriero"
-
 
 class cassava:
     """Plant images classification.

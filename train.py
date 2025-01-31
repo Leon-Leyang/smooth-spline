@@ -107,7 +107,7 @@ def train(dataset, model_name):
     }
 
     logger.info(f'Training {model_name} on {dataset}...')
-    wandb.init(project='smooth-spline', entity='leyang_hu')
+    wandb.init(project='smooth-spline', entity='')
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 

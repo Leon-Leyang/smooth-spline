@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = "Randall Balestriero"
 import os
 import pickle, gzip
 import urllib.request

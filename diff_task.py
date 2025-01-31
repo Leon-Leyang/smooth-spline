@@ -135,7 +135,7 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
 
     args.start_epoch = start_epoch
     if main_process(args):
-        wandb.init(project='semseg', entity='leyang_hu')
+        wandb.init(project='semseg', entity='')
     for epoch in range(args.start_epoch, args.epochs):
         epoch_log = epoch + 1
         if args.distributed:

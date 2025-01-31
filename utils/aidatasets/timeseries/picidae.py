@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = "Randall Balestriero"
-
 import os
 import io
 from ..utils import download_dataset

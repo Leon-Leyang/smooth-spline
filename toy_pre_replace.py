@@ -9,7 +9,6 @@ from utils.curvature_tuning import replace_module
 from loguru import logger
 
 
-# Adapted from https://github.com/RandallBalestriero/POLICE
 def plot_classification_case(
     width: int, depth: int, training_steps=2000, beta=0.5, ax=None
 ) -> None:
