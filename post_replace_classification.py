@@ -5,6 +5,8 @@ from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robus
 from utils.data import get_data_loaders
 from sklearn.linear_model import LogisticRegression
 from sklearn.multioutput import MultiOutputClassifier
+
+from utils.metric import eval_multi_label, eval_mse
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_acc_vs_beta
 from utils.curvature_tuning import replace_module
 from train import test_epoch
@@ -213,8 +215,11 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     logger.debug('Using ReLU...')
     transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk)
     if transfer_ds == 'celeb_a':
-        base_acc = test_ma(transfer_model, test_loader, device)
+        base_acc = eval_multi_label(transfer_model, test_loader, device)
         logger.debug(f'Mean Accuracy: {base_acc:.2f}%')
+    elif transfer_ds == 'dsprites':
+        base_acc = eval_mse(transfer_model, test_loader, device)
+        logger.debug(f'Mean Squared Error: {base_acc:.4f}')
     else:
         _, base_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
     best_acc = base_acc
@@ -226,8 +231,11 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
         new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
         transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk)
         if transfer_ds == 'celeb_a':
-            test_acc = test_ma(transfer_model, test_loader, device)
+            test_acc = eval_multi_label(transfer_model, test_loader, device)
             logger.debug(f'Mean Accuracy: {test_acc:.2f}%')
+        elif transfer_ds == 'dsprites':
+            test_acc = eval_mse(transfer_model, test_loader, device)
+            logger.debug(f'Mean Squared Error: {test_acc:.4f}')
         else:
             _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
         if test_acc > best_acc:
@@ -261,47 +269,6 @@ def test_robustness(dataset, threat, beta_vals, coeff, seed, model_name, base_ba
     else:
         batch_size = base_batch_size
     replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed, batch_size=batch_size, model_name=model_name)
-
-
-def test_ma(model, testloader, device='cuda'):
-    """
-    Computes mean accuracy (mA) for multi-label classification.
-    """
-    model.eval()
-    all_preds = []
-    all_targets = []
-
-    with torch.no_grad():
-        for inputs, targets in testloader:
-            if isinstance(targets, list) and isinstance(targets[0], torch.Tensor):  # Hack for handling celeb_a
-                targets = torch.stack(targets, dim=0)  # shape: (40, batch_size)
-                targets = targets.T
-                targets = targets.float()  # ensure float if needed
-
-            inputs = inputs.to(device)
-            logits = model(inputs)
-            probs = torch.sigmoid(logits).cpu()
-
-            # Convert ground-truth from -1/+1 to 0/1:
-            targets_01 = (targets + 1) // 2
-
-            all_preds.append(probs)
-            all_targets.append(targets_01)
-
-    # Concatenate all batches
-    all_preds = torch.cat(all_preds, dim=0)  # shape: (N, 40)
-    all_targets = torch.cat(all_targets, dim=0)  # shape: (N, 40)
-
-    # Threshold at 0.5 to get binary predictions in {0,1}
-    pred_labels = (all_preds >= 0.5).float()
-
-    # Per-attribute accuracy => mean across attributes
-    correct_by_attr = (pred_labels == all_targets).float().sum(dim=0)  # shape: (40,)
-    total_samples = all_targets.size(0)
-    acc_by_attr = correct_by_attr / total_samples  # shape: (40,)
-
-    mA = acc_by_attr.mean().item()  # mean accuracy across attributes
-    return mA * 100.0
 
 
 def get_args():
