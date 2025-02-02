@@ -21,7 +21,7 @@ def generate_curve_data(n_points, noise=0.1):
 
 # Use the helper function in the plotting loop
 def plot_classification(
-    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.1, c=0.5
+    width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.1, c=0.5, colors=None
 ) -> None:
     """
     Plot the decision boundary of the model for BetaSwish, BetaSoftplus, and BetaAgg.
@@ -34,6 +34,8 @@ def plot_classification(
     - noise (float): Noise level for spiral data.
     - n_turns (int): Number of spiral turns.
     """
+    fontsize = 10
+
     N = 30  # Number of training points
 
     # Data generation
@@ -69,38 +71,35 @@ def plot_classification(
 
     # Create subplots
     num_cols = len(beta_vals) + 1  # Include one column for the ReLU baseline
-    fig, axs = plt.subplots(1, num_cols, figsize=(10 * num_cols, 5))
+    fig, axs = plt.subplots(1, num_cols, figsize=(5 * num_cols, 5))
 
     # Row configurations for each activation type
     for col, beta in enumerate([None] + beta_vals):
         if col == 0:
             model = relu_model
-            title = "Before Smooth Spline (ReLU)"
         else:
             model = replace_module(copy.deepcopy(relu_model), beta, coeff=c)
-            title = f"After Smooth Spline"
 
         with torch.no_grad():
             predictions = model(x_range_torch).squeeze().cpu().numpy()
 
         axs[col].scatter(X, y, label="Training Data", color="blue")
         axs[col].plot(x_range, true_curve, label="True Curve", color="black", linewidth=2.5)
-        axs[col].plot(x_range, predictions, label="Prediction", color="red", linewidth=2.5)
-        axs[col].set_title(title)
-        axs[col].set_xlabel("X")
-        axs[col].set_ylabel("y")
-        axs[col].set_aspect('equal', adjustable='box')
-        axs[col].legend()
+        axs[col].plot(x_range, predictions, label="Prediction", color=colors[col], linewidth=5)
+        axs[col].set_xticks([])
+        axs[col].set_yticks([])
 
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
     os.makedirs('./figures', exist_ok=True)
-    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_regression.png')
+    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_regression.svg')
     plt.show()
 
 
 if __name__ == "__main__":
-    beta_vals = [0.9]
+    beta_vals = [0.9, 0.5]
+    cmap = plt.colormaps["Dark2"]
+    colors = [cmap(2), cmap(1), cmap(0)]
     width = 64
     depth = 8
     training_steps = 20000
@@ -110,4 +109,4 @@ if __name__ == "__main__":
     f_name = get_file_name(__file__)
     set_logger(name=f'{f_name}_width{width}_depth{depth}_steps{training_steps}_coeff{coeff}_seed43')
     fix_seed(43)
-    plot_classification(width, depth, training_steps, beta_vals, noise, coeff)
+    plot_classification(width, depth, training_steps, beta_vals, noise, coeff, colors)

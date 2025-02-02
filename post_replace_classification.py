@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from utils.eval_post_replace import replace_and_test_acc, replace_and_test_robustness
 from utils.data import get_data_loaders
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.multioutput import MultiOutputClassifier
 
 from utils.metric import eval_multi_label, eval_mse
@@ -90,14 +90,17 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     logger.debug('Transfer learning with linear probe...')
 
     # Get the data loaders
-    train_loader, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}')
+    if transfer_ds == 'dsprites':
+        train_loader, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}', train_size=50000, test_size=10000)
+    else:
+        train_loader, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}')
 
     # Remove the last layer of the model
     model = model.to(device)
     feature_extractor = FeatureExtractor(model, topk)
     train_features, train_labels = extract_features(feature_extractor, train_loader)
 
-    num_classes = 100 if transfer_ds == 'cifar100' else 1000 if transfer_ds == 'imagenet' else 40 if transfer_ds == 'celeb_a' else 10
+    num_classes = 100 if transfer_ds == 'cifar100' else 1000 if transfer_ds == 'imagenet' else 40 if transfer_ds == 'celeb_a' else 1 if transfer_ds == 'dsprites' else 10
 
     # Linear probe
     if topk == 1:
@@ -116,6 +119,15 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
             fc = nn.Linear(W.shape[1], 40).to(device)
             fc.weight.data = torch.from_numpy(W).float().to(device)
             fc.bias.data = torch.from_numpy(b).float().to(device)
+            fc.weight.requires_grad = False
+            fc.bias.requires_grad = False
+        elif transfer_ds == 'dsprites':
+            linear_regressor = LinearRegression()
+            linear_regressor.fit(train_features, train_labels)
+
+            fc = nn.Linear(linear_regressor.coef_.shape[0], 1).to(device)
+            fc.weight.data = torch.tensor(linear_regressor.coef_, dtype=torch.float).unsqueeze(0).to(device)
+            fc.bias.data = torch.tensor(linear_regressor.intercept_, dtype=torch.float).view(1).to(device)
             fc.weight.requires_grad = False
             fc.bias.requires_grad = False
         else:
@@ -203,7 +215,10 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_name = model.__class__.__name__
 
-    _, test_loader = get_data_loaders(dataset)
+    if transfer_ds == 'dsprites':
+        _, test_loader = get_data_loaders(dataset, train_size=50000, test_size=10000)
+    else:
+        _, test_loader = get_data_loaders(dataset)
 
     logger.info(f'Running replace then linear probe accuracy test for {model_name} on {dataset}...')
     criterion = nn.CrossEntropyLoss()
@@ -238,15 +253,24 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
             logger.debug(f'Mean Squared Error: {test_acc:.4f}')
         else:
             _, test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
-        if test_acc > best_acc:
-            best_acc = test_acc
-            best_beta = beta
+        if transfer_ds == 'dsprites':
+            if test_acc < best_acc:     # Actually MSE here
+                best_acc = test_acc
+                best_beta = beta
+        else:
+            if test_acc > best_acc:
+                best_acc = test_acc
+                best_beta = beta
         acc_list.append(test_acc)
         beta_list.append(beta)
     acc_list.append(base_acc)
     beta_list.append(1)
-    logger.info(
-        f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.3f}, compared to ReLU accuracy: {base_acc:.2f}')
+    if transfer_ds == 'dsprites':
+        logger.info(
+            f'Best MSE for {dataset}_replace_lp: {best_acc:.4f} with beta={best_beta:.2f}, compared to ReLU MSE: {base_acc:.4f}')
+    else:
+        logger.info(
+            f'Best accuracy for {dataset}_replace_lp: {best_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_acc:.2f}')
 
     plot_acc_vs_beta(acc_list, beta_list, base_acc, f'{dataset}_replace_lp', model_name)
 

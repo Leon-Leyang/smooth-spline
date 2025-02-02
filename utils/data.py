@@ -25,6 +25,7 @@ NORMALIZATION_VALUES = {
     'med_mnist/octmnist': ([0.189, 0.189, 0.189], [0.196, 0.196, 0.196]),
     'med_mnist/dermamnist': ([0.763, 0.538, 0.561], [0.137, 0.154, 0.169]),
     'celeb_a': ([0.506, 0.426, 0.383], [0.311, 0.29, 0.29]),
+    'dsprites': ([0.0, 0.0, 0.0], [0.001, 0.001, 0.001]),
 }
 
 
@@ -60,7 +61,7 @@ def replicate_if_needed(x):
     return x  # Return unchanged if already has more than 1 channel
 
 
-def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None, num_workers=6, transform_train=None, transform_test=None):
+def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None, test_size=None, num_workers=6, transform_train=None, transform_test=None):
     """
     Get the data loaders for the dataset.
     """
@@ -90,7 +91,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
                 transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
             ])
         elif transform_to_use in ['mnist', 'fashion_mnist', 'med_mnist/pathmnist', 'med_mnist/octmnist',
-                                  'med_mnist/dermamnist']:
+                                  'med_mnist/dermamnist', 'dsprites']:
             transform_train = transforms.Compose([
                 transforms.Resize(28),
                 transforms.ToTensor(),
@@ -139,7 +140,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         trainset = None
         testset = torchvision.datasets.ImageNet(
             root='./data/imagenet', split='val', transform=transform_test)
-    elif dataset_to_use in ['arabic_characters', 'fashion_mnist', 'arabic_digits', 'cub200', 'food101']:
+    elif dataset_to_use in ['arabic_characters', 'fashion_mnist', 'arabic_digits', 'cub200', 'food101', 'dsprites']:
         hf_trainset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="train", trust_remote_code=True)
         hf_testset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="test", trust_remote_code=True)
         trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
@@ -163,8 +164,11 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
         raise NotImplementedError(f'The specified dataset {dataset_to_use} is not implemented.')
 
     if train_size is not None:
-        indices = np.random.choice(len(trainset), train_size, replace=False)
+        indices = np.random.choice(len(trainset), train_size, replace=False).tolist()
         trainset = Subset(trainset, indices)
+    if test_size is not None:
+        indices = np.random.choice(len(testset), test_size, replace=False).tolist()
+        testset = Subset(testset, indices)
 
     if dataset_to_use != 'imagenet':
        trainloader = torch.utils.data.DataLoader(
