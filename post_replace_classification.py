@@ -230,8 +230,12 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     logger.debug('Using ReLU...')
     transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk)
     if transfer_ds == 'celeb_a':
-        base_acc = eval_multi_label(transfer_model, test_loader, device)
+        base_acc, acc_by_attr, f1_by_attr, balanced_acc_by_attr, TP, FP, TN, FN = eval_multi_label(transfer_model, test_loader, device)
         logger.debug(f'Mean Accuracy: {base_acc:.2f}%')
+        logger.debug(f'Per-attribute Accuracy: {acc_by_attr:.2f}%')
+        logger.debug(f'Per-attribute F1 Score: {f1_by_attr:.2f}%')
+        logger.debug(f'Per-attribute Balanced Accuracy: {balanced_acc_by_attr:.2f}%')
+        logger.debug(f'TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}')
     elif transfer_ds == 'dsprites':
         base_acc = eval_mse(transfer_model, test_loader, device)
         logger.debug(f'Mean Squared Error: {base_acc:.4f}')
@@ -246,8 +250,12 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
         new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
         transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk)
         if transfer_ds == 'celeb_a':
-            test_acc = eval_multi_label(transfer_model, test_loader, device)
+            test_acc, acc_by_attr, f1_by_attr, balanced_acc_by_attr, TP, FP, TN, FN = eval_multi_label(transfer_model, test_loader, device)
             logger.debug(f'Mean Accuracy: {test_acc:.2f}%')
+            logger.debug(f'Per-attribute Accuracy: {acc_by_attr:.2f}%')
+            logger.debug(f'Per-attribute F1 Score: {f1_by_attr:.2f}%')
+            logger.debug(f'Per-attribute Balanced Accuracy: {balanced_acc_by_attr:.2f}%')
+            logger.debug(f'TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}')
         elif transfer_ds == 'dsprites':
             test_acc = eval_mse(transfer_model, test_loader, device)
             logger.debug(f'Mean Squared Error: {test_acc:.4f}')
