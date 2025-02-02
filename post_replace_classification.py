@@ -231,11 +231,24 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk)
     if transfer_ds == 'celeb_a':
         base_acc, acc_by_attr, f1_by_attr, balanced_acc_by_attr, TP, FP, TN, FN = eval_multi_label(transfer_model, test_loader, device)
+
+        # Convert each tensor to a list and format each element
+        acc_str = ", ".join([f"{x:.2f}" for x in acc_by_attr.tolist()])
+        f1_str = ", ".join([f"{x:.2f}" for x in f1_by_attr.tolist()])
+        balanced_acc_str = ", ".join([f"{x:.2f}" for x in balanced_acc_by_attr.tolist()])
+        tp_str = ", ".join([str(x) for x in TP.tolist()])
+        fp_str = ", ".join([str(x) for x in FP.tolist()])
+        tn_str = ", ".join([str(x) for x in TN.tolist()])
+        fn_str = ", ".join([str(x) for x in FN.tolist()])
+
         logger.debug(f'Mean Accuracy: {base_acc:.2f}%')
-        logger.debug(f'Per-attribute Accuracy: {acc_by_attr:.2f}%')
-        logger.debug(f'Per-attribute F1 Score: {f1_by_attr:.2f}%')
-        logger.debug(f'Per-attribute Balanced Accuracy: {balanced_acc_by_attr:.2f}%')
-        logger.debug(f'TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}')
+        logger.debug(f'Per-attribute Accuracy: {acc_str}%')
+        logger.debug(f'Per-attribute F1 Score: {f1_str}%')
+        logger.debug(f'Per-attribute Balanced Accuracy: {balanced_acc_str}%')
+        logger.debug(f'TP: {tp_str}')
+        logger.debug(f'FP: {fp_str}')
+        logger.debug(f'TN: {tn_str}')
+        logger.debug(f'FN: {fn_str}')
     elif transfer_ds == 'dsprites':
         base_acc = eval_mse(transfer_model, test_loader, device)
         logger.debug(f'Mean Squared Error: {base_acc:.4f}')
@@ -251,11 +264,24 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
         transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk)
         if transfer_ds == 'celeb_a':
             test_acc, acc_by_attr, f1_by_attr, balanced_acc_by_attr, TP, FP, TN, FN = eval_multi_label(transfer_model, test_loader, device)
+
+            # Convert each tensor to a list and format each element
+            acc_str = ", ".join([f"{x:.2f}" for x in acc_by_attr.tolist()])
+            f1_str = ", ".join([f"{x:.2f}" for x in f1_by_attr.tolist()])
+            balanced_acc_str = ", ".join([f"{x:.2f}" for x in balanced_acc_by_attr.tolist()])
+            tp_str = ", ".join([str(x) for x in TP.tolist()])
+            fp_str = ", ".join([str(x) for x in FP.tolist()])
+            tn_str = ", ".join([str(x) for x in TN.tolist()])
+            fn_str = ", ".join([str(x) for x in FN.tolist()])
+
             logger.debug(f'Mean Accuracy: {test_acc:.2f}%')
-            logger.debug(f'Per-attribute Accuracy: {acc_by_attr:.2f}%')
-            logger.debug(f'Per-attribute F1 Score: {f1_by_attr:.2f}%')
-            logger.debug(f'Per-attribute Balanced Accuracy: {balanced_acc_by_attr:.2f}%')
-            logger.debug(f'TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}')
+            logger.debug(f'Per-attribute Accuracy: {acc_str}%')
+            logger.debug(f'Per-attribute F1 Score: {f1_str}%')
+            logger.debug(f'Per-attribute Balanced Accuracy: {balanced_acc_str}%')
+            logger.debug(f'TP: {tp_str}')
+            logger.debug(f'FP: {fp_str}')
+            logger.debug(f'TN: {tn_str}')
+            logger.debug(f'FN: {fn_str}')
         elif transfer_ds == 'dsprites':
             test_acc = eval_mse(transfer_model, test_loader, device)
             logger.debug(f'Mean Squared Error: {test_acc:.4f}')
