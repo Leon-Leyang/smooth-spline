@@ -33,12 +33,7 @@ class ReplacementMapping:
 
     def __call__(self, module):
         if isinstance(module, self.old_module):
-            # Check if new_module requires arguments before passing kwargs
-            signature = inspect.signature(self.new_module)
-            if any(param.default == param.empty for param in signature.parameters.values()):
-                return self.new_module(**self.kwargs)  # If args needed
-            else:
-                return self.new_module()  # If no args needed
+            return self.new_module(**self.kwargs)
         return module
 
 
