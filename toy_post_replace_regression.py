@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.curvature_tuning import replace_module
+from utils.curvature_tuning import replace_module, BetaAgg
 from loguru import logger
 
 
@@ -78,7 +78,7 @@ def plot_classification(
         if col == 0:
             model = relu_model
         else:
-            model = replace_module(copy.deepcopy(relu_model), beta, coeff=c)
+            model = replace_module(copy.deepcopy(relu_model), nn.ReLU, BetaAgg, beta=beta, coeff=c)
 
         with torch.no_grad():
             predictions = model(x_range_torch).squeeze().cpu().numpy()

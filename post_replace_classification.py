@@ -8,7 +8,7 @@ from sklearn.multioutput import MultiOutputClassifier
 
 from utils.metric import eval_multi_label, eval_mse
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_acc_vs_beta
-from utils.curvature_tuning import replace_module
+from utils.curvature_tuning import replace_module, BetaAgg
 from train import test_epoch
 from loguru import logger
 import copy
@@ -260,7 +260,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.3f}')
-        new_model = replace_module(copy.deepcopy(model), beta, coeff=coeff)
+        new_model = replace_module(copy.deepcopy(model), nn.ReLU, BetaAgg, beta=beta, coeff=coeff)
         transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk)
         if transfer_ds == 'celeb_a':
             test_acc, acc_by_attr, f1_by_attr, balanced_acc_by_attr, TP, FP, TN, FN = eval_multi_label(transfer_model, test_loader, device)
