@@ -103,7 +103,6 @@ def train(dataset, model_name):
         'resnet50': resnet50,
         'resnet101': resnet101,
         'resnet152': resnet152,
-        'vgg19': vgg19
     }
 
     logger.info(f'Training {model_name} on {dataset}...')
@@ -118,19 +117,6 @@ def train(dataset, model_name):
 
     # Get the data loaders
     transform_train, transform_test = None, None
-    if model_name == 'vgg19' and dataset == 'mnist':
-        transform_train = transforms.Compose([
-            transforms.Resize(32),  # Hack for avoiding too small images for VGG
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES['mnist'])
-        ])
-        transform_test = transforms.Compose([
-            transforms.Resize(32),  # Hack for avoiding too small images for VGG
-            transforms.ToTensor(),
-            transforms.Lambda(replicate_if_needed),  # Apply conditional replication
-            transforms.Normalize(*NORMALIZATION_VALUES['mnist'])
-        ])
 
     train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, transform_train=transform_train, transform_test=transform_test)
 
@@ -187,7 +173,7 @@ def train(dataset, model_name):
 def get_args():
     parser = argparse.ArgumentParser(description='Train a model on the specified dataset.')
     parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to train on, e.g., cifar10/cifar100')
-    parser.add_argument('--model', type=str, default='resnet18', help='Model to train, e.g., resnet18/vgg16')
+    parser.add_argument('--model', type=str, default='resnet18', help='Model to train, e.g., resnet18')
     return parser.parse_args()
 
 
