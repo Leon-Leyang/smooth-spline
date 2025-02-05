@@ -2,12 +2,13 @@ import os
 import wandb
 from torch import optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
+from torchvision.models import swin_t
 from utils.model import *
 from utils.utils import set_logger, get_file_name
+from utils.curvature_tuning import replace_module
 from loguru import logger
-from utils.data import get_data_loaders, replicate_if_needed, NORMALIZATION_VALUES
+from utils.data import get_data_loaders
 import argparse
-from torchvision import transforms as transforms
 
 
 def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_scheduler):
@@ -92,7 +93,7 @@ class WarmUpLR(_LRScheduler):
         return [base_lr * self.last_epoch / (self.total_iters + 1e-8) for base_lr in self.base_lrs]
 
 
-def train(dataset, model_name):
+def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=None):
     """
     Train the model on the specified dataset.
     :param dataset: dataset to train on, e.g., cifar10/cifar100
@@ -103,6 +104,7 @@ def train(dataset, model_name):
         'resnet50': resnet50,
         'resnet101': resnet101,
         'resnet152': resnet152,
+        'swin_t': swin_t,
     }
 
     logger.info(f'Training {model_name} on {dataset}...')
@@ -111,9 +113,9 @@ def train(dataset, model_name):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # Hyperparameters
-    batch_size = 128
-    learning_rate = 0.1
-    num_epochs = 200 if dataset != 'mnist' else 10
+    batch_size = 128 if batch_size is None else batch_size
+    learning_rate = 0.1 if learning_rate is None else learning_rate
+    num_epochs = num_epochs if num_epochs is not None else 200 if dataset != 'mnist' else 10
 
     # Get the data loaders
     transform_train, transform_test = None, None
@@ -123,7 +125,13 @@ def train(dataset, model_name):
     # Initialize the model
     num_classes = 100 if 'cifar100' in dataset else 10
 
-    model = name_to_model[model_name](num_classes=num_classes)
+    if model_name != 'swin_t':
+        model = name_to_model[model_name](num_classes=num_classes)
+    else:
+        model = name_to_model[model_name]()
+        model.head = nn.Linear(model.head.in_features, num_classes)
+        model = replace_module(model, old_module=nn.GELU, new_module=nn.ReLU)
+
     model = model.to(device)
 
     # Create the checkpoint folder
@@ -172,8 +180,11 @@ def train(dataset, model_name):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train a model on the specified dataset.')
-    parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to train on, e.g., cifar10/cifar100')
+    parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to train on, e.g., cifar10/cifar100/imagenette')
     parser.add_argument('--model', type=str, default='resnet18', help='Model to train, e.g., resnet18')
+    parser.add_argument('--batch_size', type=int, default=None, help='Batch size')
+    parser.add_argument('--learning_rate', type=float, default=None, help='Learning rate')
+    parser.add_argument('--num_epochs', type=int, default=None, help='Number of epochs')
     return parser.parse_args()
 
 
@@ -182,4 +193,4 @@ if __name__ == '__main__':
 
     f_name = get_file_name(__file__)
     set_logger(name=f'{f_name}_{args.dataset}_{args.model}')
-    train(args.dataset, args.model)
+    train(args.dataset, args.model, args.batch_size, args.learning_rate, args.num_epochs)
