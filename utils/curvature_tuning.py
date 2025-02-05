@@ -1,9 +1,10 @@
 import torch
-from torch import nn as nn
+from torch import nn
+import inspect
 
 
 class BetaAgg(nn.Module):
-    def __init__(self, beta=0, coeff=0.5, threshold=20,  trainable=False):
+    def __init__(self, beta=0, coeff=0.5, threshold=20, trainable=False):
         assert 0 <= beta < 1
         super().__init__()
         self.beta = nn.Parameter(torch.tensor(beta))
@@ -25,30 +26,40 @@ class BetaAgg(nn.Module):
 
 
 class ReplacementMapping:
-    def __init__(self, beta=0.5, coeff=0.5):
-        self.beta = beta
-        self.coeff = coeff
+    def __init__(self, old_module, new_module, **kwargs):
+        self.old_module = old_module
+        self.new_module = new_module
+        self.kwargs = kwargs
 
     def __call__(self, module):
-        if isinstance(module, torch.nn.ReLU):
-            return BetaAgg(beta=self.beta, coeff=self.coeff)
+        if isinstance(module, self.old_module):
+            # Check if new_module requires arguments before passing kwargs
+            signature = inspect.signature(self.new_module)
+            if any(param.default == param.empty for param in signature.parameters.values()):
+                return self.new_module(**self.kwargs)  # If args needed
+            else:
+                return self.new_module()  # If no args needed
         return module
 
 
-def replace_module(model, beta, coeff=0.5):
-    replacement_mapping = ReplacementMapping(beta=beta, coeff=coeff)
+def replace_module(model, old_module=nn.ReLU, new_module=BetaAgg, **kwargs):
+    if not isinstance(model, nn.Module):
+        raise ValueError("Expected model to be an instance of torch.nn.Module")
 
-    if not isinstance(model, torch.nn.Module):
-        raise ValueError("Torch.nn.Module expected as input")
-    device = next(model.parameters()).device
+    replacement_mapping = ReplacementMapping(old_module, new_module, **kwargs)
+
+    device = next(model.parameters(), torch.tensor([])).device  # Handle models with no parameters
+
     for name, module in model.named_modules():
         if name == "":
             continue
         replacement = replacement_mapping(module).to(device)
+
+        # Traverse module hierarchy to assign new module
         module_names = name.split(".")
-        # we go down the tree up to the parent
         parent = model
         for name in module_names[:-1]:
             parent = getattr(parent, name)
         setattr(parent, module_names[-1], replacement)
+
     return model
