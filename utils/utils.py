@@ -1,12 +1,14 @@
 import os
 import sys
 import torchvision
+from torchvision.models import swin_t
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from utils.model import *
 import numpy as np
 from loguru import logger
 import random
+from utils.curvature_tuning import replace_module
 
 
 class MLP(nn.Module):
@@ -46,7 +48,7 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
         'resnet50': resnet50,
         'resnet101': resnet101,
         'resnet152': resnet152,
-        'vgg19': vgg19
+        'swin_t': swin_t,
     }
     name_to_model_imagenet = {
         'resnet18': torchvision.models.resnet18,
@@ -66,6 +68,16 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
         num_classes = 10
         model = name_to_model[model_name](num_classes=num_classes).to(device)
         model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'{model_name}_{pretrained_ds}_epoch10.pth'), weights_only=True))
+    elif pretrained_ds == 'imagenette':
+        num_classes = 10
+        if model_name == 'swin_t':
+            model = name_to_model[model_name](num_classes=num_classes).to(device)
+            model.head = nn.Linear(model.head.in_features, num_classes)
+            model = replace_module(model, old_module=nn.GELU, new_module=nn.ReLU)
+            model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'{model_name}_{pretrained_ds}_epoch200.pth'), weights_only=True))
+        else:
+            model = name_to_model[model_name](num_classes=num_classes).to(device)
+            model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'{model_name}_{pretrained_ds}_epoch200.pth'), weights_only=True))
     elif pretrained_ds == 'imagenet':
         model = name_to_model_imagenet[model_name](weights='IMAGENET1K_V1').to(device)
 
