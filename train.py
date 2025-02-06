@@ -124,7 +124,7 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
     train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, transform_train=transform_train, transform_test=transform_test)
 
     # Initialize the model
-    num_classes = 100 if 'cifar100' in dataset else 10
+    num_classes = 100 if 'cifar100' in dataset or 'imagenet100' in dataset else 10
 
     if 'swin' not in model_name:
         model = name_to_model[model_name](num_classes=num_classes)
