@@ -26,7 +26,8 @@ NORMALIZATION_VALUES = {
     'med_mnist/dermamnist': ([0.763, 0.538, 0.561], [0.137, 0.154, 0.169]),
     'celeb_a': ([0.506, 0.426, 0.383], [0.311, 0.29, 0.29]),
     'dsprites': ([0.0, 0.0, 0.0], [0.001, 0.001, 0.001]),
-    'imagenette': ([0.459, 0.455, 0.429], [0.286, 0.282, 0.305])
+    'imagenette': ([0.459, 0.455, 0.429], [0.286, 0.282, 0.305]),
+    'imagenet100': ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 }
 
 
@@ -106,7 +107,7 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
                 transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
             ])
         elif transform_to_use in ['imagenet', 'fgvc_aircraft', 'places365_small', 'flowers102', 'beans', 'cub200',
-                                  'dtd', 'food101', 'celeb_a', 'imagenette']:
+                                  'dtd', 'food101', 'celeb_a', 'imagenette', 'imagenet100']:
             transform_train = transforms.Compose([
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
@@ -144,6 +145,11 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
     elif dataset_to_use in ['arabic_characters', 'fashion_mnist', 'arabic_digits', 'cub200', 'food101', 'dsprites', 'imagenette']:
         hf_trainset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="train", trust_remote_code=True)
         hf_testset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="test", trust_remote_code=True)
+        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+    elif dataset_to_use in ['imagenet100']:
+        hf_trainset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="train", trust_remote_code=True, cache_dir="/users/hleyang/scratch/cache")
+        hf_testset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="validation", trust_remote_code=True, cache_dir="/users/hleyang/scratch/cache")
         trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
         testset = HuggingFaceDataset(hf_testset, transform=transform_test)
     elif dataset_to_use in ['fgvc_aircraft', 'flowers102', 'beans', 'dtd', 'celeb_a']:

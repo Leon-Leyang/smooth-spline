@@ -2,7 +2,7 @@ import os
 import wandb
 from torch import optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
-from torchvision.models import swin_t
+from torchvision.models import swin_t, swin_s
 from utils.model import *
 from utils.utils import set_logger, get_file_name
 from utils.curvature_tuning import replace_module
@@ -105,6 +105,7 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
         'resnet101': resnet101,
         'resnet152': resnet152,
         'swin_t': swin_t,
+        'swin_s': swin_s
     }
 
     logger.info(f'Training {model_name} on {dataset}...')
@@ -125,7 +126,7 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
     # Initialize the model
     num_classes = 100 if 'cifar100' in dataset else 10
 
-    if model_name != 'swin_t':
+    if 'swin' not in model_name:
         model = name_to_model[model_name](num_classes=num_classes)
     else:
         model = name_to_model[model_name]()
