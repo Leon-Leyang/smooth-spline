@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.curvature_tuning import replace_module, BetaAgg
+from utils.curvature_tuning import replace_module, CT
 from loguru import logger
 
 
@@ -37,7 +37,7 @@ def plot_classification_case(
     model = MLP(2, 2, depth, width, nn.ReLU()).cuda()
     if beta != 1:
         logger.debug(f"Using BetaReLU with beta={beta}")
-        model = replace_module(model, nn.ReLU, BetaAgg, beta=beta, coeff=0.5)
+        model = replace_module(model, nn.ReLU, CT, beta=beta, coeff=0.5)
     else:
         logger.debug("Using ReLU")
     optim = torch.optim.AdamW(model.parameters(), 0.001, weight_decay=1e-5)

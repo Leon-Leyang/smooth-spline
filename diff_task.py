@@ -16,7 +16,7 @@ from utils.semseg.util import dataset, transform, config
 from utils.semseg.util.util import AverageMeter, intersectionAndUnion, intersectionAndUnionGPU, check_makedirs, \
     colorize, poly_learning_rate, find_free_port, main_process, check
 from utils.semseg.model.pspnet import PSPNet
-from utils.curvature_tuning import replace_module, BetaAgg
+from utils.curvature_tuning import replace_module, CT
 from utils.utils import get_file_name, set_logger, fix_seed
 from loguru import logger
 import wandb
@@ -63,7 +63,7 @@ def train_worker(gpu, ngpus_per_node, argss, beta):
     modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
     modules_new = [model.ppm, model.cls, model.aux]
     if beta != 1:
-        modules_ori = replace_module(nn.ModuleList(modules_ori), nn.ReLU, BetaAgg, beta=beta, coeff=0.5)
+        modules_ori = replace_module(nn.ModuleList(modules_ori), nn.ReLU, CT, beta=beta, coeff=0.5)
 
     params_list = []
     for module in modules_ori:  # Freeze the feature extractor
@@ -280,7 +280,7 @@ def main_test(beta):
         model = PSPNet(layers=args.layers, classes=args.classes, zoom_factor=args.zoom_factor)
         modules_ori = [model.layer0, model.layer1, model.layer2, model.layer3, model.layer4]
         if beta != 1:
-            replace_module(nn.ModuleList(modules_ori), nn.ReLU, BetaAgg, beta=beta, coeff=0.5)
+            replace_module(nn.ModuleList(modules_ori), nn.ReLU, CT, beta=beta, coeff=0.5)
             logger.debug(f"Replaced ReLU with BetaReLU, beta={beta: .2f}")
 
         model = torch.nn.DataParallel(model).cuda()

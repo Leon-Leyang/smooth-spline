@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.curvature_tuning import replace_module, BetaAgg
+from utils.curvature_tuning import replace_module, CT
 from loguru import logger
 
 
@@ -170,7 +170,7 @@ def plot_classification_bond(
 
         # Plot for each beta
         for col, beta in enumerate(beta_vals, start=1):
-            new_model = replace_module(copy.deepcopy(relu_model), nn.ReLU, BetaAgg, beta=beta, coeff=coeff)
+            new_model = replace_module(copy.deepcopy(relu_model), nn.ReLU, CT, beta=beta, coeff=coeff)
             with torch.no_grad():
                 pred = new_model(grid).cpu().numpy()
             plot_decision_boundary(

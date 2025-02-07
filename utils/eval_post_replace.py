@@ -7,7 +7,7 @@ from torch import nn as nn
 from torchvision import transforms as transforms
 from utils.robustbench import benchmark
 from utils.utils import plot_acc_vs_beta
-from utils.curvature_tuning import replace_module, BetaAgg
+from utils.curvature_tuning import replace_module, CT
 from train import test_epoch
 from loguru import logger
 from utils.data import get_data_loaders
@@ -37,7 +37,7 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5, model_name=""):
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.2f}')
-        new_model = replace_module(copy.deepcopy(model), nn.ReLU, BetaAgg, beta=beta, coeff=coeff)
+        new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=beta, coeff=coeff)
 
         # Register the hook for the top-k layer as copy.deepcopy does not copy hooks
         if hasattr(model, 'feature_extractor'):
@@ -139,7 +139,7 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using BetaReLU with beta={beta:.2f}')
         state_path = Path(state_path_format_str.format(beta=beta))
-        new_model = replace_module(copy.deepcopy(model), nn.ReLU, BetaAgg, beta=beta, coeff=coeff)
+        new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=beta, coeff=coeff)
         _, test_acc = benchmark(
             new_model, dataset=dataset, threat_model=threat, eps=threat_to_eps[threat], device=device,
             batch_size=batch_size, preprocessing=dataset_to_transform[dataset], n_examples=n_examples,

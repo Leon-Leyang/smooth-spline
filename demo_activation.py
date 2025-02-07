@@ -1,6 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
-from utils.curvature_tuning import BetaAgg
+from utils.curvature_tuning import CT
 
 
 # Create a set of x-values over which to evaluate the activation
@@ -15,7 +15,7 @@ colors = [cmap(0), cmap(1), cmap(2)]
 
 for idx, b in enumerate(betas):
     # Instantiate BetaAgg with the current beta
-    activation = BetaAgg(beta=b)
+    activation = CT(beta=b)
 
     # Forward pass: compute the output for all x_vals
     with torch.no_grad():  # no need for gradients when just plotting

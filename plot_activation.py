@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-from utils.curvature_tuning import BetaAgg
+from utils.curvature_tuning import CT
 
 # Initialize variables for the plot
 x = torch.linspace(-5, 5, 500)  # Input range
@@ -12,7 +12,7 @@ coeff = 0.5  # Fixed coefficient
 plt.figure(figsize=(10, 6))
 
 for beta in betas:
-    activation = BetaAgg(beta=beta, coeff=coeff, trainable=False)
+    activation = CT(beta=beta, coeff=coeff, trainable=False)
     y = activation(x).detach().numpy()
     plt.plot(x.numpy(), y, label=f'beta={beta:.2f}')
 

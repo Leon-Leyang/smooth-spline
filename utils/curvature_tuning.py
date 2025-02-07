@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 
-class BetaAgg(nn.Module):
+class CT(nn.Module):
     def __init__(self, beta=0, coeff=0.5, threshold=20, trainable=False):
         assert 0 <= beta < 1
         super().__init__()
@@ -36,7 +36,7 @@ class ReplacementMapping:
         return module
 
 
-def replace_module(model, old_module=nn.ReLU, new_module=BetaAgg, **kwargs):
+def replace_module(model, old_module=nn.ReLU, new_module=CT, **kwargs):
     if not isinstance(model, nn.Module):
         raise ValueError("Expected model to be an instance of torch.nn.Module")
 
