@@ -1,4 +1,6 @@
 import os
+import glob
+import re
 import wandb
 from torch import optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
@@ -120,7 +122,6 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
 
     # Get the data loaders
     transform_train, transform_test = None, None
-
     train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, transform_train=transform_train, transform_test=transform_test)
 
     # Initialize the model
@@ -137,7 +138,25 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
 
     # Create the checkpoint folder
     ckpt_folder = './ckpts'
-    os.makedirs(f'{ckpt_folder}', exist_ok=True)
+    os.makedirs(ckpt_folder, exist_ok=True)
+
+    # --- Checkpoint Loading Mechanism ---
+    # Look for checkpoint files that follow the pattern: {model_name}_{dataset}_epoch*.pth
+    checkpoint_pattern = os.path.join(ckpt_folder, f"{model_name}_{dataset}_epoch*.pth")
+    ckpt_files = glob.glob(checkpoint_pattern)
+    if ckpt_files:
+        # Extract epoch numbers from filenames and find the checkpoint with the highest epoch.
+        latest_ckpt = max(
+            ckpt_files,
+            key=lambda x: int(re.search(f"{model_name}_{dataset}_epoch(\\d+).pth", x).group(1))
+        )
+        latest_epoch = int(re.search(f"{model_name}_{dataset}_epoch(\\d+).pth", latest_ckpt).group(1))
+        logger.info(f"Loading checkpoint {latest_ckpt} from epoch {latest_epoch}...")
+        model.load_state_dict(torch.load(latest_ckpt))
+        start_epoch = latest_epoch + 1
+    else:
+        start_epoch = 1
+    # -------------------------------------
 
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -155,24 +174,26 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
 
     best_test_loss = float('inf')
 
-    # Train the model
-    for epoch in range(1, num_epochs + 1):
+    # Train the model starting from the last saved epoch (if any)
+    for epoch in range(start_epoch, num_epochs + 1):
         if epoch > 1:
-            if scheduler is not None:
-                scheduler.step(epoch)
+            scheduler.step(epoch)
 
         train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler)
         test_loss, _ = test_epoch(epoch, model, test_loader, criterion, device)
 
         # Save every 10 epochs
         if epoch % 10 == 0:
-            torch.save(model.state_dict(), os.path.join(ckpt_folder, f'{model_name}_{dataset}_epoch{epoch}.pth'))
+            ckpt_path = os.path.join(ckpt_folder, f'{model_name}_{dataset}_epoch{epoch}.pth')
+            torch.save(model.state_dict(), ckpt_path)
+            logger.info(f"Saved checkpoint: {ckpt_path}")
 
         # Save the model with the best test loss
         if test_loss < best_test_loss:
-            logger.debug(f'Find new best model at Epoch {epoch}')
+            logger.debug(f'Found new best model at Epoch {epoch}')
             best_test_loss = test_loss
-            torch.save(model.state_dict(), os.path.join(ckpt_folder, f'{model_name}_{dataset}_best.pth'))
+            best_ckpt_path = os.path.join(ckpt_folder, f'{model_name}_{dataset}_best.pth')
+            torch.save(model.state_dict(), best_ckpt_path)
 
     wandb.finish()
     logger.info(f'Finished training!')
