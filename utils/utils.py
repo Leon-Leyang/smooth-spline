@@ -1,7 +1,7 @@
 import os
 import sys
 import torchvision
-from torchvision.models import swin_t
+from torchvision.models import swin_t, swin_s
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from utils.model import *
@@ -49,6 +49,7 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
         'resnet101': resnet101,
         'resnet152': resnet152,
         'swin_t': swin_t,
+        'swin_s': swin_s
     }
     name_to_model_imagenet = {
         'resnet18': torchvision.models.resnet18,
@@ -70,7 +71,7 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
         model.load_state_dict(torch.load(os.path.join(ckpt_folder, f'{model_name}_{pretrained_ds}_epoch10.pth'), weights_only=True))
     elif pretrained_ds == 'imagenette':
         num_classes = 10
-        if model_name == 'swin_t':
+        if model_name == 'swin_t' or model_name == 'swin_s':
             model = name_to_model[model_name](num_classes=num_classes).to(device)
             model.head = nn.Linear(model.head.in_features, num_classes)
             model = replace_module(model, old_module=nn.GELU, new_module=nn.ReLU)
